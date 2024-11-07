@@ -1,5 +1,5 @@
-//#include "MonteCarlo.hpp"
-#include "test_class.hpp"
+#include "cross_s.hpp"
+#include "MonteCarlo.hpp"
 
 #include <iostream>
 #include <string>
@@ -247,3 +247,48 @@ std::pair<double,double> MonteCarlo::velocity2energy_in_ev(const std::vector<dou
     double E_in_eV =  0.5 * this->me *  abs_v * abs_v / this->q0;
     return std::make_pair(abs_v,E_in_eV);
 }
+
+// void MonteCarlo::maximalCollFreq(){}
+
+void MonteCarlo::initialParticles(){
+    
+    this->t = {0.0}; // sets time t to zero
+    this->mean.energy = 0.0;
+    this->mean.position = this->pos_xyz;
+    this->mean.sigma = this->sigma_xyz;
+    this->mean.velocity = {0.0, 0.0, 0.0};
+
+    this->mean.particles[ELECTRONS] = this->N0;
+    this->mean.particles[CATIONS] = 0;
+    this->mean.particles[ANIONS] = 0;
+
+    // sets initial position of electrons r as gaussian distributed given by
+    // a mean position pos_xyz and initial broadening sigma_xyz.
+    for( auto it = this->r[ELECTRONS].cbegin(); it != this->r[ELECTRONS].cend(); it++){
+        for( size_t i=0; i<=2; i++){
+            std::default_random_engine rd;
+            // somehow define rand_n random gaussian double
+            // somehow define rand_u random uniform double
+            *it[i] = this->pos_xyz[i] + this->sigma_xyz[i] * rand_n;
+            this->v = 
+            
+        } 
+    }
+}
+
+void MonteCarlo::surfaceInteraction(){
+    auto it = r[ELECTRONS].begin(); 
+    while(it != r[ELECTRONS].end()){    // loop over electron positions vector "r"
+        auto re &= *it;
+        if( re[0] < 0 || re[0] > this->Lx ||
+            re[1] < 0 || re[1] > this->Ly ||
+            re[2] < 0 || re[2] > this->Lz ){
+                it = r[ELECTRONS].erase(it);    // remove electrons outside the boundary
+        } 
+        else{
+            it++;
+        }
+    }
+};
+
+

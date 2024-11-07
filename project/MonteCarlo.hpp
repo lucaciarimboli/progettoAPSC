@@ -5,6 +5,19 @@
 #include <vector>
 #include <unordered_set>
 
+class cross_sect;
+
+enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
+struct MeanData     // Mean values for electrons
+{
+        double energy;
+        std::array<double, 3> position;
+        std::array<double, 3> sigma;
+        std::array<double, 3> velocity;
+        std::array<int, PARTICLES_TYPES> particles; // # of particles per each type
+};
+
+
 class MonteCarlo
 {
     public:
@@ -20,9 +33,9 @@ class MonteCarlo
     // electric constant
     static constexpr double epsilon0 = 8.854188e-12;
 
-    // cross secion data created by class importLXcat
-    Xsec;
-    // cell array of sumformula of gas species
+    // cross secion data created by class cross_sect
+    cross_sect Xsec;
+    // cell array of subformula of gas species
     std::vector<std::string> gas;
     // cell array of mass of gas species (in kg)
     std::vector<double> mgas;
@@ -30,15 +43,15 @@ class MonteCarlo
     std::vector<double> mix;
             
     // number of initial electrons used in MC calculation
-    int N0;
+    const int N0;
     // number of initial electrons used for space charge calculation
-    int n0;
+    const int n0;
     // pressure in Pascal
     double p;
     // voltage in V
-    U;
+    double U;
     // distance in m
-    d;
+    double d;
     // temperature in Kelvin
     double Temp;
             
@@ -54,23 +67,23 @@ class MonteCarlo
             
             
     // length in x direction
-    Lx;
+    const double Lx;
     // length in y direction
-    Ly;
+    const double Ly;
     // length in z direction
-    Lz;
+    const double Lz;
     // number of cells in x direction
-    nx = 80;
+    const int nx = 80;
     // number of cells in y direction
-    ny = 90;
+    const int ny = 90;
     // number of cells in z direction
-    nz = 100;
+    const int nz = 100;
     // x_vector
-    x;
+    std::array<double,nx+1> x;
     // y_vector
-    y;
+    std::array<double,ny+1> y;
     // z_vector
-    z;
+    std::array<double,nz+1> z;
     // x_meshgrid
     X;
     // y_meshgrid
@@ -78,14 +91,13 @@ class MonteCarlo
     // z_meshgrid
     Z;
     // [nx x ny x nz]-matrix with zeros inside and ones outside the boundary
-    boundary;
+    // boundary;
             
-    // vector of initial mean position of initial gaussian distributed electrons in x,y and z direction
-    pos_xyz  = [0 0 0];
-    // vector of initial broadening of initial gaussian distributed electrons in x,y and z direction
-    sigma_xyz = [0 0 0];
-            
-            
+    // array of initial mean position of initial gaussian distributed electrons in x,y and z direction
+    const std::array<double,3> pos_xyz  = {0, 0, 0};
+    // array of initial broadening of initial gaussian distributed electrons in x,y and z direction
+    const std::array<double,3> sigma_xyz = {0, 0, 0};
+                    
     // tolerance in error of drift velcocity (default: 1%)
     static double w_err = 0.001;
     // tolerance in error of diffusion constant (default: 1%)
@@ -97,9 +109,9 @@ class MonteCarlo
     // number of collisions at which simulation ends (default: 20e6) 
     static double col_max = 20e6;
     // conserve (1) electron number after ionizatzion/attachment or not (0)
-    conserve = 1;    
+    bool conserve = 1;    
     // (1) isotropic, (0) non-isotropic scattering according to Vahedi et al.
-    iso = 1;
+    bool iso = 1;
     // energy sharing in ionizing collision
     W;
     // maximum electron energy
@@ -120,17 +132,21 @@ class MonteCarlo
     interactive;
             
     // current time
-    t = [];
+    std::vector<double> t;
     // current time step dt
-    dt;
+    double dt;
     // sum of all times for all electrons:
-    t_total = 0;
+    double t_total = 0;
     // current position of electrons, cations and anions (order important)
-    r = {[] [] []};
+    // r has 3 vectors: one for each type of particles.
+    // e.g. vector for e contains the position (array<double,3>) of every electron;
+    // x-coordinate of i-esim electron can be accessed through: r[ELECTRONS][i][0].
+    typedef std::vector<std::array<double,3>> COMPONENTS;
+    std::array<COMPONENTS,PARTICLES_TYPES> r;
     // current velocity of electrons
-    v;
+    COMPONENTS v;
     // current acceleration of electrons
-    a;
+    COMPONENTS a;
     // current time-integrated velocity
     v_int;
     // current time-integrated velocity-squared
@@ -161,7 +177,7 @@ class MonteCarlo
     Loss;
             
     // temporal mean data of electron swarm
-    mean;
+    MeanData mean;
     // bulk transport data
     bulk;
     // flux transport data
@@ -188,7 +204,7 @@ class MonteCarlo
     EnergyLossIonization = 0;
             
     //Status
-    converge = 0;
+    bool converge = 0;
 
     // DEFAULT CONSTRUCTOR, DESTRUCTOR, COPY-CONSTRUCTOR
     // BUILD CONSTRUCTOR TO IMPORT VALUES AS IN 'MonteCarlo_singlerun'
@@ -211,12 +227,32 @@ class MonteCarlo
     // Converts mass (mgas) for the gas species from a.u. into kg
     void mass_in_kg();
 
-    // calculates the gas number density (in m^-3) by the ideal
+    // Calculates the gas number density (in m^-3) by the ideal
     // gas law from pressure p and temperature Temp
     void gasNumberDensity();
 
-    // calculates absolute value of velocity and energy in eV
+    // Calculates absolute value of velocity and energy in eV
     std::pair<double,double> velocity2energy_in_ev(const std::vector<double> & v);
+
+    // Calculates maximal collision rate for gas mixture (in s^-1) 
+    // void maximalCollFreq();                                // USA CLASSE "cross_sect"
+
+    // Sets initial position and velocity of electrons
+    void initialParticles();
+
+    // Makes a 3d-meshgrid and defines boundaries       // CLASS MESH ? 
+    // void geometry();                                 // MIGHT BE UNUSED ??
+
+    // Removes electrons outside the boundary 
+    void surfaceInteraction();
+
+    // Calculates electron number density (in 1/m^3)     
+    // void particle2density();
+
+    // 
+
+
+
 
     
 };
