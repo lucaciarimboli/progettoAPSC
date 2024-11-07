@@ -251,44 +251,93 @@ std::pair<double,double> MonteCarlo::velocity2energy_in_ev(const std::vector<dou
 // void MonteCarlo::maximalCollFreq(){}
 
 void MonteCarlo::initialParticles(){
-    
-    this->t = {0.0}; // sets time t to zero
+
+    // Initialize mean values
+    this->t = {0.0};
     this->mean.energy = 0.0;
-    this->mean.position = this->pos_xyz;
-    this->mean.sigma = this->sigma_xyz;
+    this->mean.position = this->pos_xyz; // pos_xyz defined by user
+    this->mean.sigma = this->sigma_xyz;  // sigma_xyz defined by user
     this->mean.velocity = {0.0, 0.0, 0.0};
 
+    // Initialize number of particles
     this->mean.particles[ELECTRONS] = this->N0;
     this->mean.particles[CATIONS] = 0;
     this->mean.particles[ANIONS] = 0;
 
-    // sets initial position of electrons r as gaussian distributed given by
-    // a mean position pos_xyz and initial broadening sigma_xyz.
-    for( auto it = this->r[ELECTRONS].cbegin(); it != this->r[ELECTRONS].cend(); it++){
+    // Allocate memory to position, velocity and acceleration vectors for electrons
+    this->r[ELECTRONS].resize(this->N0);
+    this->v.resize(this->N0);
+    this->a.resize(this->N0);
+
+    // Random number generators
+    std::default_random_engine gen;
+    std::normal_distribution<double> randn(0.0,1.0); // standard Gaussian distribution
+    std::uniform_real_distribution<> randu(0.0,1.0); // [0,1] uniform distribution
+    // Should not be better a randu(-1.0,1.0) ?
+    
+    // Initialize electrons position
+    for( auto &re : this->r[ELECTRONS]){
+        for( size_t i=0; i<=2; i++){ 
+            // Initialize to pos_xyz + noise if sigma_xyz != 0
+            re[i] = this->pos_xyz[i] + this->sigma_xyz[i] * randn(gen); 
+        } 
+    }
+    
+    // Initialize electrons velocities
+    for( auto &vel : this->v){
         for( size_t i=0; i<=2; i++){
-            std::default_random_engine rd;
-            // somehow define rand_n random gaussian double
-            // somehow define rand_u random uniform double
-            *it[i] = this->pos_xyz[i] + this->sigma_xyz[i] * rand_n;
-            this->v = 
             
+            vel[i] = 0.0; // Initialize electrons with zero velocity
+
+            // Add noise to avoid singularities in MonteCarlo::elasticCollision 
+            vel[i] += 1e-6 * randu(gen);
+
+            // MATLAB CODE NOT CLEAR HERE:
+            // Apparently it implements noise, in fact it is not added because of the
+            // coefficient "max(max(abs(v)))" which is ALWAYS 0 (initialized literally one line above!).
+            // Here I ignored such coefficient but I am not sure this is correct.
         } 
     }
 }
 
 void MonteCarlo::surfaceInteraction(){
-    auto it = r[ELECTRONS].begin(); 
-    while(it != r[ELECTRONS].end()){    // loop over electron positions vector "r"
-        auto re &= *it;
+    auto it_r = this->r[ELECTRONS].begin(); 
+    auto it_v = this->v.begin();
+    // loop over electrons
+    while(it_r != this->r[ELECTRONS].end()){
+        auto &re = *it_r;
         if( re[0] < 0 || re[0] > this->Lx ||
             re[1] < 0 || re[1] > this->Ly ||
             re[2] < 0 || re[2] > this->Lz ){
-                it = r[ELECTRONS].erase(it);    // remove electrons outside the boundary
+                // remove electrons outside the boundary
+                it_r = this->r[ELECTRONS].erase(it_r);
+                it_v = this->v.erase(it_v);
         } 
         else{
-            it++;
+            it_r++;
+            it_v++;
         }
     }
-};
+}
+
+//void MonteCarlo::particle2density(){
+    // calculates electron number density rho (in 1/m^3)
+
+    // Implement these definition + interpolation method in class Mesh
+    //double dx = this->x[1] - this->x[0];
+    //double dy = this->y[1] - this->y[0];
+    //double dz = this->z[1] - this->z[0];
+
+    // Allocate memory for density vector
+    //this->rho.reserve(this->r[ELECTRONS].size);
+
+    //for( auto &rr : this->r ){
+        // x = mesh.interpolation(rr[1]);
+        // y = ...
+        // z = ...
+    //}        
+
+    // 
+//}
 
 

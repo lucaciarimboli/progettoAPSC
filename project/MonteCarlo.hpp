@@ -188,7 +188,7 @@ class MonteCarlo
     E;
             
     // charge density
-    rho;
+    std::array<std::vector<double>,PARTICLES_TYPES> rho;        // DA CORREGGERE !!
     // electric potential
     phi;
     // electric field function in x-direction
@@ -247,9 +247,7 @@ class MonteCarlo
     void surfaceInteraction();
 
     // Calculates electron number density (in 1/m^3)     
-    // void particle2density();
-
-    // 
+    void particle2density();
 
 
 
