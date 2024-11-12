@@ -99,15 +99,15 @@ class MonteCarlo
     const std::array<double,3> sigma_xyz = {0, 0, 0};
                     
     // tolerance in error of drift velcocity (default: 1%)
-    static double w_err = 0.001;
+    static constexpr double w_err = 0.001;
     // tolerance in error of diffusion constant (default: 1%)
-    static double DN_err = 0.001;
+    static constexpr double DN_err = 0.001;
     // maximum allowed number of electorns
-    static double Ne_max = 1e6;
+    static constexpr double Ne_max = 1e6;
     // number of collisions until equilibrium (default: 20e6)
-    static double col_equ = 10e6;
+    static constexpr double col_equ = 10e6;
     // number of collisions at which simulation ends (default: 20e6) 
-    static double col_max = 20e6;
+    static constexpr double col_max = 20e6;
     // conserve (1) electron number after ionizatzion/attachment or not (0)
     bool conserve = 1;    
     // (1) isotropic, (0) non-isotropic scattering according to Vahedi et al.
@@ -213,18 +213,7 @@ class MonteCarlo
     // if not the case: last entry of mix will be corrected
     void checkFractionSum();
     
-    // Calculates the molar weight of a substance
-    std::vector<double> MolMass(std::string & substance);
-    // Auxilarry methods for the "MolMass" method:
-    void check_syntax(const std::string & substance, std::unordered_set<char> & characters);
-    void fix_spaces(std::string & substance);
-    struct Element {    // type needed in "MolMass" method
-        std::string substance_char;     // element chemical symbol (e.g. "O","Ar")
-        double substance_mass;          // single substance mass
-        unsigned int factor = 1;        // single substance number factor (e.g. "2" in "O2")
-    };
-    
-    // Converts mass (mgas) for the gas species from a.u. into kg
+    // Computes mass of the gas species in kg
     void mass_in_kg();
 
     // Calculates the gas number density (in m^-3) by the ideal
@@ -249,10 +238,6 @@ class MonteCarlo
     // Calculates electron number density (in 1/m^3)     
     void particle2density();
 
-
-
-
-    
 };
 
 #endif 
