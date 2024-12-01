@@ -3,19 +3,19 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <unordered_set>
 
 class cross_sect;
+class MeanData;
+class EnergyData;
+class FluxData;
+class BulkData;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
-struct MeanData     // Mean values for electrons
-{
-        double energy;
-        std::array<double, 3> position;
-        std::array<double, 3> sigma;
-        std::array<double, 3> velocity;
-        std::array<int, PARTICLES_TYPES> particles; // # of particles per each type
-};
+// enum Coordinates{ X = 0, Y, Z, COORDINATES}
+typedef std::vector<std::array<double,3>> MATRIX;
+
 
 
 class MonteCarlo
@@ -58,38 +58,38 @@ class MonteCarlo
     // gas density in m^-3
     double N;
 
-    // E/N for homogeneous field in Td
-    EN = [];
+    // E/N for homogeneous field [Td] --> constant, uniform, user defined.
+    double EN;
     // minimal E/N for inhomogeneous field in Td
-    EN_min = [];
+    // EN_min = [];
     // maximal E/N for inhomogeneous field in Td
-    EN_max = [];
+    // EN_max = [];
             
-            
+    // MESH CLASS --> not needed if E/N is constant+uniform.     
     // length in x direction
-    const double Lx;
+    // const double Lx;
     // length in y direction
-    const double Ly;
+    // const double Ly;
     // length in z direction
-    const double Lz;
+    // const double Lz;
     // number of cells in x direction
-    const int nx = 80;
+    // const int nx = 80;
     // number of cells in y direction
-    const int ny = 90;
+    // const int ny = 90;
     // number of cells in z direction
-    const int nz = 100;
+    // const int nz = 100;
     // x_vector
-    std::array<double,nx+1> x;
+    // std::array<double,nx+1> x;
     // y_vector
-    std::array<double,ny+1> y;
+    // std::array<double,ny+1> y;
     // z_vector
-    std::array<double,nz+1> z;
+    // std::array<double,nz+1> z;
     // x_meshgrid
-    X;
+    // X;
     // y_meshgrid
-    Y;
+    // Y;
     // z_meshgrid
-    Z;
+    // Z;
     // [nx x ny x nz]-matrix with zeros inside and ones outside the boundary
     // boundary;
             
@@ -117,13 +117,16 @@ class MonteCarlo
     // maximum electron energy
     E_max;
     // maximal collision frequency:
-    nu_max;
+    double nu_max;
     // collision counter
-    counter;
+    unsigned int counter;
     // checks end of simulation: End =1 stops the simulation
-    End = 0;
-    // euqilibrium time
-    T_sst;
+    bool End = 0;
+    // equilibrium time
+    double T_sst = 0.0;
+    // flag for steady state: TRUE if at least 10 iterations at sst
+    bool flag_sst = 0;
+
     // line number in output file:
     line = 1;
     // computation time:
@@ -141,16 +144,15 @@ class MonteCarlo
     // r has 3 vectors: one for each type of particles.
     // e.g. vector for e contains the position (array<double,3>) of every electron;
     // x-coordinate of i-esim electron can be accessed through: r[ELECTRONS][i][0].
-    typedef std::vector<std::array<double,3>> COMPONENTS;
-    std::array<COMPONENTS,PARTICLES_TYPES> r;
+    std::array<MATRIX,PARTICLES_TYPES> r;
     // current velocity of electrons
-    COMPONENTS v;
+    MATRIX v;
     // current acceleration of electrons
-    COMPONENTS a;
+    MATRIX a;
     // current time-integrated velocity
-    v_int;
+    MATRIX v_int;
     // current time-integrated velocity-squared
-    v2_int;
+    MATRIX v2_int;
     // collision indices for elastic collision
     ind_ela;
     // collision indices for excitation collision
@@ -177,26 +179,27 @@ class MonteCarlo
     Loss;
             
     // temporal mean data of electron swarm
-    MeanData mean;
+    std::vector<MeanData> mean; 
     // bulk transport data
-    bulk;
+    BulkData bulk;
     // flux transport data
-    flux;
+    FluxData flux;
     // reaction rates
     rates;
     // energy data
-    E;
+    EnergyData E;
             
+    // CLASS SOLVE_POISSON --> not needed here
     // charge density
-    std::array<std::vector<double>,PARTICLES_TYPES> rho;        // DA CORREGGERE !!
+    // rho;
     // electric potential
-    phi;
+    // phi;
     // electric field function in x-direction
-    E_x;
+    double E_x;
     // electric field function in y-direction
-    E_y;
+    double E_y;
     // electric field function in z-direction
-    E_z;
+    double E_z;
             
     //Heat energy partition
     EnergyLossElastic    = 0;
@@ -213,7 +216,7 @@ class MonteCarlo
     // if not the case: last entry of mix will be corrected
     void checkFractionSum();
     
-    // Computes mass of the gas species in kg
+    // Computes masses [kg] of the gas species
     void mass_in_kg();
 
     // Calculates the gas number density (in m^-3) by the ideal
@@ -221,7 +224,7 @@ class MonteCarlo
     void gasNumberDensity();
 
     // Calculates absolute value of velocity and energy in eV
-    std::pair<double,double> velocity2energy_in_ev(const std::vector<double> & v);
+    std::pair<double,double> velocity2energy(const std::vector<double> & v);
 
     // Calculates maximal collision rate for gas mixture (in s^-1) 
     // void maximalCollFreq();                                // USA CLASSE "cross_sect"
@@ -229,15 +232,38 @@ class MonteCarlo
     // Sets initial position and velocity of electrons
     void initialParticles();
 
-    // Makes a 3d-meshgrid and defines boundaries       // CLASS MESH ? 
-    // void geometry();                                 // MIGHT BE UNUSED ??
-
     // Removes electrons outside the boundary 
     void surfaceInteraction();
 
-    // Calculates electron number density (in 1/m^3)     
-    void particle2density();
+    // Methods for the computation of the electric field:
+    // particle2density(), solvePoisson_3D(), ...
+    
+    // Sets E parallel to z-direction --> replaces "solvePoissin_3D()"
+    void set_E(); 
 
+    // Generates random numbers p from an uniform distribution U[0,1];
+    double random();
+    std::vector<double> random(const unsigned N);
+
+    // Performs non-collissional flight for electrons in electric field
+    void freeFlight();
+
+    // Gets electron collective data: mean position, mean
+    // broadening in x,y and-direction, mean kinetic energy, electron number
+    // and total electron current
+    void collectMeanData();
+
+    // Checks if there are at least 10 time steps after steady state is reached
+    // in order to ensure statistical reliability:
+    void update_flag_sst();
+
+    // Calculates mean energy and EEDF data after steady state was reached
+    void updateEnergyData();
+
+    // Calculates flux data after steady state was reached
+    void fluxData();
+
+    
 };
 
 #endif 
