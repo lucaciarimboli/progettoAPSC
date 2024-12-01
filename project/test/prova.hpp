@@ -5,18 +5,12 @@
 #include <vector>
 #include <unordered_set>
 
-// class cross_sect;
+class cross_sect;
+class MeanData;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
-struct MeanData     // Mean values for electrons
-{
-        double energy;
-        std::array<double, 3> position;
-        std::array<double, 3> sigma;
-        std::array<double, 3> velocity;
-        std::array<int, PARTICLES_TYPES> particles; // # of particles per each type
-};
-
+// enum Coordinates{ X = 0, Y, Z, COORDINATES}
+typedef std::vector<std::array<double,3>> MATRIX;
 
 class PROVA
 {
@@ -34,7 +28,7 @@ class PROVA
     static constexpr double epsilon0 = 8.854188e-12;
 
     // cross secion data created by class cross_sect
-    // cross_sect Xsec;
+    cross_sect Xsec;
     // cell array of subformula of gas species
     std::vector<std::string> gas;
     // cell array of mass of gas species (in kg)
@@ -43,27 +37,55 @@ class PROVA
     std::vector<double> mix;
             
     // number of initial electrons used in MC calculation
-    // const int N0;
+    const int N0;
     // number of initial electrons used for space charge calculation
-    // const int n0;
+    const int n0;
     // pressure in Pascal
     double p;
     // voltage in V
-    // double U;
+    double U;
     // distance in m
-    // double d;
+    double d;
     // temperature in Kelvin
     double Temp;
             
     // gas density in m^-3
     double N;
 
-    // E/N for homogeneous field in Td
-    //EN = [];
+    // E/N for homogeneous field [Td] --> constant, uniform, user defined.
+    double EN;
     // minimal E/N for inhomogeneous field in Td
-    //EN_min = [];
+    // EN_min = [];
     // maximal E/N for inhomogeneous field in Td
-    //EN_max = [];
+    // EN_max = [];
+            
+    // MESH CLASS --> not needed if E/N is constant+uniform.     
+    // length in x direction
+    // const double Lx;
+    // length in y direction
+    // const double Ly;
+    // length in z direction
+    // const double Lz;
+    // number of cells in x direction
+    // const int nx = 80;
+    // number of cells in y direction
+    // const int ny = 90;
+    // number of cells in z direction
+    // const int nz = 100;
+    // x_vector
+    // std::array<double,nx+1> x;
+    // y_vector
+    // std::array<double,ny+1> y;
+    // z_vector
+    // std::array<double,nz+1> z;
+    // x_meshgrid
+    // X;
+    // y_meshgrid
+    // Y;
+    // z_meshgrid
+    // Z;
+    // [nx x ny x nz]-matrix with zeros inside and ones outside the boundary
+    // boundary;
             
     // array of initial mean position of initial gaussian distributed electrons in x,y and z direction
     const std::array<double,3> pos_xyz  = {0, 0, 0};
@@ -84,41 +106,99 @@ class PROVA
     bool conserve = 1;    
     // (1) isotropic, (0) non-isotropic scattering according to Vahedi et al.
     bool iso = 1;
-
+    // energy sharing in ionizing collision
+    //W;
+    // maximum electron energy
+    //E_max;
+    // maximal collision frequency:
+    double nu_max;
+    // collision counter
+    unsigned int counter;
+    // checks end of simulation: End =1 stops the simulation
+    //End = 0;
+    // euqilibrium time
+    double T_sst = 0.0;
+    // line number in output file:
+    //line = 1;
+    // computation time:
+    //elapsedTime;
+    // plot (1) or do not plot data (0)
+    //interactive;
             
     // current time
     std::vector<double> t;
     // current time step dt
     double dt;
     // sum of all times for all electrons:
-    double t_total = 0;
+    std::vector<double> t_total;
     // current position of electrons, cations and anions (order important)
     // r has 3 vectors: one for each type of particles.
     // e.g. vector for e contains the position (array<double,3>) of every electron;
     // x-coordinate of i-esim electron can be accessed through: r[ELECTRONS][i][0].
-    typedef std::vector<std::array<double,3>> COMPONENTS;
-    std::array<COMPONENTS,PARTICLES_TYPES> r;
+    std::array<MATRIX,PARTICLES_TYPES> r;
     // current velocity of electrons
-    COMPONENTS v;
+    MATRIX v;
     // current acceleration of electrons
-    COMPONENTS a;
- 
+    MATRIX a;
+    // current time-integrated velocity
+    MATRIX v_int;
+    // current time-integrated velocity-squared
+    MATRIX v2_int;
+    // collision indices for elastic collision
+    //ind_ela;
+    // collision indices for excitation collision
+    //ind_exc;
+    // collision indices for ionization collision
+    //ind_ion;
+    // collision indices for attachment collision
+    //ind_att;
+    // total number of all real collisions that happend
+    //collisions = 0;
+    // column numbers of elastic collision
+    //col_ela;
+    // column numbers of excitation collision
+    //col_exc;
+    // column numbers of ionization collision
+    //col_ion;
+    // column numbers of attachment collision
+    //col_att;
+    // Mass is a vector of length(v), the entries are the masses of the gas-species undergoing elastic
+    // collisions, all other entries are zero
+    //Mass;
+    // Loss is a vector of length(v), the entries are the energy losses due to excitation collisions,
+    //all other entries are zero
+    //Loss;
+            
+    // temporal mean data of electron swarm
+    std::vector<MeanData> mean; 
+    // bulk transport data
+    //bulk;
+    // flux transport data
+    //flux;
+    // reaction rates
+    //rates;
+    // energy data
+    //E;
+            
+    // CLASS SOLVE_POISSON --> not needed here
     // charge density
-    std::array<std::vector<double>,PARTICLES_TYPES> rho;        // DA CORREGGERE !!
+    // rho;
     // electric potential
-    //phi;
+    // phi;
     // electric field function in x-direction
-    //E_x;
+    double E_x;
     // electric field function in y-direction
-    //E_y;
+    double E_y;
     // electric field function in z-direction
-    //E_z;
-
+    double E_z;
+            
+    //Heat energy partition
+    //EnergyLossElastic    = 0;
+    //EnergyLossInelastic  = 0;
+    //EnergyLossIonization = 0;
+            
     //Status
     bool converge = 0;
-
-    // Converts mass (mgas) for the gas species from a.u. into kg
-    void mass_in_kg();
 
     // Calculates the gas number density (in m^-3) by the ideal
     // gas law from pressure p and temperature Temp

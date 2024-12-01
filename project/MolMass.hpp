@@ -13,7 +13,7 @@ class MolMass
 
     // Constructors:
     MolMass()=default;
-    MolMass(const std::string & s): substance(s) {}
+    MolMass(const std::string & s): substance{s} {}
 
     // Assignment operator
     MolMass operator=(const MolMass & MM){

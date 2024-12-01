@@ -1,5 +1,5 @@
 #include "prova.hpp"
-#include "MolMass.hpp"
+#include "MeanData.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -12,16 +12,10 @@
 int main(){
     
     PROVA prova;
-    prova.gas = {"O2", "[Ar,   Au]", "N2(H2O)CO2"};
-    std::cout << "Mass in a.u" << "\n" << std::endl;
-
-    prova.mass_in_kg();
-    
-    std::cout << "Ora in kg" << "\n"  << std::endl;
-
-    for( const auto &s : prova.mgas){
-        std::cout << s << "\n" << std::endl;
-    }
+    prova.p = 1e-23;
+    prova.T = 10;
+    prova.gasNumberDensity();
+    std::cout << N << std::endl;
 
     return 0;
 }

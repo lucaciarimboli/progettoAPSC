@@ -52,9 +52,9 @@ void MolMass::Compute_M(){
 
     auto it = substance.cbegin();
 
-    M.clear(); //
+    M.clear(); 
     
-    if( *it == '['){    // Vector of substances
+    if( *it == '['){    // GESTISCI NEL CONSTRUCTOR!!!
 
         it++;    // skip the first char '['
         std::string single_substance;
