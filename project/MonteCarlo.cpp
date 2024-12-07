@@ -4,7 +4,8 @@
 #include "MeanData.hpp"
 #include "EnergyData.hpp"
 #include "FluxData"
-#include "BulkData"
+// #include "BulkData" ---> classe incompleta!
+#include "ReactionRates"
 
 #include <iostream>
 #include <string>
@@ -232,16 +233,23 @@ void MonteCarlo::collectMeanData(){
     mean.emplace_back(m);
 }
 
-void MonteCarlo::update_flag_sst(){
+unsigned int MonteCarlo::update_flag_sst(){
+    std::vector<size_t> ind;
     if(T_sst > 0){
+        size_t i = 0;
         unsigned int count = 0;
         for( const double & time : t){
-            if(time >= T_sst) count++;
+            i++;
+            if(time >= T_sst){
+                count++;
+                ind.emplace_back(i);
+            }
         }
     }
     if(count > 10){
         flag_sst = 1;
     }
+    return count;
 }
 
 void MonteCarlo::updateEnergyData(){
@@ -264,5 +272,39 @@ void MonteCarlo::fluxData(){
     if(flag_sst){
         flux.compute_drift_velocity(v_int,t_total);
         flux.compute_diffusion_const(r[ELECTRONS],v,N);
+    }
+}
+
+void MonteCarlo::bulkData(const unsigned int & n_ind){
+    if (flag_sst){
+        std::vector<double> x(t.end()-n_ind,t.end());
+        for(auto it = x.begin()+1; it != x.end(); it++){
+            *it -= x[0];
+        }
+        x[0] = 0;
+        bulk.set_t(x);
+
+        std::vector<MeanData> y(mean.end()-n_ind,mean.end());
+
+        std::array<double,3> & pos0 = y[0].get_position();
+        std::array<double,3> & sig0 = y[0].get_sigma();
+
+        for( auto it = y.begin()+1; it != y.end(); it++){
+
+            std::array<double,3> & pos = y.get_position();
+            std::array<double,3> & sig = y.get_sigma();
+
+            for(size_t j = 0; j < 3; j++){
+                pos[i] -= pos0[i];
+                sig[i] = 0.5 * std::pow(sig[i],2) - 0.5*std::pow(sig0[i],2);
+            }    
+        }
+
+        y[0].set_position({0.0, 0.0, 0.0});
+        y[0].set_sigma({0.0, 0.0, 0.0});
+
+        bulk.set_mean(y);
+        bulk.drift();       // METODO INCOMPLETO!
+        bulk.diffusion(N);  // METODO INCOMPLETO!
     }
 }

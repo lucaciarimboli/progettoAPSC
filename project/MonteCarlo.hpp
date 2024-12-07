@@ -11,12 +11,11 @@ class MeanData;
 class EnergyData;
 class FluxData;
 class BulkData;
+class Rates;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
 // enum Coordinates{ X = 0, Y, Z, COORDINATES}
 typedef std::vector<std::array<double,3>> MATRIX;
-
-
 
 class MonteCarlo
 {
@@ -185,7 +184,7 @@ class MonteCarlo
     // flux transport data
     FluxData flux;
     // reaction rates
-    rates;
+    ReactionRates rates;
     // energy data
     EnergyData E;
             
@@ -254,8 +253,9 @@ class MonteCarlo
     void collectMeanData();
 
     // Checks if there are at least 10 time steps after steady state is reached
-    // in order to ensure statistical reliability:
-    void update_flag_sst();
+    // in order to ensure statistical reliability.
+    // Return a vector of indeces of indeces relative to time stpes after steady-state is reached.
+    unsigned int update_flag_sst();
 
     // Calculates mean energy and EEDF data after steady state was reached
     void updateEnergyData();
@@ -263,7 +263,8 @@ class MonteCarlo
     // Calculates flux data after steady state was reached
     void fluxData();
 
-    
+    // Calculates bulk data after steady state was reached
+    void bulkData(const std::vector<size_t> & ind);
 };
 
 #endif 
