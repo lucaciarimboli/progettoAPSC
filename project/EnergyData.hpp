@@ -30,9 +30,10 @@ public:
     };
 
     // Update energy statistics
-    void update_energy(const std::vector<double>& E_in_eV, double dt, size_t ne) {
+    void update_energy(const std::vector<double>& E_in_eV, double & dt, size_t & ne, const double & t_total) {
 
         E_sum += std::accumulate(E_in_eV.begin(), E_in_eV.end(), 0.0) * dt;
+        E_mean = E_sum / t_total;
 
         // Count energy in every bin 
         for (const auto &en : E_in_eV) {
@@ -71,8 +72,9 @@ public:
         }  
     }
 
-    // Setters and getters for energy data
-    void set_E_mean(const double & t_total){ E_mean = E_sum / t_total; }
+    // Setters:
+    void set_energy(const std::vector<double>& energy_bins){ energy = energy_bins; }
+    // Getters:
     double get_E_mean() const { return E_mean; }
     const std::vector<double>& get_EEPF() const { return EEPF; }
     const std::vector<double>& get_EEDF() const { return EEDF; }

@@ -6,6 +6,9 @@
 #include <cmath>
 #include <numeric>
 
+enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
+typedef std::vector<std::array<double,3>> MATRIX;
+
 class FluxData {
 
     public:
@@ -33,17 +36,39 @@ class FluxData {
         N++;
         std::array<double,3> mean_r = compute_mean(r);
         std::array<double,3> mean_v = compute_mean(v);
-        std::array<double,3> D_flux = compute_mean(dotstar(r,v));
+        std::array<double,3> D_flux = compute_mean(elementwise_product(r,v));
 
         for(size_t i = 0; i < 3; i++){
             double D_flux_i = D_flux[i] - mean_r[i] * mean_v[i];
             D_sum[i] += D_flux_i;
             DN[i] = den * D_sum[i] / N;     // den is gas density [m^-3]
         }
-    }
+    };
+
+    // Setters:
+    void set_drift_vel(const std::array<double,3> & ww){
+        w = ww;
+    };
+    void set_D(const std::array<double,3> & D){
+        DN = D;
+    };
+    void set_N(const size_t & n){
+        N = n;
+    };
+
+    // Getters:
+    const std::array<double,3> & get_drift_vel() const {
+        return w;
+    };
+    const std::array<double,3> & get_D() const {
+        return DN;
+    };
+    const size_t & get_N() const {
+        return N;
+    };
 
     private:
-    std::array<double, 3> v_int_sum;   // Integrated velocity sum
+    std::array<double, 3> v_int_sum;  // Integrated velocity sum
     std::array<double, 3> w;          // Drift velocity
     std::array<double, 3> D_sum;      // Sum of diffusion constants
     std::array<double, 3> DN;         // Diffusion constant
@@ -73,14 +98,14 @@ class FluxData {
     };
 
     // Equivalent of Matlab's .* product between matrices
-    MATRIX dotstar(const MATRIX & A, const MATRIX & B){
+    MATRIX elementwise_product(const MATRIX & A, const MATRIX & B){
 
         // Matrices cannot be empty
         if (A.empty() || B.empty()) {
            throw std::invalid_argument("Matrices cannot be empty.");
         }
 
-        // Remark that MATRIX = std::<vector<std::array<double,3>>
+        // Remark that MATRIX = std::vector<std::array<double,3>>
         size_t n = A.size();
 
         // Size comparison for safety reasons

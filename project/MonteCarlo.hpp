@@ -11,7 +11,7 @@ class MeanData;
 class EnergyData;
 class FluxData;
 class BulkData;
-class Rates;
+class ReactionRates;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
 // enum Coordinates{ X = 0, Y, Z, COORDINATES}
@@ -42,9 +42,9 @@ class MonteCarlo
     std::vector<double> mix;
             
     // number of initial electrons used in MC calculation
-    const int N0;
+    const unsigned  N0;
     // number of initial electrons used for space charge calculation
-    const int n0;
+    const unsigned  n0;
     // pressure in Pascal
     double p;
     // voltage in V
@@ -123,8 +123,8 @@ class MonteCarlo
     bool End = 0;
     // equilibrium time
     double T_sst = 0.0;
-    // flag for steady state: TRUE if at least 10 iterations at sst
-    bool flag_sst = 0;
+    // Counter of how many time steps there have been after steady state
+    unsigned int count_sst = 0;
 
     // line number in output file:
     line = 1;
@@ -161,7 +161,7 @@ class MonteCarlo
     // collision indices for attachment collision
     ind_att;
     // total number of all real collisions that happend
-    collisions = 0;
+    int collisions = 0;
     // column numbers of elastic collision
     col_ela;
     // column numbers of excitation collision
@@ -184,7 +184,8 @@ class MonteCarlo
     // flux transport data
     FluxData flux;
     // reaction rates
-    ReactionRates rates;
+    ReactionRatesConv rates_conv;
+    ReactionRatesCount rates_count;
     // energy data
     EnergyData E;
             
@@ -252,10 +253,8 @@ class MonteCarlo
     // and total electron current
     void collectMeanData();
 
-    // Checks if there are at least 10 time steps after steady state is reached
-    // in order to ensure statistical reliability.
-    // Return a vector of indeces of indeces relative to time stpes after steady-state is reached.
-    unsigned int update_flag_sst();
+    // Counts how many time steps there have been after steady state.
+    void update_count_sst();
 
     // Calculates mean energy and EEDF data after steady state was reached
     void updateEnergyData();
@@ -264,7 +263,7 @@ class MonteCarlo
     void fluxData();
 
     // Calculates bulk data after steady state was reached
-    void bulkData(const std::vector<size_t> & ind);
+    void bulkData();
 };
 
 #endif 

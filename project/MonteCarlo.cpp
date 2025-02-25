@@ -4,7 +4,7 @@
 #include "MeanData.hpp"
 #include "EnergyData.hpp"
 #include "FluxData"
-// #include "BulkData" ---> classe incompleta!
+#include "BulkData" // classe incompleta!
 #include "ReactionRates"
 
 #include <iostream>
@@ -51,7 +51,7 @@ void MonteCarlo::gasNumberDensity(){
 
 std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v){
     // calculates absolute value of velocity abs_v and energy
-    // E_in_eV in eV.
+    // E_in_eV in eV for one electron.
     double abs_v = std::sqrt(std::inner_product(v.cbegin(), v.cend(), v.cbegin(), 0.0));
     double E_in_eV =  0.5 * me *  abs_v * abs_v / q0;
     return std::make_pair(abs_v,E_in_eV);
@@ -63,8 +63,7 @@ void MonteCarlo::initialParticles(){
 
     // Initialize mean values
     t = {0.0};
-    MeanData m(pos_xyz,sigma_xyz);
-    m.set_particles(N0,0,0);
+    MeanData m(pos_xyz,sigma_xyz,N0);
     
     mean.clear();
     mean.emplace_back(m);
@@ -192,49 +191,17 @@ void MonteCarlo::freeFlight(){
 }
 
 void MonteCarlo::collectMeanData(){
-    MeanData m;
-    m.set_particles(mean.back().get_particles());
-
-    // Average position, velocity and energy of electrons:
-    sum_x = 0.0;
-    sum_y = 0.0;
-    sum_z = 0.0;
-    sum_vx = 0.0;
-    sum_vy = 0.0;
-    sum_vz = 0.0;
-    sum_e = 0.0;
-    int ne = m.get_N_el();
-    for(size_t i = 0; i < ne; i++){
-        sum_x += r[ELECTRONS][i][0];
-        sum_y += r[ELECTRONS][i][1];
-        sum_z += r[ELECTRONS][i][2];
-        sum_vx += v[i][0];
-        sum_vy += v[i][1];
-        sum_vz += v[i][2];
-        sum_e += velocity2energy(v[i]).second;
-    }
-    m.set_position(sum_x/ne,sum_y/ne,sum_z/ne);
-    m.set_velocity(sum_vx/ne,sum_vy/ne,sum_vz/ne);
-    m.set_energy(sum_e/ne);
-
-    // Standard deviation
-    double sigma_x = 0.0;
-    double sigma_y = 0.0;
-    double sigma_z = 0.0;
-    const auto& mean_position = m.get_position();
-    for(const auto & pos : r[ELECTRONS]){
-        sigma_x += std::pow(pos[0]-mean_position[0],2);
-        sigma_y += std::pow(pos[1]-mean_position[1],2);
-        sigma_z += std::pow(pos[2]-mean_position[2],2);
-    }
-    m.set_sigma(std::sqrt(sigma_x/ne),std::sqrt(sigma_y/ne),std::sqrt(sigma_z/ne));
 
     // Update mean vector for the new time step
-    mean.emplace_back(m);
+    mean.emplace_back(mean.back().get_particles(), r[ELECTRONS], v, ne);
+
+    /* If energy update is better here than in "mean" constructor
+    energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
+                            [](double sum, const std::array<double, 3>& vi) { return sum + velocity2energy(vi).second; }) / ne;
+    mean.back().set_energy(energy);*/
 }
 
-unsigned int MonteCarlo::update_flag_sst(){
-    std::vector<size_t> ind;
+void MonteCarlo::update_count_sst(){
     if(T_sst > 0){
         size_t i = 0;
         unsigned int count = 0;
@@ -242,69 +209,44 @@ unsigned int MonteCarlo::update_flag_sst(){
             i++;
             if(time >= T_sst){
                 count++;
-                ind.emplace_back(i);
             }
         }
+        count_sst = count;
     }
-    if(count > 10){
-        flag_sst = 1;
-    }
-    return count;
 }
 
+// VERIFY IF THIS VERSION IS BETTER (correct iff every for loop in main only introduces one time step - not sure about that)
+// void MonteCarlo::update_count_sst(){
+//     if(T_sst > 0){
+//          count_sst++;
+//     }
+// }
+
 void MonteCarlo::updateEnergyData(){
-    if( flag_sst ){
+    if( count_sst > 10 ){
         size_t ne = v.size();
 
-        t_total += dt * ne;
-        std::vector<double> E_in_eV(ne);
-        for (size_t i = 0; i < ne; i++) {
-                E_in_eV[i] = velocity2energy(v[i]).second;
-        }
+        t_total += dt * ne; // sum of all times for all electrons
+        std::vector<double> E_in_eV;
+        E_in_eV.reserve(ne);
+        std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
+            return velocity2energy(vi).second;
+        });
 
-        E.update_energy(E_in_eV,dt,ne);
-        E.set_E_mean(t_total);
+        E.update_energy(E_in_eV,dt,ne,t_total);
         E.compute_distribution_function();
     }    
 }
 
 void MonteCarlo::fluxData(){
-    if(flag_sst){
+    if(count_sst > 10){
         flux.compute_drift_velocity(v_int,t_total);
         flux.compute_diffusion_const(r[ELECTRONS],v,N);
     }
 }
 
-void MonteCarlo::bulkData(const unsigned int & n_ind){
-    if (flag_sst){
-        std::vector<double> x(t.end()-n_ind,t.end());
-        for(auto it = x.begin()+1; it != x.end(); it++){
-            *it -= x[0];
-        }
-        x[0] = 0;
-        bulk.set_t(x);
-
-        std::vector<MeanData> y(mean.end()-n_ind,mean.end());
-
-        std::array<double,3> & pos0 = y[0].get_position();
-        std::array<double,3> & sig0 = y[0].get_sigma();
-
-        for( auto it = y.begin()+1; it != y.end(); it++){
-
-            std::array<double,3> & pos = y.get_position();
-            std::array<double,3> & sig = y.get_sigma();
-
-            for(size_t j = 0; j < 3; j++){
-                pos[i] -= pos0[i];
-                sig[i] = 0.5 * std::pow(sig[i],2) - 0.5*std::pow(sig0[i],2);
-            }    
-        }
-
-        y[0].set_position({0.0, 0.0, 0.0});
-        y[0].set_sigma({0.0, 0.0, 0.0});
-
-        bulk.set_mean(y);
-        bulk.drift();       // METODO INCOMPLETO!
-        bulk.diffusion(N);  // METODO INCOMPLETO!
+void MonteCarlo::bulkData(){
+    if (count_sst > 10){
+        bulk.update_bulk(t,count_sst,mean,N);
     }
 }
