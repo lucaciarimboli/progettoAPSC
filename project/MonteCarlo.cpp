@@ -3,9 +3,9 @@
 #include "MolMass.hpp"
 #include "MeanData.hpp"
 #include "EnergyData.hpp"
-#include "FluxData"
-#include "BulkData" // classe incompleta!
-#include "ReactionRates"
+#include "FluxData.hpp"
+#include "BulkData.hpp"
+#include "ReactionRates.hpp"
 
 #include <iostream>
 #include <string>
@@ -238,15 +238,23 @@ void MonteCarlo::updateEnergyData(){
     }    
 }
 
-void MonteCarlo::fluxData(){
+void MonteCarlo::updateFluxData(){
     if(count_sst > 10){
         flux.compute_drift_velocity(v_int,t_total);
         flux.compute_diffusion_const(r[ELECTRONS],v,N);
     }
 }
 
-void MonteCarlo::bulkData(){
+void MonteCarlo::updateBulkData(){
     if (count_sst > 10){
         bulk.update_bulk(t,count_sst,mean,N);
     }
 }
+
+void MonteCarlo::updateReactionRates(){
+    if (count_sst > 10){
+        rates_conv.setTime(t,count_sst); // set linear time interval after steady state
+        rates_conv.setParticles(mean,count_sst); // set number of particles
+        rates_conv.computeRates(); // compute reaction rates
+    }   
+};

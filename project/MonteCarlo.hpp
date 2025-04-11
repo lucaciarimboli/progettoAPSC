@@ -184,8 +184,8 @@ class MonteCarlo
     // flux transport data
     FluxData flux;
     // reaction rates
-    ReactionRatesConv rates_conv;
-    ReactionRatesCount rates_count;
+    RateDataConv rates_conv;
+    RateDataCount rates_count;
     // energy data
     EnergyData E;
             
@@ -260,10 +260,13 @@ class MonteCarlo
     void updateEnergyData();
 
     // Calculates flux data after steady state was reached
-    void fluxData();
+    void updateFluxData();
 
     // Calculates bulk data after steady state was reached
-    void bulkData();
+    void updateBulkData();
+
+    // Calculates reaction rates after steady state was reached
+    void updateReactionRates();
 };
 
 #endif 
