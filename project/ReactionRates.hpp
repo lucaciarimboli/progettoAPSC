@@ -19,8 +19,11 @@ public:
 
     virtual ~RateDataBase() = default;
 
-    // Pure virtual function to compute rates
+    // Pure virtual function to compute rates:
     virtual void computeRates() = 0;
+
+    // Getter for rates:
+    double getRate(const std::string& key) const { return rates.at(key); }
 
 protected:
     std::map<std::string, double> rates; // Reaction rates
@@ -30,15 +33,15 @@ protected:
 class RateDataCount: public RateDataBase {
 public:
 
-    RateDataCount(const double & dens, bool cons, const unsigned int & count) 
-        : N(dens), conserve(cons), initial_electron_population(0.0), count_sst(count)
+    RateDataCount(const double & dens, bool cons) 
+        : N(dens), conserve(cons)
     {
-
         rates["ion_tot_err"] = 0.0;
         rates["att_tot_err"] = 0.0;
         rates["eff_err"] = 0.0;
     }
 
+    // Compute the reaction rates based on the time and particle data.
     void computeRates() override
     {
         if (!conserve) {
@@ -56,15 +59,13 @@ public:
 private:
     bool conserve; // conserve (1) electron number after ionizatzion/attachment or not (0)
     double N; // Gas number density in m^-3
+
     std::vector<double> x; // linear time interval
-    std::array<std::vector<int>,PARTICLES_TYPES> y; // Number of particles of each type at each time of vector "x"
+    std::array<std::vector<int>,PARTICLES_TYPES> particles; // Number of particles of each type at each time of vector "x"
 
-    int initial_electron_population; // Initial number of electrons in the system (at steady state)
-
-    void computeRate(const std::vector<double>& x, const std::vector<double> y, const std::string& rate_key, const std::string& err_key);
-
+    // Private methods:
+    void computeRate(const std::vector<double>& x, const std::vector<double>& y, const std::string& rate_key, const std::string& err_key);
     void computeNonConserved();
-    
     void computeConserved();
 
 };
@@ -89,8 +90,7 @@ class RateDataConv : public RateDataBase {
     }     
 
     private:
-
-
+    
 };
 
 #endif // REACTION_RATES_HPP

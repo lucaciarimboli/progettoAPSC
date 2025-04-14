@@ -253,8 +253,12 @@ void MonteCarlo::updateBulkData(){
 
 void MonteCarlo::updateReactionRates(){
     if (count_sst > 10){
-        rates_conv.setTime(t,count_sst); // set linear time interval after steady state
-        rates_conv.setParticles(mean,count_sst); // set number of particles
-        rates_conv.computeRates(); // compute reaction rates
+
+        // Update data for reaction rates computation:
+        rates_conv.setTime(t,count_sst);
+        rates_conv.setParticles(mean,count_sst);
+        // Compute updated reaction rates:
+        rates_conv.computeRates();
+
     }   
 };
