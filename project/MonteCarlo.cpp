@@ -1,4 +1,4 @@
-#include "cross_s.hpp"
+#include "cross_s.h"
 #include "MonteCarlo.hpp"
 #include "MolMass.hpp"
 #include "MeanData.hpp"

@@ -6,7 +6,8 @@
 #include <string>
 #include <array>
 #include "MeanData.hpp"
-
+#include "Interpolation.hpp"
+#include "cross_s.h"
 
 class RateDataBase {
 public:
@@ -70,27 +71,55 @@ private:
 
 };
 
+//----------------------------------------------------------------//
+// NEEDS TO BE ADJUSTED BASED ON THE CROSS-SECTION DATA STRUCTURE //
+//----------------------------------------------------------------//
 // Calculates the reaction rates by convolution of the electron number with a kernel
 class RateDataConv : public RateDataBase {
     public:
-    RateDataConv() 
-        : RateDataBase(N)
+    RateDataConv( const cross_sect & sigma, const std::vector<double> mixx;) 
+        : Sigma(sigma), mix(mixx)
     {
-        rates["ela"] = 0.0;
+        //rates["ela"] = 0.0;
         rates["ela_tot"] = 0.0;
         rates["ion"] = 0.0;
         rates["att"] = 0.0;
         rates["exc"] = 0.0;
-
     }
 
     void computeRates() override
     {
-        // ...
-    }     
+        // Compute the reaction rates based on the cross-section data:
+        std::array<std::string, 5> rate_keys = {"ela_tot", "ion_tot", "att_tot", "exc_tot"};
+        for (const auto& rate_key : rate_keys) {
+            computeRate(rate_key);
+        }
+
+        // Compute the effective rate: 
+        rates["eff"] = rates["ion_tot"] - rates["att_tot"];        
+    }
+
+    setSigma(const cross_sect & sigma) { Sigma = sigma; } // Set the cross-section data
 
     private:
-    
+    std::vector<cross_sect> Sigma; // NOT SURE OF WHAT IS THE Sigma DATA STRUCTURE YET!
+    std::vector<double> mix;       // Fractions of individual species in the gas as a vector
+
+    double convolution(const EnergyData & E, const std::array<std::vector<double>, 2> & sigma);
+    void computeRate(std::string rate_key){
+        // NEED TO COMPLETE THIS FUNCTION --> DEPENDS ON SIGMA DATA STRUCTURE !!
+        // find the rate_key in Sigma.tab somehow and take "energy" and "sect"
+        std::vector<double> energy; // = Sigma.tab[rate_key].energy;
+        std::vector<double> Xsec; // = Sigma.tab[rate_key].sect;
+        
+        rates[rate_key] = 0.0;
+        for (size_t i = 0; i < energy.size(); i++) {    // DA MODIFICARE I LOOP !!! DIPENDONO DALLA STRUTTURA DATI DI SIGMA
+            for( size_t j = 0; j < Xsec.size(); j++){
+                double conv = convolution(E, {energy, Xsec});
+                rates[rate_key] += conv * mix[j];   
+            }
+        }
+    }    
 };
 
 #endif // REACTION_RATES_HPP

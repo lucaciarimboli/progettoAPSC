@@ -1,0 +1,149 @@
+LXcat, http://www.lxcat.laplace.univ-tlse.fr
+Downloaded on 4 Jun 2013. All rights reserved.
+
+1)  The cross sections in this file are taken from different databases on LXCat, as indicated in the header for each species. 
+The cross sections in this file are used in-house by the group GREPHE at LAPLACE in Toulouse, France. We recomment that
+users consult the LXCat site and the documentation on that site to which of the available datasets are best adapted
+to the problem of interest.  
+
+2)  These data are being made freely available to the community.  In exchange, we require that users make proper reference to the
+LXCat site, to the particular database containing the data, and to original references as listed below in the header for each species. 
+
+
+EACH COLLISION PROCESS IS DEFINED BY A BLOCK CONSISTING OF
+
+1st line
+Keyword in capitals indicating the type of the collision. Possible collision types are 'elastic', 'effective',
+'excitation', 'ionization', or 'attachment' (capital letters required, key words are case sensitive), where 'elastic' is
+used to denote the elastic momentum transfer cross section and where 'effective' denotes the total momentum transfer
+cross section (sum of elastic momentum transfer and total inelastic cross sections). The latter is useful for solving
+the Boltzmann equation in the 2-term approximation.
+
+2nd line
+Name of the target particle species. This name is a character string, freely chosen by the user, e.g. 'Ar'. Optionally
+for excitation processes, the name of the corresponding excited state can be specified on the same line, separated from
+the first name either by arrow '->' or by double-head arrow '', e.g. 'Ar -> Ar*' and 'Ar  Ar*', respectively. In the
+later case BOLSIG+ will automatically define the inverse superelastic process, constructing the superelastic
+cross-section by detailed balancing, and considering the indicated excited state as the target. In this case, the ratio
+of statistical weights must be input in the 3rd line (see below).  Alternatively, superelastic collisions could be
+defined explicitly as excitation collisions with a negative electron energy loss with user input cross sections and
+species name, 'Ar*', for example.
+
+3rd line
+For elastic and effective collisions, the ratio of the electron mass to the target particle mass. For excitation or
+ionization collisions, the electron energy loss (nominally the threshold energy) in eV. For attachment, the 3rd line is
+missing. In case of an excitation process where an excited state has been indicated on the 2nd line using double-head
+arrow '', the 3rd line must specify also ratio of the statistical weights of the final state to the initial state as the
+second parameter in 3rd line; this is needed by BOLSIG+ to calculate the de-excitation cross-section.
+
+from 4th line (optionally)
+User comments and reference information, maximum 100 lines. ZDPlasKin reaction label could be indicated here, for
+example. The only constraint on format is that these comment lines must not start with a number.
+
+Finally
+Table of the cross section as a function of energy. The table starts and ends by a line of dashes '------' (at least 5),
+and has otherwise two numbers per line: the energy in eV and the cross section in m2.
+
+------------------------------------------------------------
+
+COMMENT
+O
+References:
+1) Morgan (Kinema Research  Software)
+-----------------------------------------------------------------------------------------------------------------------
+
+EFFECTIVE
+O
+ 3.426200e-5
+UPDATED: 2011-06-06 18:16:58
+COMMENT: None
+-----------------------------
+ 0.000000e+0	1.190000e-20
+ 7.000000e-2	1.190000e-20
+ 2.000000e-1	1.970000e-20
+ 4.100000e-1	2.780000e-20
+ 6.800000e-1	3.640000e-20
+ 9.500000e-1	4.330000e-20
+ 1.220000e+0	4.890000e-20
+ 1.770000e+0	5.720000e-20
+ 2.600000e+0	6.480000e-20
+ 3.400000e+0	6.900000e-20
+ 5.400000e+0	7.250000e-20
+ 6.800000e+0	7.300000e-20
+ 9.500000e+0	7.470000e-20
+ 1.220000e+1	8.200000e-20
+ 1.770000e+1	1.341000e-19
+ 2.310000e+1	2.430000e-19
+-----------------------------
+
+EXCITATION
+O -> O(1D)
+  1.968000e+0
+UPDATED: 2010-08-03 13:00:22
+COMMENT: C63
+------------------------------------------------------------
+ 1.968000e+0	0.000000e+0
+ 1.972780e+0	1.618350e-24
+ 2.027200e+0	4.691890e-23
+ 2.040810e+0	6.270650e-23
+ 2.108840e+0	1.558730e-22
+ 2.312920e+0	4.925570e-22
+ 2.380940e+0	6.079940e-22
+ 2.585030e+0	9.383330e-22
+ 2.993190e+0	1.485200e-21
+ 3.333320e+0	1.823810e-21
+ 3.401350e+0	1.880410e-21
+ 3.809510e+0	2.156190e-21
+ 4.204070e+0	2.341510e-21
+ 4.625840e+0	2.464770e-21
+ 5.306110e+0	2.545410e-21
+ 5.442160e+0	2.550020e-21
+ 5.714270e+0	2.552440e-21
+ 5.986380e+0	2.546840e-21
+ 6.122430e+0	2.541260e-21
+ 6.666650e+0	2.507930e-21
+ 8.163240e+0	2.365340e-21
+ 1.020410e+1	2.151420e-21
+ 1.401360e+1	1.817550e-21
+ 1.605440e+1	1.621760e-21
+ 2.040810e+1	1.375910e-21
+ 2.585030e+1	1.141610e-21
+ 2.721080e+1	1.086330e-21
+ 2.857130e+1	1.037320e-21
+ 2.993190e+1	9.938530e-22
+ 3.129240e+1	9.548680e-22
+ 3.265300e+1	9.194210e-22
+ 3.401350e+1	8.858510e-22
+ 3.537400e+1	8.536370e-22
+ 3.673460e+1	8.252660e-22
+ 3.809510e+1	7.953280e-22
+ 3.945570e+1	7.657820e-22
+ 4.081620e+1	7.367550e-22
+ 4.761890e+1	6.120780e-22
+ 5.442160e+1	4.981620e-22
+ 6.122430e+1	3.941790e-22
+ 6.802700e+1	3.258080e-22
+ 7.482970e+1	2.682700e-22
+ 8.163240e+1	2.221220e-22
+------------------------------------------------------------
+
+IONIZATION
+O -> O^+
+  1.361800e+1
+COMMENT: Fite amp Brackmann (1959). c64
+UPDATED: 2010-08-03 13:11:45
+------------------------------------------------------------
+ 1.361800e+1	0.000000e+0
+ 2.000000e+1	5.600000e-21
+ 2.500000e+1	8.700000e-21
+ 3.000000e+1	1.080000e-20
+ 4.000000e+1	1.320000e-20
+ 6.000000e+1	1.520000e-20
+ 8.000000e+1	1.580000e-20
+ 1.000000e+2	1.550000e-20
+ 1.500000e+2	1.420000e-20
+ 2.000000e+2	1.310000e-20
+ 2.500000e+2	1.220000e-20
+ 3.000000e+2	1.100000e-20
+ 4.000000e+2	9.260000e-21
+------------------------------------------------------------

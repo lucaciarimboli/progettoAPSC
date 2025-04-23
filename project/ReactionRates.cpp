@@ -100,3 +100,42 @@ void RateDataCount::computeConserved() {
     computeRate(x, y[CATIONS], "ion_tot", "ion_tot_err");
     computeRate(x, y[ANIONS], "att_tot", "att_tot_err");
 }
+
+double RateDataConv::convolution(const EnergyData & E, const std::array<std::vector<double>, 2> & sigma){
+    // "sigma" is a 2D array with the first vector being the energy value for the data points and the second one
+    // being the cross section values. Change this if needed based on sigma format.
+    // Extract energy and cross-section values from sigma
+    std::vector<double>& x = sigma[0];  // Energy values
+    std::vector<double>& y = sigma[1];  // Cross-section values corresponding to x point
+
+    // Ensure energy starts at 0
+    if (x[0] > 0) {
+        y.insert(y.begin(), y[0]);
+        x.insert(x.begin(), 0.0);
+    }
+
+    // Add a large energy value (1e10 eV) at the end
+    y.push_back(y.back());
+    x.push_back(1e10);
+
+    // Get energy values and electrons energy probability function:
+    const std::vector<double>& energy = E.get_energy();
+    const std::vector<double>& EEPF = E.get_EEPF(); 
+
+    // Interpolate cross-section values to match the energy grid of E
+    Interpolation interp("linear");
+    std::vector<double> sigma_f = interp.interpolation(x, y, energy);
+
+    double dx = energy[1] - energy[0]; // Assume uniform grid spacing
+    double rate = 0.0;
+
+    // Perform the convolution integral:
+    for (size_t i = 0; i < EEPF.size(); i++) {
+        rate += EEPF[i] * std::sqrt(energy[i]) * sigma_f[i] * dx;
+    }
+
+    // Return the computed rate:
+    double me = 9.10938291e-31; // electron mass
+    double q0 = 1.60217657e-19; // electron charge
+    return std::sqrt(2.0 * q0 / me) * rate;   
+}

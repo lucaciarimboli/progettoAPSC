@@ -75,7 +75,8 @@ public:
     // Setters:
     void set_energy(const std::vector<double>& energy_bins){ energy = energy_bins; }
     // Getters:
-    double get_E_mean() const { return E_mean; }
+    const std::vector<double>& get_energy() const { return energy; }
+    const double get_E_mean() const { return E_mean; }
     const std::vector<double>& get_EEPF() const { return EEPF; }
     const std::vector<double>& get_EEDF() const { return EEDF; }
 

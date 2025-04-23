@@ -99,63 +99,63 @@ cross_sect::cross_sect(const string& path)
     }
 }
 
-//cross_sect::~cross_sect()
-//{
-//    delete[](tab);
-//}
+cross_sect::~cross_sect()
+{
+    delete[](tab);
+}
 
 
-//string cross_sect::formula(const int & ind)
-//{
-//    string form;
-//    form=tab[ind].react;
-//    return form;
-//}
+string cross_sect::formula(const int & ind)
+{
+    string form;
+    form=tab[ind].react;
+    return form;
+}
 
 
-//INTER cross_sect::interaction(const int & ind)
-//{
-//    INTER inter;
-//    inter=tab[ind].interact;
-//    return inter;
-//}
+INTER cross_sect::interaction(const int & ind)
+{
+    INTER inter;
+    inter=tab[ind].interact;
+    return inter;
+}
 
 
-//VECT cross_sect::energy(const int & ind)
-//{
-//    VECT en_v;
-//    en_v=tab[ind].energy;
-//    return en_v;
-//}
+VECT cross_sect::energy(const int & ind)
+{
+    VECT en_v;
+    en_v=tab[ind].energy;
+    return en_v;
+}
 
-//double cross_sect::energy(const int & ind,const int & pos)
-//{
-//    double val;
-//    val=tab[ind].energy[pos];
-//    return val;
-//}
+double cross_sect::energy(const int & ind,const int & pos)
+{
+    double val;
+    val=tab[ind].energy[pos];
+    return val;
+}
 
-//VECT cross_sect::section(const int & ind)
-//{
-//    VECT en_v;
+VECT cross_sect::section(const int & ind)
+{
+    VECT en_v;
 
-//    en_v=tab[ind].sect;
+    en_v=tab[ind].sect;
 
-//    return en_v;
-//}
+    return en_v;
+}
 
-//double cross_sect::section(const int & ind,const int & pos)
-//{
-//    double val;
-//    val=tab[ind].sect[pos];
-//    return val;
-//}
+double cross_sect::section(const int & ind,const int & pos)
+{
+    double val;
+    val=tab[ind].sect[pos];
+    return val;
+}
 
-//void cross_sect::remove(const int & ind,const int & off)
-//{
-//    tab[ind].energy.erase(tab[ind].energy.begin()+off);
-//    tab[ind].sect.erase(tab[ind].sect.begin()+off);
-//}
+void cross_sect::remove(const int & ind,const int & off)
+{
+    tab[ind].energy.erase(tab[ind].energy.begin()+off);
+    tab[ind].sect.erase(tab[ind].sect.begin()+off);
+}
 
 void cross_sect::print()
 {
