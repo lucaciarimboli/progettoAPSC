@@ -1,5 +1,5 @@
-#ifndef ENERGYDATA_H
-#define ENERGYDATA_H
+#ifndef BULKDATA_H
+#define BULKDATA_H
 
 #include <array>
 #include <vector>
@@ -80,7 +80,12 @@ class BulkData {
         double standard_err= std::sqrt(std::inner_product(res.cbegin(), res.cend(), res.cbegin(), 0.0) / ((n - 2) * var));
 
         // Confidence interval of 95% for slope:
-        double t_value = 1.860; // t-value for 95% confidence interval with 8 degrees of freedom, which is the minimum value of n-2 in this simulation.
+
+        // n = 10 è la dimensione minima del campione. t_value = 1.860 per 95% di confidenza con 8 gradi di libertà.
+        // per evitare di includere una libreria solo per questo valore, sovrastimo l'uncertainty con un valore fisso.
+
+        // Confidence interval of 95% for slope with 8 dof (minimum value of n-2):
+        double t_value = 1.860;
         return { m, 2 * t_value * standard_err };
     };
 

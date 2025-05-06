@@ -204,14 +204,11 @@ void MonteCarlo::collectMeanData(){
 void MonteCarlo::update_count_sst(){
     if(T_sst > 0){
         size_t i = 0;
-        unsigned int count = 0;
+        count_sst = 0;
         for( const double & time : t){
             i++;
-            if(time >= T_sst){
-                count++;
-            }
+            if(time >= T_sst){ count_sst++ };
         }
-        count_sst = count;
     }
 }
 

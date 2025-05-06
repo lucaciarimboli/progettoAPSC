@@ -26,7 +26,7 @@ void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsig
     } 
 }
 
-void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<double>& y, const std::string& rate_key, const std::string& err_key) {
+void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key) {
     // Check correctness of x,y.
     if(x.size() < 2) {
         throw std::invalid_argument("x vector must have at least two elements");
@@ -42,8 +42,8 @@ void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<
         ratio[i - 1] = y[i] / x[i]; 
     }
     
-    rates["eff"] = std::accumulate(ratio.begin(), ratio.end(), 0.0) / (ratio.size()) / N;
-    rates["eff_err"] = std::sqrt(std::inner_product(ratio.begin(), ratio.end(), ratio.begin(), 0.0) / (ratio.size() - 1)) / (x.size() - 1) / N;
+    rates[rate_key] = std::accumulate(ratio.begin(), ratio.end(), 0.0) / (ratio.size()) / N;
+    rates_errors[rate_key] = std::sqrt(std::inner_product(ratio.begin(), ratio.end(), ratio.begin(), 0.0) / (ratio.size() - 1)) / (x.size() - 1) / N;
 }
 
 void RateDataCount::computeNonConserved() {
@@ -59,7 +59,7 @@ void RateDataCount::computeNonConserved() {
         return std::log(static_cast<double>(part_0i) / static_cast<double>(particles[ELECTRONS][0]));
     });
 
-    computeRate(x, y, "eff", "eff_err");
+    computeRate(x, y, EFFECTIVE);
 
     double nu_eff = rates["eff"] * N;
     std::transform(x.begin(), x.end(), x.begin(), [nu_eff, this](int xi) {
@@ -70,13 +70,13 @@ void RateDataCount::computeNonConserved() {
     std::transform(particles[CATIONS].begin(), particles[CATIONS].end(), y.begin(), [this](int part_ij) {
         return static_cast<double>(part_ij - particles[CATIONS][0]);      // y elements here are int but they are casted to double for coherence with y definition
     });
-    computeRate(x, y, "ion_tot", "ion_tot_err");
+    computeRate(x, y, IONIZATION);
 
     // Compute attachment rate:
     std::transform(particles[ANIONS].begin(), particles[ANIONS].end(), y.begin(), [this](int part_ij) {
         return static_cast<double>(part_ij - particles[ANIONS][0]);      // same as for ionization rates
     });
-    computeRate(x, y, "att_tot", "att_tot_err");
+    computeRate(x, y, ATTACHMENT);
 }
 
 void RateDataCount::computeConserved() {
@@ -96,17 +96,20 @@ void RateDataCount::computeConserved() {
     }
 
     // Compute effective ionization, ionization and attachment rates:
-    computeRate(x, y[ELECTRONS], "eff", "eff_err");
-    computeRate(x, y[CATIONS], "ion_tot", "ion_tot_err");
-    computeRate(x, y[ANIONS], "att_tot", "att_tot_err");
+    for (int i = 0; i < 3; i++){
+        computeRate(x, y[i], i);
+    }
+    // Equivalent to:
+    // computeRate(x, y[ELECTRONS], EFFECTIVE);
+    // computeRate(x, y[CATIONS], IONIZATION);
+    // computeRate(x, y[ANIONS], ATTACHMENT);
 }
 
-double RateDataConv::convolution(const EnergyData & E, const std::array<std::vector<double>, 2> & sigma){
-    // "sigma" is a 2D array with the first vector being the energy value for the data points and the second one
-    // being the cross section values. Change this if needed based on sigma format.
-    // Extract energy and cross-section values from sigma
-    std::vector<double>& x = sigma[0];  // Energy values
-    std::vector<double>& y = sigma[1];  // Cross-section values corresponding to x point
+double RateDataConv::convolution(const std::vector<double> & x, const std::vector<double> & y) {
+    // Check correctness of x,y
+    if(y.size() != x.size()) {
+        throw std::invalid_argument("x and y vectors must have the same size");
+    }
 
     // Ensure energy starts at 0
     if (x[0] > 0) {
@@ -123,8 +126,7 @@ double RateDataConv::convolution(const EnergyData & E, const std::array<std::vec
     const std::vector<double>& EEPF = E.get_EEPF(); 
 
     // Interpolate cross-section values to match the energy grid of E
-    Interpolation interp("linear");
-    std::vector<double> sigma_f = interp.interpolation(x, y, energy);
+    std::vector<double> sigma_f = linear_interpolation(x, y, energy);
 
     double dx = energy[1] - energy[0]; // Assume uniform grid spacing
     double rate = 0.0;
@@ -139,3 +141,26 @@ double RateDataConv::convolution(const EnergyData & E, const std::array<std::vec
     double q0 = 1.60217657e-19; // electron charge
     return std::sqrt(2.0 * q0 / me) * rate;   
 }
+
+std::vector<double> RateDataConv::linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq){
+
+    std::vector<double> result(xq.size());
+
+    for (size_t n = 0; n < xq.size(); n++) {
+        double query = xq[n];
+        size_t i = 0;
+
+        if (query <= x.front()) {
+        i = 0;
+        } else if (query >= x.back()) {
+        i = x.size() - 2;
+        } else {
+        while (i < x.size() - 1 && query > x[i + 1]) i++;
+        }
+        
+    double t = (query - x[i]) / (x[i + 1] - x[i]);
+    result[n] = std::lerp(y[i], y[i + 1], t);
+    }
+    return result;
+}
+ 

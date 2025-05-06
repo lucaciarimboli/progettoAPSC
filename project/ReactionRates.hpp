@@ -5,17 +5,20 @@
 #include <map>
 #include <string>
 #include <array>
+#include <cmath>
 #include "MeanData.hpp"
-#include "Interpolation.hpp"
+#include "EnergyData.hpp"
 #include "cross_s.h"
+
+class cross_sect;
+class MeanData;
+class EnergyData;
 
 class RateDataBase {
 public:
     RateDataBase()
     {
-        rates["ion_tot"] = 0.0;
-        rates["att_tot"] = 0.0;
-        rates["eff"] = 0.0;
+        rates.fill(0.0);
     }
 
     virtual ~RateDataBase() = default;
@@ -27,19 +30,20 @@ public:
     double getRate(const std::string& key) const { return rates.at(key); }
 
 protected:
-    std::map<std::string, double> rates; // Reaction rates
+    std::array<double,INTERACTIONS> rates; // Reaction rates
 };
 
 // Calculates the reaction rates by regression of electron number vs time
 class RateDataCount: public RateDataBase {
 public:
 
+    // THIS CLASS COMPUTES ONLY EFFECTIVE, IONIZATION AND ATTACHMENT RATES
+    // RATES RELATED TO EXCITATION AND ELASTIC COLLISIONS ARE SIMPLY SET TO 0.0
+
     RateDataCount(const double & dens, bool cons) 
         : N(dens), conserve(cons)
     {
-        rates["ion_tot_err"] = 0.0;
-        rates["att_tot_err"] = 0.0;
-        rates["eff_err"] = 0.0;
+        rates_errors.fill(0.0);
     }
 
     // Compute the reaction rates based on the time and particle data.
@@ -58,6 +62,9 @@ public:
     void setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst);
     
 private:
+
+    std::array<double, INTERACTIONS> rates_errors; // Errors in reaction rates
+
     bool conserve; // conserve (1) electron number after ionizatzion/attachment or not (0)
     double N; // Gas number density in m^-3
 
@@ -65,61 +72,71 @@ private:
     std::array<std::vector<int>,PARTICLES_TYPES> particles; // Number of particles of each type at each time of vector "x"
 
     // Private methods:
-    void computeRate(const std::vector<double>& x, const std::vector<double>& y, const std::string& rate_key, const std::string& err_key);
+    void computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key);
     void computeNonConserved();
     void computeConserved();
 
 };
 
-//----------------------------------------------------------------//
-// NEEDS TO BE ADJUSTED BASED ON THE CROSS-SECTION DATA STRUCTURE //
-//----------------------------------------------------------------//
+struct spec_rate {
+    double rate;              // Reaction rate
+    int specie;               // Index of the specie
+    int interaction;          // Type of interaction
+    std::string reaction;     // Type of reaction
+};
+
 // Calculates the reaction rates by convolution of the electron number with a kernel
 class RateDataConv : public RateDataBase {
     public:
-    RateDataConv( const cross_sect & sigma, const std::vector<double> mixx;) 
-        : Sigma(sigma), mix(mixx)
+    RateDataConv( const cross_sect & sigma, const std::vector<double> mixx, const EnergyData & en) 
+        : Sigma(sigma), mix(mixx), E(en)
     {
-        //rates["ela"] = 0.0;
-        rates["ela_tot"] = 0.0;
-        rates["ion"] = 0.0;
-        rates["att"] = 0.0;
-        rates["exc"] = 0.0;
+        // Set the correct size for the specific rates vector:
+        size_t specific_rates_size = 0;
+        for( cross_sect & s : Sigma) {
+            specific_rates_size += s.tab.size();
+        }
+        specific_rates.reserve(specific_rates_size);
     }
 
     void computeRates() override
     {
-        // Compute the reaction rates based on the cross-section data:
-        std::array<std::string, 5> rate_keys = {"ela_tot", "ion_tot", "att_tot", "exc_tot"};
-        for (const auto& rate_key : rate_keys) {
-            computeRate(rate_key);
-        }
+        // Iterator to specific rates vector:
+        auto it = specific_rates.begin();
 
+        // Loop over all species in the gas mixture:
+        for(size_t specie = 0; specie < mix.length(); specie++) {
+
+            // Iterate over all interactions:
+            for( auto & table : Sigma(specie).tab) {
+
+                // Compute the reaction rate for element "t"
+                spec_rate rr;
+                rr.rate = convolution(E, table.energy, table.sect);
+                rr.specie = specie;
+                rr.interaction = table.interact;
+                rr.reaction = table.react;
+                specific_rates.push_back(R);
+
+                // Update total reaction rate
+                rates[rr.interaction] += R.rate * mix[specie];
+            }
+        }
         // Compute the effective rate: 
-        rates["eff"] = rates["ion_tot"] - rates["att_tot"];        
+        //rates[EFFECTIVE] = rates[IONIZATION] - rates[ATTACHMENT];
     }
 
     setSigma(const cross_sect & sigma) { Sigma = sigma; } // Set the cross-section data
 
     private:
-    std::vector<cross_sect> Sigma; // NOT SURE OF WHAT IS THE Sigma DATA STRUCTURE YET!
-    std::vector<double> mix;       // Fractions of individual species in the gas as a vector
+    std::vector<spec_rate> specific_rates; // Reaction Rates specific to each type, reaction and interaction.
+    std::vector<cross_sect> Sigma;         // cross_section data
+    std::vector<double> mix;               // Fractions of individual species in the gas as a vector
+    EnergyData E;                          // Energy data
 
-    double convolution(const EnergyData & E, const std::array<std::vector<double>, 2> & sigma);
-    void computeRate(std::string rate_key){
-        // NEED TO COMPLETE THIS FUNCTION --> DEPENDS ON SIGMA DATA STRUCTURE !!
-        // find the rate_key in Sigma.tab somehow and take "energy" and "sect"
-        std::vector<double> energy; // = Sigma.tab[rate_key].energy;
-        std::vector<double> Xsec; // = Sigma.tab[rate_key].sect;
-        
-        rates[rate_key] = 0.0;
-        for (size_t i = 0; i < energy.size(); i++) {    // DA MODIFICARE I LOOP !!! DIPENDONO DALLA STRUTTURA DATI DI SIGMA
-            for( size_t j = 0; j < Xsec.size(); j++){
-                double conv = convolution(E, {energy, Xsec});
-                rates[rate_key] += conv * mix[j];   
-            }
-        }
-    }    
+    double convolution(const std::vector<double> & x, const std::vector<double> & y);
+    std::vector<double> linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq);
+    // linear interpolation requires C++20 for std::lerp
 };
 
 #endif // REACTION_RATES_HPP

@@ -12,7 +12,8 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    string path("./CrossSection/H2O/H2O.txt");
+    string path("./Xsec/H2O/H2O.txt");
+    //string path("./testodiprova");
 
     std::cout << "Attempting to open file: " << path << std::endl;
 
@@ -23,6 +24,7 @@ int main(int argc, char *argv[])
     }
 
     cross_sect h2o(path);
+    std::cout << "File opened successfully." << std::endl;
 
  //   int k=h2o.len-1;
  //      VECT en=h2o.energy(k);

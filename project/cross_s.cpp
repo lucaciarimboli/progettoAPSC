@@ -14,6 +14,7 @@ cross_sect::cross_sect(const string& path)
     int_map["EXCITATION"]=EXCITATION;
     int_map["IONIZATION"]=IONIZATION;
     int_map["ATTACHMENT"]=ATTACHMENT;
+    int_map["ELASTIC"]=ELASTIC;
 
     //string filename="N2.txt";     //nome del file
     ifstream file;                //stream object
@@ -28,7 +29,7 @@ cross_sect::cross_sect(const string& path)
     {
         while(getline(file,line))
         {
-            if (line.compare("EFFECTIVE")==0 | line.compare("EXCITATION")==0 | line.compare("IONIZATION")==0 | line.compare("ATTACHMENT")==0)
+            if (line.compare("EFFECTIVE")==0 || line.compare("EXCITATION")==0 || line.compare("IONIZATION")==0 || line.compare("ATTACHMENT")==0, line.compare("EXCITATION") == 0)
             {
                 n++;
             }
@@ -41,6 +42,7 @@ cross_sect::cross_sect(const string& path)
 
     //VARIABILE di estrazione
     len=n;
+    std::cout << "Numero di interazioni: " << len << std::endl;
     tab.reserve(n);
 
     if(file.is_open())
@@ -48,7 +50,7 @@ cross_sect::cross_sect(const string& path)
         int i=0;
         while(getline(file,line))
         {
-            if (line.compare("EFFECTIVE")==0 | line.compare("EXCITATION")==0 | line.compare("IONIZATION")==0 | line.compare("ATTACHMENT")==0)
+            if (line.compare("EFFECTIVE")==0 | line.compare("EXCITATION")==0 | line.compare("IONIZATION")==0 | line.compare("ATTACHMENT")==0, line.compare("EXCITATION") == 0)
             {
                 fl=1;
                 MAP_IT it=int_map.find(line);
@@ -99,10 +101,10 @@ cross_sect::cross_sect(const string& path)
     }
 }
 
-cross_sect::~cross_sect()
-{
-    delete[](tab);
-}
+//cross_sect::~cross_sect()
+//{
+    //tab.delete();
+//}
 
 
 string cross_sect::formula(const int & ind)
@@ -164,6 +166,7 @@ void cross_sect::print()
     int_map[EXCITATION]="EXCITATION";
     int_map[IONIZATION]="IONIZATION";
     int_map[ATTACHMENT]="ATTACHMENT";
+    int_map[ELASTIC]="ELASTIC";
 
     map<INTER,string>::iterator it;
 

@@ -47,12 +47,9 @@ public:
         return interpolation_kind;
     }
 
-
 private:
-    std::string interpolation_kind = "linear"; // Default interpolation kind
+    std::string interpolation_kind = "linear"; // Linear interpolation by default
 
-    // Such class might be expanded to support other interpolation methods
-    // like cubic, spline, etc. in the future.
     // Multi-column interpolation: each row of v corresponds to x, each column a dataset
     static std::vector<double> linear_interpolation(const std::vector<double>& x,
                                        const std::vector<std::vector<double>>& y,
@@ -94,15 +91,23 @@ private:
     static std::vector<double> linear_interpolation(const std::vector<double>& x,
                                        const std::vector<double>& y,
                                        const std::vector<double>& xq) {
-        std::vector<std::vector<double>> matrix_y(y.size(), std::vector<double>(1));
-        for (size_t i = 0; i < y.size(); i++)
-            matrix_y[i][0] = y[i];
-
-        std::vector<double> flat_result = linear_interpolation(x, matrix_y, xq);
-
         std::vector<double> result(xq.size());
-        for (size_t i = 0; i < xq.size(); i++)
-            result[i] = flat_result[i];
+
+        for (size_t n = 0; n < xq.size(); n++) {
+            double query = xq[n];
+            size_t i = 0;
+
+            if (query <= x.front()) {
+            i = 0;
+            } else if (query >= x.back()) {
+            i = x.size() - 2;
+            } else {
+            while (i < x.size() - 1 && query > x[i + 1]) i++;
+            }
+
+            double t = (query - x[i]) / (x[i + 1] - x[i]);
+            result[n] = std::lerp(y[i], y[i + 1], t);
+        }
 
         return result;
     }

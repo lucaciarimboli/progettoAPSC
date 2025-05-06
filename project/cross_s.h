@@ -11,12 +11,14 @@
 
 using namespace std;
 
-enum INTER  // Missing elastic?? It is needed in rateDataConv();
+enum INTER
 {
     EFFECTIVE,
-    EXCITATION,
     IONIZATION,
-    ATTACHMENT
+    ATTACHMENT,
+    EXCITATION,
+    ELASTIC,
+    INTERACTIONS
 };
 
 typedef vector<double> VECT;
@@ -41,14 +43,14 @@ public:
 
 public:
     cross_sect(const string & path);
-    ~cross_sect();
+    ~cross_sect() = default;
 
     //accesso ai membri
     VECT energy(const int & ind);
     double energy(const int & ind,const int & pos);
     VECT section(const int & ind);
     double section(const int & ind,const int & pos);
-    string formula(const int & ind);<
+    string formula(const int & ind);
     INTER interaction(const int & ind);
     void remove(const int & ind, const int & off);
     

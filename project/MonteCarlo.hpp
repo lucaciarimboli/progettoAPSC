@@ -11,7 +11,8 @@ class MeanData;
 class EnergyData;
 class FluxData;
 class BulkData;
-class ReactionRates;
+class RateDataCount;
+class RateDataConv;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
 // enum Coordinates{ X = 0, Y, Z, COORDINATES}
@@ -33,7 +34,7 @@ class MonteCarlo
     static constexpr double epsilon0 = 8.854188e-12;
 
     // cross secion data created by class cross_sect
-    cross_sect Xsec;
+    std::vector<cross_sect> Xsec;
     // cell array of subformula of gas species
     std::vector<std::string> gas;
     // cell array of mass of gas species (in kg)
