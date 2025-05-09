@@ -81,11 +81,12 @@ class BulkData {
 
         // Confidence interval of 95% for slope:
 
-        // n = 10 è la dimensione minima del campione. t_value = 1.860 per 95% di confidenza con 8 gradi di libertà.
-        // per evitare di includere una libreria solo per questo valore, sovrastimo l'uncertainty con un valore fisso.
+        // The smallest # of dof is n = 8. t_value = 1.860 for 95% confidence interval with 8 dof.
+        // A t-student quantile table would be required, to avoid importing external libraries just for this task,
+        // an overestimate of the confidence interval is acceptable.
 
         // Confidence interval of 95% for slope with 8 dof (minimum value of n-2):
-        double t_value = 1.860;
+        double t_value = 1.860; 
         return { m, 2 * t_value * standard_err };
     };
 

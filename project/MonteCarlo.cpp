@@ -1,4 +1,4 @@
-#include "cross_s.h"
+#include "CrossSections.hpp"
 #include "MonteCarlo.hpp"
 #include "MolMass.hpp"
 #include "MeanData.hpp"
@@ -57,7 +57,28 @@ std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> 
     return std::make_pair(abs_v,E_in_eV);
 }
 
-// void MonteCarlo::maximalCollFreq(){} // USES CLASS "cross_sect"
+void MonteCarlo::maximalCollFreq(){
+    // calculates maximal collision rate for gas mixture (in s^-1)
+    nu_max = 0.0;
+
+    // Extract total_cross section data from Xsec object:
+    const std::vector<double> & energy = Xsec.get_energy();
+    const std::vector<double> sigma_tot = Xsec.compute_total_Xsection(mix);
+
+    // Check if the size is coherent:
+    if(energy.size() != sigma_tot.size()){
+        std::cerr << "Error: energy and total_xsection vectors have different sizes!" << std::endl;
+        return;
+    }
+
+    // Calculate the maximal collision frequency:
+    for(size_t i = 0; i < energy.size(); i++){
+        double nu = N * sigma_tot[i] * std::sqrt(2.0 * energy[i] * q0 / me); // s^-1
+        if(nu > nu_max){
+            nu_max = nu;
+        }
+    }
+}
 
 void MonteCarlo::initialParticles(){
 
@@ -251,11 +272,14 @@ void MonteCarlo::updateBulkData(){
 void MonteCarlo::updateReactionRates(){
     if (count_sst > 10){
 
-        // Update data for reaction rates computation:
-        rates_conv.setTime(t,count_sst);
-        rates_conv.setParticles(mean,count_sst);
-        // Compute updated reaction rates:
-        rates_conv.computeRates();
+        // 1. REACTION RATES BY COUNTING:
+        rates_count.setTime(t,count_sst);
+        rates_count.setParticles(mean,count_sst);
+        rates_count.computeRates();
 
+        // 2. REACTION RATES BY CONVOLUTION:
+        rates_conv.setEnergy(E);
+        rates_conv.computeRates();
+    
     }   
 };

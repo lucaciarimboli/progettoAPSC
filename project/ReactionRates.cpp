@@ -61,7 +61,7 @@ void RateDataCount::computeNonConserved() {
 
     computeRate(x, y, EFFECTIVE);
 
-    double nu_eff = rates["eff"] * N;
+    double nu_eff = rates[EFFECTIVE] * N;
     std::transform(x.begin(), x.end(), x.begin(), [nu_eff, this](int xi) {
         return (std::exp(nu_eff * xi) - 1.0) / nu_eff * static_cast<double>(particles[ELECTRONS][0]);;
     });
@@ -90,7 +90,7 @@ void RateDataCount::computeConserved() {
     // Define y vector as normalized particles gain
     for( size_t i = 0; i < PARTICLES_TYPES; i++) {
         y[i].resize(count_sst);
-        std::transform(particles[i].begin(), particles[i].end(), y[i].begin(), [this,i](int part_ij) {
+        std::transform(particles[i].begin(), particles[i].end(), y[i].begin(), [this,i,initial_electrons](int part_ij) {
             return (static_cast<double>(part_ij - particles[i][0]) / initial_electrons);
         });
     }
@@ -105,7 +105,8 @@ void RateDataCount::computeConserved() {
     // computeRate(x, y[ANIONS], ATTACHMENT);
 }
 
-double RateDataConv::convolution(const std::vector<double> & x, const std::vector<double> & y) {
+// Compute the convolution for vectors x,y over the energy grid provided in E
+double RateDataConv::convolution(std::vector<double> x, std::vector<double> y) {
     // Check correctness of x,y
     if(y.size() != x.size()) {
         throw std::invalid_argument("x and y vectors must have the same size");
@@ -142,7 +143,12 @@ double RateDataConv::convolution(const std::vector<double> & x, const std::vecto
     return std::sqrt(2.0 * q0 / me) * rate;   
 }
 
+// Performs linear interpolation
 std::vector<double> RateDataConv::linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq){
+
+    if (x.empty() || y.empty() || x.size() != y.size()) {
+        throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
+    }
 
     std::vector<double> result(xq.size());
 
@@ -157,10 +163,10 @@ std::vector<double> RateDataConv::linear_interpolation(const std::vector<double>
         } else {
         while (i < x.size() - 1 && query > x[i + 1]) i++;
         }
-        
-    double t = (query - x[i]) / (x[i + 1] - x[i]);
-    result[n] = std::lerp(y[i], y[i + 1], t);
+
+        double t = (query - x[i]) / (x[i + 1] - x[i]);
+        result[n] = y[i] + t * (y[i + 1] - y[i]);
     }
+
     return result;
-}
- 
+} 

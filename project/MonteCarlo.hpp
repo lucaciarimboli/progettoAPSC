@@ -6,7 +6,7 @@
 #include <array>
 #include <unordered_set>
 
-class cross_sect;
+class CrossSectionsData;
 class MeanData;
 class EnergyData;
 class FluxData;
@@ -15,7 +15,6 @@ class RateDataCount;
 class RateDataConv;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
-// enum Coordinates{ X = 0, Y, Z, COORDINATES}
 typedef std::vector<std::array<double,3>> MATRIX;
 
 class MonteCarlo
@@ -33,8 +32,8 @@ class MonteCarlo
     // electric constant
     static constexpr double epsilon0 = 8.854188e-12;
 
-    // cross secion data created by class cross_sect
-    std::vector<cross_sect> Xsec;
+    // cross sections data
+    CrossSectionsData Xsec;
     // cell array of subformula of gas species
     std::vector<std::string> gas;
     // cell array of mass of gas species (in kg)
@@ -60,38 +59,6 @@ class MonteCarlo
 
     // E/N for homogeneous field [Td] --> constant, uniform, user defined.
     double EN;
-    // minimal E/N for inhomogeneous field in Td
-    // EN_min = [];
-    // maximal E/N for inhomogeneous field in Td
-    // EN_max = [];
-            
-    // MESH CLASS --> not needed if E/N is constant+uniform.     
-    // length in x direction
-    // const double Lx;
-    // length in y direction
-    // const double Ly;
-    // length in z direction
-    // const double Lz;
-    // number of cells in x direction
-    // const int nx = 80;
-    // number of cells in y direction
-    // const int ny = 90;
-    // number of cells in z direction
-    // const int nz = 100;
-    // x_vector
-    // std::array<double,nx+1> x;
-    // y_vector
-    // std::array<double,ny+1> y;
-    // z_vector
-    // std::array<double,nz+1> z;
-    // x_meshgrid
-    // X;
-    // y_meshgrid
-    // Y;
-    // z_meshgrid
-    // Z;
-    // [nx x ny x nz]-matrix with zeros inside and ones outside the boundary
-    // boundary;
             
     // array of initial mean position of initial gaussian distributed electrons in x,y and z direction
     const std::array<double,3> pos_xyz  = {0, 0, 0};
@@ -115,7 +82,7 @@ class MonteCarlo
     // energy sharing in ionizing collision
     W;
     // maximum electron energy
-    E_max;
+    double E_max;
     // maximal collision frequency:
     double nu_max;
     // collision counter
@@ -175,7 +142,7 @@ class MonteCarlo
     // collisions, all other entries are zero
     Mass;
     // Loss is a vector of length(v), the entries are the energy losses due to excitation collisions,
-    //all other entries are zero
+    // all other entries are zero
     Loss;
             
     // temporal mean data of electron swarm
@@ -190,11 +157,6 @@ class MonteCarlo
     // energy data
     EnergyData E;
             
-    // CLASS SOLVE_POISSON --> not needed here
-    // charge density
-    // rho;
-    // electric potential
-    // phi;
     // electric field function in x-direction
     double E_x;
     // electric field function in y-direction
@@ -228,7 +190,7 @@ class MonteCarlo
     std::pair<double,double> velocity2energy(const std::vector<double> & v);
 
     // Calculates maximal collision rate for gas mixture (in s^-1) 
-    // void maximalCollFreq();                                // USA CLASSE "cross_sect"
+    void maximalCollFreq();
 
     // Sets initial position and velocity of electrons
     void initialParticles();

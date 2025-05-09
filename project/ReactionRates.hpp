@@ -8,16 +8,15 @@
 #include <cmath>
 #include "MeanData.hpp"
 #include "EnergyData.hpp"
-#include "cross_s.h"
+#include "CrossSectionsData.hpp"
 
-class cross_sect;
+class CrossSectionsData;
 class MeanData;
 class EnergyData;
 
 class RateDataBase {
 public:
-    RateDataBase()
-    {
+    RateDataBase() {
         rates.fill(0.0);
     }
 
@@ -27,10 +26,22 @@ public:
     virtual void computeRates() = 0;
 
     // Getter for rates:
-    double getRate(const std::string& key) const { return rates.at(key); }
+    double getRate(const INTER& key) const { return rates[key]; }
 
 protected:
     std::array<double,INTERACTIONS> rates; // Reaction rates
+
+    // Converts INTER enum to string for printing:
+    std::string INTER_to_string(const INTER & interaction) const {
+        switch (interaction) {
+            case EFFECTIVE: return "EFFECTIVE";
+            case IONIZATION: return "IONIZATION";
+            case ATTACHMENT: return "ATTACHMENT";
+            case EXCITATION: return "EXCITATION";
+            case ELASTIC: return "ELASTIC";
+            default: return "UNKNOWN";
+        }
+    }
 };
 
 // Calculates the reaction rates by regression of electron number vs time
@@ -60,6 +71,20 @@ public:
     void setConserve(bool cons) { conserve = cons; }
     void setTime(const std::vector<double>& t,const unsigned int & count_sst);
     void setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst);
+
+    // Getters:
+    double get_errors(const INTER & rate_key) const { return rates_errors[rate_key]; }
+
+    // Printer:
+    void printRates() const
+    {
+        std::cout << "\nReaction Rates:" << std::endl;
+        for (int i = 0; i < 3; i++) {
+            std::cout << "Rate " << INTER_to_string(static_cast<INTER>(i)) << ": " << rates[i] << std::endl;
+            std::cout << "Error: " << rates_errors[i] << std::endl;
+            std::cout << "-----------" << std::endl;
+        }
+    }
     
 private:
 
@@ -80,21 +105,22 @@ private:
 
 struct spec_rate {
     double rate;              // Reaction rate
-    int specie;               // Index of the specie
-    int interaction;          // Type of interaction
+    std::string specie;               // Index of the specie
+    std::string interaction;          // Type of interaction
     std::string reaction;     // Type of reaction
 };
 
 // Calculates the reaction rates by convolution of the electron number with a kernel
 class RateDataConv : public RateDataBase {
     public:
-    RateDataConv( const cross_sect & sigma, const std::vector<double> mixx, const EnergyData & en) 
-        : Sigma(sigma), mix(mixx), E(en)
+    RateDataConv( const CrossSectionsData & xs, const EnergyData & en) 
+        : Xsec(xs), E(en)
     {
         // Set the correct size for the specific rates vector:
         size_t specific_rates_size = 0;
-        for( cross_sect & s : Sigma) {
-            specific_rates_size += s.tab.size();
+        const std::vector<std::vector<table>> & Sigma = Xsec.get_full_xs_data();
+        for( const std::vector<table> & t : Sigma) {
+            specific_rates_size += t.size();
         }
         specific_rates.reserve(specific_rates_size);
     }
@@ -104,39 +130,66 @@ class RateDataConv : public RateDataBase {
         // Iterator to specific rates vector:
         auto it = specific_rates.begin();
 
+        // Vector containing mixture fractions:
+        std::vector<double> mix = Xsec.get_mix();
+        // Vector containing the energy values:
+        std::vector<double> energy_grid = Xsec.get_energy();
+
         // Loop over all species in the gas mixture:
-        for(size_t specie = 0; specie < mix.length(); specie++) {
+        for(size_t specie = 0; specie < mix.size(); specie++) {
+
+            const std::vector<table> & Sigma = Xsec.get_full_xs_data()[specie];
 
             // Iterate over all interactions:
-            for( auto & table : Sigma(specie).tab) {
+            for( const table & t : Sigma) {
 
                 // Compute the reaction rate for element "t"
                 spec_rate rr;
-                rr.rate = convolution(E, table.energy, table.sect);
-                rr.specie = specie;
-                rr.interaction = table.interact;
-                rr.reaction = table.react;
-                specific_rates.push_back(R);
+                rr.rate = convolution(energy_grid, t.section);
+                rr.specie = Xsec.get_gas()[specie];
+                rr.interaction = INTER_to_string(t.interact);
+                rr.reaction = t.react;
+                specific_rates.push_back(rr);
 
                 // Update total reaction rate
-                rates[rr.interaction] += R.rate * mix[specie];
+                rates[t.interact] += rr.rate * mix[specie];
             }
         }
-        // Compute the effective rate: 
-        //rates[EFFECTIVE] = rates[IONIZATION] - rates[ATTACHMENT];
     }
 
-    setSigma(const cross_sect & sigma) { Sigma = sigma; } // Set the cross-section data
+    // Setters:
+    void setSigma(const CrossSectionsData & xs) { Xsec = xs; } // Set the cross-section data
+    void setEnergy(const EnergyData & en) { E = en; } // Set the energy data
+    // Getters:
+    const std::vector<spec_rate> & getSpecificRates() const { return specific_rates; }   // Get the specific rates
+    // Printers:
+    void printRates() const
+    {
+        std::cout << "\nReaction Rates:" << std::endl;
+        for (int i = 0; i < 5; i++) {
+            std::cout << "Rate " << INTER_to_string(static_cast<INTER>(i)) << ": " << rates[i] << std::endl;
+            std::cout << "-----------" << std::endl;
+        }
+    }
+    
+    void printSpecificRates() const {
+        std::cout << "\nSpecific Reaction Rates:" << std::endl;
+        for (const auto& rr : specific_rates) {
+            std::cout << "Specie: " << rr.specie << std::endl;
+            std::cout << "Interaction: " << rr.interaction << std::endl;
+            std::cout << "Reaction: " << rr.reaction << std::endl;
+            std::cout << "Rate: " << rr.rate << std::endl;
+            std::cout << "-----------" << std::endl;
+        }
+    }
 
     private:
     std::vector<spec_rate> specific_rates; // Reaction Rates specific to each type, reaction and interaction.
-    std::vector<cross_sect> Sigma;         // cross_section data
-    std::vector<double> mix;               // Fractions of individual species in the gas as a vector
+    CrossSectionsData Xsec;                // cross_section data
     EnergyData E;                          // Energy data
 
-    double convolution(const std::vector<double> & x, const std::vector<double> & y);
+    double convolution(std::vector<double> x, std::vector<double> y);
     std::vector<double> linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq);
-    // linear interpolation requires C++20 for std::lerp
 };
 
 #endif // REACTION_RATES_HPP
