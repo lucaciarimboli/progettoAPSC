@@ -75,14 +75,14 @@ public:
     const std::vector<std::vector<table>>& get_full_xs_data() const { return Xsections; }
     // getters for specific cross-section data per specie-interaction type:
     // Option 1: pass indexes of specie and interaction
-    std::vector<table> get_Xsections( size_t & specie, INTER & interaction) const {
+    std::vector<table> get_Xsections( const size_t specie, const INTER interaction) const {
         // Check if the specie and interaction indices are valid
         if (specie >= gas.size() || interaction >= Xsections[specie].size()) {
             throw std::out_of_range("Invalid specie or interaction index");
         }
         // Return the cross-section data for the specified specie and interaction
         std::vector<table> result;
-        for (size_t i = 0; i < Xsections[specie].size(); ++i) {
+        for (size_t i = 0; i < Xsections[specie].size(); i++) {
             if (Xsections[specie][i].interact == interaction) {
             result.push_back(Xsections[specie][i]);
             }
@@ -90,8 +90,8 @@ public:
         return result;
     }
     // Option 2: pass strings with specie and interaction names
-    std::vector<table> get_Xsections( std::string & specie, std::string & interaction) const {
-        size_t species_index = std::distance(gas.begin(), std::find(gas.begin(), gas.end(), specie));
+    std::vector<table> get_Xsections( const std::string & specie, const std::string & interaction) const {
+        size_t species_index = std::distance(gas.cbegin(), std::find(gas.cbegin(), gas.cend(), specie));
 
         // Check if the specie exists
         if (species_index == gas.size()) {
@@ -99,7 +99,7 @@ public:
         }
 
         // Map interaction strings to their corresponding enum values
-        std::map<std::string, INTER> interaction_map = {
+        const std::map<std::string, INTER> interaction_map = {
             {"EFFECTIVE", EFFECTIVE},
             {"IONIZATION", IONIZATION},
             {"ATTACHMENT", ATTACHMENT},
@@ -217,12 +217,10 @@ private:
                 if(fl==1) {
                     if(line[0]=='-') counter++;
                     std::stringstream ss(line);
-                    double x,y;  // x = energy level; y = x-section value
+                    double x,y;  // x = energy level; y = cross section value
 
                     if(counter < 2) {
                         if(ss >> x >> y) {
-                            ss >> x >> y;
-
                             // Store energy and cross-section values in the temporary vectors
                             Xsec_tool[i][j].energy_tool.push_back(x);
                             Xsec_tool[i][j].section_tool.push_back(y);
@@ -259,9 +257,9 @@ private:
                 double E_max = energy.back();
 
                 // Add energy levels E=0 and E=E_max to fit the data for interpolation
-                if( e[0] > 0) {
+                if( e[0] > 0.0) {
                     e.insert(e.begin(), 0.0);
-                    sigma.insert(sigma.begin(), sigma[0]);
+                    sigma.insert(sigma.begin(), sigma.front());
                 }
                 if( e.back() < E_max) {
                     e.push_back(E_max);
@@ -269,7 +267,7 @@ private:
                 }
                 
                 // Interpolate cross-section 
-                Xsections[i][j].section = linear_interpolation(Xsec_tool[i][j].energy_tool, Xsec_tool[i][j].section_tool, energy);
+                Xsections[i][j].section = linear_interpolation(e, sigma, energy);
             }
         }
     }

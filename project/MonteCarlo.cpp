@@ -74,9 +74,7 @@ void MonteCarlo::maximalCollFreq(){
     // Calculate the maximal collision frequency:
     for(size_t i = 0; i < energy.size(); i++){
         double nu = N * sigma_tot[i] * std::sqrt(2.0 * energy[i] * q0 / me); // s^-1
-        if(nu > nu_max){
-            nu_max = nu;
-        }
+        if(nu > nu_max) nu_max = nu;
     }
 }
 

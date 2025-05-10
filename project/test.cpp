@@ -61,6 +61,7 @@ int main() {
                     std::cout << table.section[i] << " ";
                 }
                 std::cout << std::endl;
+                std::cout << "  ------------------------" << std::endl;
             }
         }
 
@@ -68,7 +69,7 @@ int main() {
         std::vector<double> total_xsection = crossSectionsData.compute_total_Xsection(mix);
 
         // Print total cross-section
-        std::cout << "Total cross-section: ";
+        std::cout << "\n\nTotal cross-section: ";
         size_t total_size = total_xsection.size();
         for (size_t i = 0; i < std::min(total_size, size_t(3)); ++i) {
             std::cout << total_xsection[i] << " ";
@@ -83,7 +84,7 @@ int main() {
 
         // Calculate maximal collision frequency
         double nu_max = maximalCollFreq(crossSectionsData, mix);
-        std::cout << "Maximal collision frequency: " << nu_max << " s^-1" << std::endl;
+        std::cout << "\n\nMaximal collision frequency: " << nu_max << " s^-1" << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
@@ -112,9 +113,7 @@ double maximalCollFreq(const CrossSectionsData & Xsec, const std::vector<double>
     // Calculate the maximal collision frequency:
     for(size_t i = 0; i < energy.size(); i++){
         double nu = N * sigma_tot[i] * std::sqrt(2.0 * energy[i] * q0 / me); // s^-1
-        if(nu > nu_max){
-            double nu_max = nu;
-        }
+        if(nu > nu_max) nu_max = nu;
     }
 
     return nu_max;
