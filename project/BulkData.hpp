@@ -35,6 +35,14 @@ class BulkData {
     };
     void set_mean(const std::vector<MeanData> & y){mean = y;};
 
+    // Check if bulk has meaningful data or not yet (steady state not reached or not enough data):
+    bool is_empty() const {
+        return (w[0] == 0.0 && w[1] == 0.0 && w[2] == 0.0 &&
+                DN[0] == 0.0 && DN[1] == 0.0 && DN[2] == 0.0 &&
+                w_err[0] == 0.0 && w_err[1] == 0.0 && w_err[2] == 0.0 &&
+                DN_err[0] == 0.0 && DN_err[1] == 0.0 && DN_err[2] == 0.0);
+    };
+
     private:
     std::array<double, 3> w;      // Drift velocity
     std::array<double, 3> w_err;  // Error in drift velocity

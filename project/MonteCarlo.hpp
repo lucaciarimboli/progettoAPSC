@@ -1,11 +1,6 @@
 #ifndef MONTECARLO_H
 #define MONTECARLO_H
 
-#include <string>
-#include <vector>
-#include <array>
-#include <unordered_set>
-
 class CrossSectionsData;
 class MeanData;
 class EnergyData;
@@ -13,6 +8,7 @@ class FluxData;
 class BulkData;
 class RateDataCount;
 class RateDataConv;
+class CollisionData;
 
 enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
 typedef std::vector<std::array<double,3>> MATRIX;
@@ -76,26 +72,26 @@ class MonteCarlo
     // number of collisions at which simulation ends (default: 20e6) 
     static constexpr double col_max = 20e6;
     // conserve (1) electron number after ionizatzion/attachment or not (0)
-    bool conserve = 1;    
+    bool conserve = true;    
     // (1) isotropic, (0) non-isotropic scattering according to Vahedi et al.
-    bool iso = 1;
+    bool isotropic = true;
     // energy sharing in ionizing collision
-    W;
+    double W;
     // maximum electron energy
     double E_max;
-    // maximal collision frequency:
+    // maximal collision frequency
     double nu_max;
     // collision counter
     unsigned int counter;
     // checks end of simulation: End =1 stops the simulation
-    bool End = 0;
+    bool End = false;
     // equilibrium time
     double T_sst = 0.0;
     // Counter of how many time steps there have been after steady state
     unsigned int count_sst = 0;
 
     // line number in output file:
-    line = 1;
+    int line = 1;
     // computation time:
     elapsedTime;
     // plot (1) or do not plot data (0)
@@ -120,30 +116,10 @@ class MonteCarlo
     MATRIX v_int;
     // current time-integrated velocity-squared
     MATRIX v2_int;
-    // collision indices for elastic collision
-    ind_ela;
-    // collision indices for excitation collision
-    ind_exc;
-    // collision indices for ionization collision
-    ind_ion;
-    // collision indices for attachment collision
-    ind_att;
+    // Collision matrix and collision indeces:
+    CollisionData C;
     // total number of all real collisions that happend
     int collisions = 0;
-    // column numbers of elastic collision
-    col_ela;
-    // column numbers of excitation collision
-    col_exc;
-    // column numbers of ionization collision
-    col_ion;
-    // column numbers of attachment collision
-    col_att;
-    // Mass is a vector of length(v), the entries are the masses of the gas-species undergoing elastic
-    // collisions, all other entries are zero
-    Mass;
-    // Loss is a vector of length(v), the entries are the energy losses due to excitation collisions,
-    // all other entries are zero
-    Loss;
             
     // temporal mean data of electron swarm
     std::vector<MeanData> mean; 
@@ -165,12 +141,12 @@ class MonteCarlo
     double E_z;
             
     //Heat energy partition
-    EnergyLossElastic    = 0;
-    EnergyLossInelastic  = 0;
-    EnergyLossIonization = 0;
+    double EnergyLossElastic    = 0;
+    double EnergyLossInelastic  = 0;
+    double EnergyLossIonization = 0;
             
     //Status
-    bool converge = 0;
+    unsigned int converge = 0;
 
     // DEFAULT CONSTRUCTOR, DESTRUCTOR, COPY-CONSTRUCTOR
     // BUILD CONSTRUCTOR TO IMPORT VALUES AS IN 'MonteCarlo_singlerun'
@@ -187,7 +163,7 @@ class MonteCarlo
     void gasNumberDensity();
 
     // Calculates absolute value of velocity and energy in eV
-    std::pair<double,double> velocity2energy(const std::vector<double> & v);
+    std::pair<double,double> velocity2energy(const std::array<double,3> & v);
 
     // Calculates maximal collision rate for gas mixture (in s^-1) 
     void maximalCollFreq();
@@ -197,9 +173,6 @@ class MonteCarlo
 
     // Removes electrons outside the boundary 
     void surfaceInteraction();
-
-    // Methods for the computation of the electric field:
-    // particle2density(), solvePoisson_3D(), ...
     
     // Sets E parallel to z-direction --> replaces "solvePoissin_3D()"
     void set_E(); 
@@ -230,6 +203,32 @@ class MonteCarlo
 
     // Calculates reaction rates after steady state was reached
     void updateReactionRates();
+
+    // Decides which collision will happen for each electron
+    void updateCollisionMatrix();
+
+    // Perform collisions:
+    void performCollisions();
+
+    // Checks if the simulation has reached steady state
+    void checkSteadyState();
+
+    // Stops the simulation
+    void endSimulation();
+
+    private:
+
+    // Computes cross product of two 3D vectors (needed in methods that perform collisions):
+    std::array<double, 3> cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b);
+    // Performs elastic collision (isotropic or non-isotropic)
+    void elasticCollision(const std::vector<size_t> & ind, const std::vector<double> & Mass);
+    // Performs inelastic collision (isotropic or non-isotropic)
+    void inelasticCollision(const std::vector<size_t> & ind, const std::vector<double> & Loss);
+    // Performs ionization collision for electrons
+    void ionizationCollision(const std::vector<size_t> & ind);
+    // Performs attachment collision for electrons
+    void attachmentCollision(const std::vector<size_t> & ind);
+
 };
 
 #endif 

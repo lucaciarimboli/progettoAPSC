@@ -64,6 +64,13 @@ class MeanData
             }
     };
 
+    // Add particles (e.g. created by ionization):
+    void add_new_particles(std::array<int,PARTICLES_TYPES> & p){
+        particles[ELECTRONS] += p[ELECTRONS];
+        particles[CATIONS] += p[CATIONS];
+        particles[ANIONS] += p[ANIONS];
+    };
+
     // Setters:
     void set_particles(const std::array<int,PARTICLES_TYPES> & p){
         particles = p;

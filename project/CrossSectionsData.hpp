@@ -50,12 +50,14 @@ public:
         Xsections.resize(gas.size()); // Initialize Xsections with the correct size
         // VA BENE QUESTA OPERAZIONE O NO? CONSIDERANDO CHE Xsections E' UN VETTORE DI VETTORI?
 
+        n_react = 0; // Initialize number of reactions
+
         // Xsec_tool is needed just to store temporarily the energy and cross-section values
         // for each specie and for each interaction before interpolating over a common energy grid
         std::vector<std::vector<table_tool>> Xsec_tool(gas.size());
 
         for( size_t i = 0; i < gas.size(); i++) {
-            // import Xsex data from .txt files
+            // import Xsec data from .txt files
             import_Xsec_data(i,Xsec_tool);
         }
 
@@ -73,6 +75,7 @@ public:
     const std::vector<std::string>& get_gas() const { return gas; }
     const std::vector<double>& get_energy() const { return energy; }
     const std::vector<std::vector<table>>& get_full_xs_data() const { return Xsections; }
+    const int get_n_react() const { return n_react; }
     // getters for specific cross-section data per specie-interaction type:
     // Option 1: pass indexes of specie and interaction
     std::vector<table> get_Xsections( const size_t specie, const INTER interaction) const {
@@ -148,9 +151,12 @@ private:
     std::vector<std::string> gas;              // cell array of subformula of gas species
 
     std::vector<std::vector<table>> Xsections; // Vector of cross-section data (each element is a specie)
-    std::vector<double> energy;                // energy grid for cross sections  
-    
+    std::vector<double> energy;                // energy grid for cross sections
+    int n_react;                               // total amount of possible reactions
+
     // Private methods:
+
+    // Imports cross-section data from .txt files
     void import_Xsec_data(const size_t i, std::vector<std::vector<table_tool>> & Xsec_tool){
 
         // Path to the cross-section data file
@@ -176,9 +182,14 @@ private:
         if(file.is_open()){
             while(getline(file,line))
             {
-                if (line.compare("EFFECTIVE")==0 || line.compare("IONIZATION")==0 ||
+                if (line.compare("IONIZATION")==0 ||
                     line.compare("ATTACHMENT")==0 || line.compare("EXCITATION")==0 ||
-                    line.compare("ELASTIC") == 0) n++;
+                    line.compare("ELASTIC") == 0){
+                        n_react++;  // counts overall reactions (effective excluded)
+                        n++;        // counts reactions of the current specie to reserve Xsections[i] memory
+                    }
+                
+                else if(line.compare("EFFECTIVE")==0) n++;
             }
         }
         file.close();
