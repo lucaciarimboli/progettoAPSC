@@ -1,31 +1,16 @@
-#include "CrossSections.hpp"
 #include "MonteCarlo.hpp"
-#include "MolMass.hpp"
-#include "MeanData.hpp"
-#include "EnergyData.hpp"
-#include "FluxData.hpp"
-#include "BulkData.hpp"
-#include "ReactionRates.hpp"
-
-#include <iostream>
-#include <string>
-#include <vector>
-#include <array>
-#include <map>
-#include <unordered_set>
-#include <unordered_map>
-#include <numeric>
-#include <cmath>
-#include <utility>
-#include <random>
-#include <algorithm>
 
 void MonteCarlo::checkFractionSum(){
-    double sumMix = std::accumulate(mix.cbegin(),mix.cend(),0.0);
-    
-    // checks if sum of gas fractions is equal to 1.
-    // If not the case: last entry of mix will be corrected.           
 
+    // Check if the size of gas and mix vectors are equal
+    if(gas.size() != mix.size()){
+        std::cerr << "Error: gas and mix vectors have different sizes!" << std::endl;
+        return;
+    }
+
+    // Check if the sum of mixing ratios is equal to 1
+    // If not, correct the last entry of mix
+    double sumMix = std::accumulate(mix.cbegin(),mix.cend(),0.0);        
     if(sumMix != 1){
             mix.back() = 1 - std::accumulate(mix.cbegin(),mix.cend()-1,0.0);
             std::cout << "Sum of mixing ratios (in mix) NOT equal to one!" << std::endl;
@@ -34,34 +19,27 @@ void MonteCarlo::checkFractionSum(){
 
 void MonteCarlo::mass_in_kg(){
     // Computes mass of the gas species in kg
-    mgas.clear(); // In case the method is called more than once by mistake
     MolMass mol_mass;
-    for(std::string & sub : gas){
+    for(const std::string & sub : gas){
         mol_mass.set_substance(sub);
         mol_mass.Compute_M();
-        for( const double & M : mol_mass.get_M()){
-            mgas.emplace_back(M/(Na * 1000));
+        const auto& M_vec = mol_mass.get_M();
+        for (size_t i = 0; i < M_vec.size(); ++i) {
+            mgas[i] = M_vec[i] / (mc::Na * 1000);
         }
     }
-}
-
-void MonteCarlo::gasNumberDensity(){
-    // Calculates the gas number density N (in m^-3) by the ideal gas law
-    // from pressure p and temperature Temp.
-    N = p / (kB * Temp);
 }
 
 std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v){
     // calculates absolute value of velocity abs_v and energy
     // E_in_eV in eV for one electron.
     double abs_v = std::sqrt(std::inner_product(v.cbegin(), v.cend(), v.cbegin(), 0.0));
-    double E_in_eV =  0.5 * me *  abs_v * abs_v / q0;
+    double E_in_eV =  0.5 * mc::me *  abs_v * abs_v / mc::q0;
     return std::make_pair(abs_v,E_in_eV);
 }
 
 void MonteCarlo::maximalCollFreq(){
     // calculates maximal collision rate for gas mixture (in s^-1)
-    nu_max = 0.0;
 
     // Extract total_cross section data from Xsec object:
     const std::vector<double> & energy = Xsec.get_energy();
@@ -75,77 +53,48 @@ void MonteCarlo::maximalCollFreq(){
 
     // Calculate the maximal collision frequency:
     for(size_t i = 0; i < energy.size(); i++){
-        double nu = N * sigma_tot[i] * std::sqrt(2.0 * energy[i] * q0 / me); // s^-1
+        double nu = N * sigma_tot[i] * std::sqrt(2.0 * energy[i] * mc::q0 / mc::me); // s^-1
         if(nu > nu_max) nu_max = nu;
     }
 }
 
-void MonteCarlo::initialParticles(){
+void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz){
 
     // Initialize mean values
-    t = {0.0};
     MeanData m(pos_xyz,sigma_xyz,N0);
     
     mean.clear();
     mean.emplace_back(m);
 
-    // Allocate memory to position, velocity and acceleration vectors for electrons
-    r[ELECTRONS].resize(N0);
-    v.resize(N0);
-    a.resize(N0);
+    // Allocate memory to electron population positions:
+    r[mc::ELECTRONS].resize(N0);
+
+    // Initialize cations and anions populations as empty:
+    r[mc::CATIONS].clear();
+    r[mc::ANIONS].clear();
 
     // Random number generators
     std::default_random_engine gen;
-    std::normal_distribution<double> randn(0.0,1.0); // standard Gaussian distribution
-    std::uniform_real_distribution<> randu(0.0,1.0); // [0,1] uniform distribution
-    // Should not be better a randu(-1.0,1.0) ?
+    std::normal_distribution<double> randn(0.0,1.0);    // standard Gaussian distribution
     
     // Initialize electrons position
-    for( auto &re : r[ELECTRONS]){
+    for( auto &re : r[mc::ELECTRONS]){
         for( size_t i=0; i<=2; i++){ 
             // Initialize to pos_xyz + noise if sigma_xyz != 0
             re[i] = pos_xyz[i] + sigma_xyz[i] * randn(gen); 
         } 
     }
-    
-    // Initialize electrons velocities
-    for( auto &vel : v){
-        for( size_t i=0; i<=2; i++){
-            
-            vel[i] = 0.0; // Initialize electrons with zero velocity
 
-            // Add noise to avoid singularities in MonteCarlo::elasticCollision 
-            // vel[i] += 1e-6 * randu(gen);
-
-            // MATLAB CODE NOT CLEAR HERE:
-            // Apparently it implements noise, in fact it is not added because of the
-            // coefficient "max(max(abs(v)))" which is ALWAYS 0 (initialized literally one line above!).
-            // Here I ignored such coefficient but I am not sure this is correct.
-        } 
-    }
+    // Electrons velocities are initialized with 0.0, add noise:
+    // std::uniform_real_distribution<> randu(0.0,1.0); // [0,1] uniform distribution
+    // for( auto &vel : v){
+    //     for( size_t i=0; i<=2; i++){            
+             // vel[i] += 1e-6 * randu(gen);
+    //     } 
+    // }
 }
 
-void MonteCarlo::surfaceInteraction(){
-    auto it_r = r[ELECTRONS].begin(); 
-    auto it_v = v.begin();
-    // loop over electrons
-    while(it_r != r[ELECTRONS].end()){
-        auto &re = *it_r;
-        if( re[0] < 0 || re[0] > Lx ||
-            re[1] < 0 || re[1] > Ly ||
-            re[2] < 0 || re[2] > Lz ){
-                // remove electrons outside the boundary
-                it_r = r[ELECTRONS].erase(it_r);
-                it_v = v.erase(it_v);
-        } 
-        else{
-            it_r++;
-            it_v++;
-        }
-    }
-}
-
-void MonteCarlo::set_E(){
+void MonteCarlo::set_E(const double EN){
     // Works for the case: EN constant, uniform and user defined.
     // "solvePoisson()" is an extension of this method.
     E_x = 0;
@@ -160,19 +109,6 @@ double MonteCarlo::random(){
         return randu(gen);
 }
 
-std::vector<double> MonteCarlo::random(const unsigned int N){
-    //generates an N-vector of random numbers from a U[0,1]
-    std::vector<double,N> p;
-    p.resize(N);
-
-    std::default_random_engine gen;
-    std::uniform_real_distribution<> randu(0.0,1.0); // [0,1] uniform distribution
-    for( double & pp : p){
-        pp = randu(gen);
-    }
-    return p;
-}
-
 void MonteCarlo::freeFlight(){
     // performs non-collissional flight for electrons in electric field
     dt = - std::log(random()) / nu_max; // generates time step
@@ -181,23 +117,20 @@ void MonteCarlo::freeFlight(){
     t.emplace_back(t.back() + dt);
     
     double ne = v.size(); // number of electrons
-    MATRIX a; // acceleration matrix
-    a[0].resize(ne, q0/me * E_x);
-    a[1].resize(ne, q0/me * E_y);
-    a[2].resize(ne, q0/me * E_z);
 
-    double dt2 = std::pow(dt,2) // to avoid redundant calculations 
+    double dt2 = std::pow(dt,2); // to avoid redundant calculations 
 
     if(T_sst > 0.0){
+        count_sst++;
         v_int.resize(ne);
         v2_int.resize(ne);
         double dt3 = std::pow(dt,3);
         for(size_t i = 0; i < ne; i++){     // i indicates the electron
             for(size_t j = 0; j < 3; j++){  // j indicates the coordinate (x,y,z)
                 // integrated velocity
-                v_int[i][j] = v[i][j]*dt + 0.5 * a[i][j] * dt2;
+                v_int[i][j] = v[i][j]*dt + 0.5 * a[j] * dt2;
                 // integrated velocity squared
-                v2_int[i][j] = std::pow(v[i][j],2)*dt + a[i][j]*v[i][j] * dt2 + std::pow(a[i][j],2)/3 * dt3;
+                v2_int[i][j] = std::pow(v[i][j],2)*dt + a[j]*v[i][j] * dt2 + std::pow(a[j],2)/3 * dt3;
             }
         }
     }
@@ -205,93 +138,61 @@ void MonteCarlo::freeFlight(){
     // Update space and velocity:
     for(size_t i = 0; i < ne; i++){
             for(size_t j = 0; j < 3; j++){
-                r[ELECTRONS][i][j] += v[i][j]*dt + 0.5 * a[i][j] * dt2;
-                v[i][j] += a[i][j] * dt;
+                r[mc::ELECTRONS][i][j] += v[i][j]*dt + 0.5 * a[j] * dt2;
+                v[i][j] += a[j] * dt;
         }
     }
 }
 
 void MonteCarlo::collectMeanData(){
-
     // Update mean vector for the new time step
-    mean.emplace_back(mean.back().get_particles(), r[ELECTRONS], v, ne);
-
-    /* If energy update is better here than in "mean" constructor
-    energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
-                            [](double sum, const std::array<double, 3>& vi) { return sum + velocity2energy(vi).second; }) / ne;
-    mean.back().set_energy(energy);*/
+    mean.emplace_back(mean.back().get_particles(), r[mc::ELECTRONS], v);
 }
-
-void MonteCarlo::update_count_sst(){
-    if(T_sst > 0){
-        size_t i = 0;
-        count_sst = 0;
-        for( const double & time : t){
-            i++;
-            if(time >= T_sst){ count_sst++ };
-        }
-    }
-}
-
-// VERIFY IF THIS VERSION IS BETTER (correct iff every for loop in main only introduces one time step - not sure about that)
-// void MonteCarlo::update_count_sst(){
-//     if(T_sst > 0){
-//          count_sst++;
-//     }
-// }
 
 void MonteCarlo::updateEnergyData(){
-    if( count_sst > 10 ){
-        size_t ne = v.size();
+    size_t ne = v.size();
 
-        t_total += dt * ne; // sum of all times for all electrons
-        std::vector<double> E_in_eV;
-        E_in_eV.reserve(ne);
-        std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
-            return velocity2energy(vi).second;
-        });
+    t_total += dt * ne; // sum of all times for all electrons
+    std::vector<double> E_in_eV;
+    E_in_eV.reserve(ne);
+    std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
+        return velocity2energy(vi).second;
+    });
 
-        E.update_energy(E_in_eV,dt,ne,t_total);
-        E.compute_distribution_function();
-    }    
+    E.update_energy(E_in_eV,dt,ne,t_total);
+    E.compute_distribution_function();  
 }
 
 void MonteCarlo::updateFluxData(){
-    if(count_sst > 10){
-        flux.compute_drift_velocity(v_int,t_total);
-        flux.compute_diffusion_const(r[ELECTRONS],v,N);
-    }
+    flux.compute_drift_velocity(v_int,t_total);
+    flux.compute_diffusion_const(r[mc::ELECTRONS],v,N);
 }
 
 void MonteCarlo::updateBulkData(){
-    if (count_sst > 10){
-        bulk.update_bulk(t,count_sst,mean,N);
-    }
+    bulk.update_bulk(t,count_sst,mean,N);
 }
 
 void MonteCarlo::updateReactionRates(){
 
-    if (count_sst > 10){
+    // 1. REACTION RATES BY COUNTING:
+    rates_count.setTime(t,count_sst);
+    rates_count.setParticles(mean,count_sst);
+    rates_count.computeRates();
 
-        // 1. REACTION RATES BY COUNTING:
-        rates_count.setTime(t,count_sst);
-        rates_count.setParticles(mean,count_sst);
-        rates_count.computeRates();
-
-        // 2. REACTION RATES BY CONVOLUTION:
-        rates_conv.setEnergy(E);
-        rates_conv.computeRates();
-    
-    }   
+    // 2. REACTION RATES BY CONVOLUTION:
+    rates_conv.setEnergy(E);
+    rates_conv.computeRates();
 };
 
 void MonteCarlo::updateCollisionMatrix(){
     // Extract number of electrons:
-    int num_particles = v.size();
+    const int num_particles = v.size();
 
     // From electron velocity compute energies in eV and extract the velocity modules:
-    std::vector<double> E_in_eV(num_particles);
-    std::vector<double> v_abs(num_particles);
+    std::vector<double> E_in_eV;
+    std::vector<double> v_abs;
+    E_in_eV.reserve(num_particles);
+    v_abs.reserve(num_particles);
     std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
             return velocity2energy(vi).second;
         });
@@ -300,9 +201,9 @@ void MonteCarlo::updateCollisionMatrix(){
         });
     
     // Build collision matrix and compute indeces:
-    C.collisionmatrix( num_particles, E_in_eV, v_abs, Xsec.get_energy(), XS.get_full_xs_data(), mix, mgas, E_max, nu_max, N);
+    C.collisionmatrix( num_particles, E_in_eV, v_abs, Xsec.get_energy(), Xsec.get_full_xs_data(), mix, mgas, E_max, nu_max, N);
     // Update total number of collisions:
-    collisions += C.get_collisions();
+    collisions += C.getCollisions();
 }
 
 void MonteCarlo::performCollision(const std::string & type){
@@ -310,8 +211,8 @@ void MonteCarlo::performCollision(const std::string & type){
     const std::vector<size_t> & ind = C.get_ind(type);
     if(ind.empty()) return; // in case no collisions occoured this time step
 
-    const std::vector<double> & Mass = C.get_mass();
-    const std::vector<double> & Loss = C.get_loss();
+    const std::vector<double> & Mass = C.getMass();
+    const std::vector<double> & Loss = C.getLoss();
 
     if(type == "ELASTIC"){
         elasticCollision(ind, Mass);
@@ -349,7 +250,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
     std::vector<double> sin_theta(ind.size(),0.0);
     std::vector<double> cos_theta(ind.size(),0.0);
 
-    for(size_t i = 0, i < ind.size(); i++){
+    for(size_t i = 0; i < ind.size(); i++){
 
         size_t el_index = ind[i];       // electron index
         std::pair<double,double> v2e = velocity2energy(v[el_index]);
@@ -377,7 +278,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         std::array<double,3> cross1 = cross_product(e_1, e_x);
         std::array<double,3> cross2 = cross_product(e_x, e_1);
         std::array<double,3> cross3 = cross_product(e_1, cross2);
-        std::array<double, 3> e2;
+        std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
         double inverse_sin_theta = (sin_theta[i] > 1e-10) ? 1.0 / sin_theta[i] : 0.0;
@@ -392,10 +293,10 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        E_2 += std::max(0.0, v2e.second*(1 - 2*me/Mass[el_index] * (1 - cos_xsi[i])));
+        E_2 += std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi[i])));
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * E_2 * q0 / me);
+        double v2_abs = std::sqrt(2.0 * E_2 * mc::q0 / mc::me);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -418,7 +319,7 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
     std::vector<double> sin_theta(ind.size(),0.0);
     std::vector<double> cos_theta(ind.size(),0.0);
 
-    for(size_t i = 0, i < ind.size(); i++){
+    for(size_t i = 0; i < ind.size(); i++){
 
         size_t el_index = ind[i];       // electron index
         std::pair<double,double> v2e = velocity2energy(v[el_index]);
@@ -446,7 +347,7 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         std::array<double,3> cross1 = cross_product(e_1, e_x);
         std::array<double,3> cross2 = cross_product(e_x, e_1);
         std::array<double,3> cross3 = cross_product(e_1, cross2);
-        std::array<double, 3> e2;
+        std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
         double inverse_sin_theta = (sin_theta[i] > 1e-10) ? 1.0 / sin_theta[i] : 0.0;
@@ -464,7 +365,7 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         E_2 += std::max(0.0, v2e.second - Loss[el_index]);
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * E_2 * q0 / me);
+        double v2_abs = std::sqrt(2.0 * E_2 * mc::q0 / mc::me);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -490,7 +391,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
     std::vector<double> sin_theta(ind.size(),0.0);
     std::vector<double> cos_theta(ind.size(),0.0);
 
-    for(int i = 0, i < delta_Ne; i++){
+    for(int i = 0; i < delta_Ne; i++){
 
         size_t el_index = ind[i];       // electron index
         std::pair<double,double> v2e = velocity2energy(v[el_index]);
@@ -518,7 +419,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         std::array<double,3> cross1 = cross_product(e_1, e_x);
         std::array<double,3> cross2 = cross_product(e_x, e_1);
         std::array<double,3> cross3 = cross_product(e_1, cross2);
-        std::array<double, 3> e2;
+        std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
         double inverse_sin_theta = (sin_theta[i] > 1e-10) ? 1.0 / sin_theta[i] : 0.0;
@@ -536,33 +437,46 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         E_2 += std::max(0.0, v2e.second - Loss[el_index]);
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * W * E_2 * q0 / me); // W is the energy sharing in ionizing collision
+        double v2_abs = std::sqrt(2.0 * W * E_2 * mc::q0 / mc::me); // W is the energy sharing in ionizing collision
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
 
         // Add the new electron to the simulation:
-        double v_abs_newe = std::sqrt(2.0 * (1-W) * E_2 * q0 / me);
-        v.emplace_back(- v_abs_newe * e_2[0], - v_abs_newe * e_2[1], - v_abs_newe * e_2[2]);
-        r[ELECTRONS].emplace_back(r[ELECTRONS][el_index][0], r[ELECTRONS][el_index][1], r[ELECTRONS][el_index][2]);
+        double v_abs_newe = std::sqrt(2.0 * (1-W) * E_2 * mc::q0 / mc::me);
+        v.push_back({
+            - v_abs_newe * e_2[0],
+            - v_abs_newe * e_2[1],
+             - v_abs_newe * e_2[2]
+        });
+        r[mc::ELECTRONS].push_back({
+            r[mc::ELECTRONS][el_index][0],
+            r[mc::ELECTRONS][el_index][1],
+            r[mc::ELECTRONS][el_index][2]
+        });
 
         // Add the new cation:
-        r[CATIONS].emplace_back(r[ELECTRONS][el_index][0], r[ELECTRONS][el_index][1], r[ELECTRONS][el_index][2]);
+        r[mc::CATIONS].push_back({
+            r[mc::ELECTRONS][el_index][0],
+            r[mc::ELECTRONS][el_index][1],
+            r[mc::ELECTRONS][el_index][2]
+        });
     }
 
     // If required, enforce electron population conservation:
     if(conserve){
         for( int i = 0; i < delta_Ne; i++){
             // select a random electron:
-            int random_index = static_cast<int>(random() * (r[ELECTRONS].size() - 1));
+            int random_index = static_cast<int>(random() * (r[mc::ELECTRONS].size() - 1));
             // remove it from the simulation:
-            r[ELECTRONS].erase(r[ELECTRONS].begin() + random_index);
+            r[mc::ELECTRONS].erase(r[mc::ELECTRONS].begin() + random_index);
             v.erase(v.begin() + random_index);
         }
     }
 
     // Add new electrons and cations to mean data
-    mean.back().add_new_particles({delta_Ne, delta_Ne, 0});
+    const std::array<int, mc::PARTICLES_TYPES> delta_particles = {delta_Ne, delta_Ne, 0};
+    mean.back().add_new_particles(delta_particles);
     // Update total energy loss counter:
     EnergyLossIonization += E_1 - E_2;
 }
@@ -579,27 +493,34 @@ void MonteCarlo::attachmentCollision(const std::vector<size_t> & ind){
         size_t el_index = *it;       // electron index
 
         // Add the new anion to the simulation:
-        r[ANIONS].emplace_back(r[ELECTRONS][el_index][0], r[ELECTRONS][el_index][1], r[ELECTRONS][el_index][2]);
+        r[mc::ANIONS].push_back({
+            r[mc::ELECTRONS][el_index][0],
+            r[mc::ELECTRONS][el_index][1],
+            r[mc::ELECTRONS][el_index][2]
+        });
 
         // Remove the electron from the simulation:
-        r[ELECTRONS].erase(r[ELECTRONS].begin() + el_index);
+        r[mc::ELECTRONS].erase(r[mc::ELECTRONS].begin() + el_index);
         v.erase(v.begin() + el_index);
 
         // If required, enforce electron population conservation:
         if(conserve){
             // select a random electron:
-            int random_index = static_cast<int>(random() * (r[ELECTRONS].size() - 1));
+            int random_index = static_cast<int>(random() * (r[mc::ELECTRONS].size() - 1));
             // clone it to compensate the removed one:
-            r[ELECTRONS].push_back(r[ELECTRONS][random_index]);
+            r[mc::ELECTRONS].push_back(r[mc::ELECTRONS][random_index]);
             v.push_back(v[random_index]);
         }
     }
     
     // Remove electrons and add anions to mean data
-    mean.back().add_new_particles({- delta_Ne, 0, delta_Ne});
+    const std::array<int, mc::PARTICLES_TYPES> delta_particles = {-delta_Ne, delta_Ne, 0};
+    mean.back().add_new_particles(delta_particles);
 }
 
 void MonteCarlo::checkSteadyState(){
+
+    // Check if the steady state is reached:
     if(T_sst == 0.0 && collisions/1e6 >= line && collisions >= col_equ){ 
        
         // check if the interval 80-90 % of energy data is larger than the interval 90-100%:
@@ -607,11 +528,11 @@ void MonteCarlo::checkSteadyState(){
         size_t n = std::round( N / 10.0);
 
         double sum1 = 0.0, sum2 = 0.0;
-        for (size_t i = N - 2 * n; i < N - n; ++i) {
-            sum1 += mean[i].energy;
+        for (size_t i = N - 2 * n; i < N - n; i++) {
+            sum1 += mean[i].get_energy();
         }
-        for (size_t i = N - n; i < N; ++i) {
-            sum2 += mean[i].energy;
+        for (size_t i = N - n; i < N; i++) {
+            sum2 += mean[i].get_energy();
         }
 
         if(sum1 >= sum2){
@@ -623,58 +544,60 @@ void MonteCarlo::checkSteadyState(){
     }
 }
 
-void MonteCarlo::endSimulation() {
+bool MonteCarlo::endSimulation() {
     // End simulation if too many electrons
     if (!conserve && v.size() > Ne_max) {
         converge = 1;
-        End = true;
         std::cout << "Simulation ended: maximum number of electrons reached\n";
-        return;
+        return true;
     }
 
     // End simulation if no electrons
     if (!conserve && v.empty()) {
         converge = 2;
-        End = true;
         std::cout << "Simulation ended: number of electrons is zero\n";
-        return;
+        return true;
     }
 
     // End simulation if relative errors in w and D are below thresholds
     if (!(bulk.is_empty())) {
-        const std::array<double, 3> & w = bulk.get_w();
-        const std::array<double, 3> & w_err = bulk.get_w_err();
-        const std::array<double, 3> & DN = bulk.get_DN();
-        const std::array<double, 3> & DN_err = bulk.get_DN_err();  
-        if (std::abs(w_err[2] / w[2]) < std::abs(w_err) &&
-            std::abs(DN_err[2] / DN[2]) < std::abs(DN_err)) {
+        const std::array<double, 3> & w_bulk = bulk.get_w();
+        const std::array<double, 3> & w_bulk_err = bulk.get_w_err();
+        const std::array<double, 3> & DN_bulk = bulk.get_DN();
+        const std::array<double, 3> & DN_bulk_err = bulk.get_DN_err();  
+        if (std::abs(w_bulk_err[2] / w_bulk[2]) < w_err &&
+            std::abs(DN_bulk_err[2] / DN_bulk[2]) < DN_err) {
 
             converge = 0;
-            End = true;
             std::cout << "Simulation ended: errors in w < " 
                       << 100 * w_err << "% and D < "
                       << 100 * DN_err << "%\n";
-            return;
+            return true;
         }
     }
 
     // End simulation if number of collisions exceeds maximum
     if (collisions > col_max) {
         converge = 3;
-        End = true;
         std::cout << "Simulation ended: maximum number of collisions reached\n";
-        return;
+        return true;
     }
+
+    return false;
 }
 
 void MonteCarlo::printOnScreen() {
     if ((collisions / 1e6) >= line) {
         line += 1;
 
-        if (bulk.has_value()) {
-            const auto& b = bulk.value();
-            const auto& f = flux.value();
-            const auto& r = rates;
+        if (!(bulk.is_empty())) {
+
+            const std::array<double, 3> & w_bulk = bulk.get_w();
+            const std::array<double, 3> & w_bulk_err = bulk.get_w_err();
+            const std::array<double, 3> & DN_bulk = bulk.get_DN();
+            const std::array<double, 3> & DN_bulk_err = bulk.get_DN_err();  
+            const std::array<double, 3> & w_flux = flux.get_w();
+            const std::array<double, 3> & DN_flux = flux.get_DN();
 
             std::printf(
                 " Werr: %i"
@@ -691,19 +614,19 @@ void MonteCarlo::printOnScreen() {
                 " Alpha: %.3e m^-1"
                 " Eta: %.3e m^-1\n",
 
-                static_cast<int>(std::abs(b.w_err[2] / b.w[2])),
-                static_cast<int>(std::abs(b.DN_err[2] / b.DN[2])),
+                static_cast<int>(std::abs(w_bulk_err[2] / w_bulk[2])),
+                static_cast<int>(std::abs(DN_bulk_err[2] / DN_bulk[2])),
                 collisions,
-                mean.back().particles[0], // electrons
-                E.E_mean,
-                b.w[2],
-                f.w[2],
-                b.DN[2],
-                f.DN[2],
-                r.count.eff,
-                r.conv.eff,
-                r.count.ion_tot * 2.4e25 / b.w[2],
-                r.count.att_tot * 2.4e25 / b.w[2]
+                mean.back().get_particles()[mc::ELECTRONS],
+                E.get_E_mean(),
+                w_bulk[2],
+                w_flux[2],
+                DN_bulk[2],
+                DN_flux[2],
+                rates_count.getRate(mc::EFFECTIVE),
+                rates_conv.getRate(mc::EFFECTIVE),
+                rates_count.getRate(mc::IONIZATION) * 2.4e25 / w_bulk[2],
+                rates_count.getRate(mc::ATTACHMENT) * 2.4e25 / w_bulk[2]
             );
 
         } else {
@@ -712,8 +635,8 @@ void MonteCarlo::printOnScreen() {
                 " electrons: %i"
                 " mean energy: %.2e\n",
                 collisions,
-                mean.back().particles[0],
-                mean.back().energy
+                mean.back().get_particles()[mc::ELECTRONS],
+                mean.back().get_energy()
             );
         }
     }

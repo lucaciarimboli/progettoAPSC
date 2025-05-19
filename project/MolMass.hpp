@@ -1,16 +1,17 @@
 #ifndef MOLMASS_H
 #define MOLMASS_H
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+#include <numeric>
+#include <cmath>
 
 class MolMass
 {
     public:
-    unsigned int factor = 1; // single substance number factor (e.g. "2" in "O2")
-
     // Constructors:
     MolMass()=default;
     MolMass(const std::string & s): substance{s} {}
@@ -35,25 +36,25 @@ class MolMass
         substance += c;
     }
 
-    std::vector<double> get_M() const{
+    const std::vector<double> & get_M() const{
         return M;
     } 
 
-    double get_front_M() const{
+    const double get_front_M() const{
         return M.front();
     }
 
-    std::string get_substance() const{
+    const std::string & get_substance() const{
         return substance;
     }
 
     // Computes "M" in atomic units from "substance" 
     void Compute_M();
 
-
     private:
     std::string substance;   // Substance
     std::vector<double> M;   // Molar masses in atomic units
+    unsigned int factor = 1; // single substance number factor (e.g. "2" in "O2")
 
     // Allowed characters
     const std::unordered_set<char> characters{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 

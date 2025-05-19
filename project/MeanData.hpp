@@ -8,8 +8,7 @@
 #include <cmath>
 #include <algorithm>
 
-enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
-typedef std::vector<std::array<double,3>> MATRIX;
+#include "Common.hpp"
 
 // Object MeanData stores the mean data of the system at a given time
 class MeanData
@@ -19,15 +18,17 @@ class MeanData
     // Default constructor:
     MeanData() = default;
     // Constructor for initializing electrons:
-    MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int & ne)
+    MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int ne)
         : particles({ne, 0, 0}),
           position(r),
           sigma(s),
           energy(0.0),
           velocity({0.0, 0.0, 0.0}) {};
     // Constructor that computes mean data from input matrices:
-    MeanData(const std::array<int,PARTICLES_TYPES> & p, const MATRIX & r, const MATRIX & v, const double & ne)
+    MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATRIX & r, const mc::MATRIX & v)
         : particles(p){
+
+            const int ne = r.size();
         
             // Control that number of electrons is non-zero.
             if (ne == 0) {
@@ -47,12 +48,10 @@ class MeanData
             }
 
             // Compute mean energy:
-            double me = 9.10938291e-31; // electron mass
-            double q0 = 1.60217657e-19; // electron charge
             energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
-                           [me, q0](double sum, const std::array<double, 3>& vi){
+                           [](double sum, const std::array<double, 3>& vi){
                                 double abs_v = std::sqrt(std::inner_product(vi.cbegin(), vi.cend(), vi.cbegin(), 0.0));
-                                return sum + 0.5 * me * abs_v * abs_v / q0;
+                                return sum + 0.5 * mc::me * abs_v * abs_v / mc::q0;
                            }) / ne;
 
             // Compute standard deviation:
@@ -65,14 +64,14 @@ class MeanData
     };
 
     // Add particles (e.g. created by ionization):
-    void add_new_particles(std::array<int,PARTICLES_TYPES> & p){
-        particles[ELECTRONS] += p[ELECTRONS];
-        particles[CATIONS] += p[CATIONS];
-        particles[ANIONS] += p[ANIONS];
+    void add_new_particles(const std::array<int,mc::PARTICLES_TYPES> & p){
+        particles[mc::ELECTRONS] += p[mc::ELECTRONS];
+        particles[mc::CATIONS] += p[mc::CATIONS];
+        particles[mc::ANIONS] += p[mc::ANIONS];
     };
 
     // Setters:
-    void set_particles(const std::array<int,PARTICLES_TYPES> & p){
+    void set_particles(const std::array<int,mc::PARTICLES_TYPES> & p){
         particles = p;
     };
     void set_position(const std::array<double,3> & pos){
@@ -89,11 +88,11 @@ class MeanData
     }
 
     // Getters:
-    const std::array<int,PARTICLES_TYPES> & get_particles() const{
+    const std::array<int,mc::PARTICLES_TYPES> & get_particles() const{
         return particles;
     }
     int get_N_electrons() const{
-        return particles[ELECTRONS];
+        return particles[mc::ELECTRONS];
     }
    const  std::array<double,3> & get_position() const{
         return position;
@@ -110,7 +109,7 @@ class MeanData
 
     private:
 
-    std::array<int,PARTICLES_TYPES> particles; // # of particles per each type
+    std::array<int,mc::PARTICLES_TYPES> particles; // # of particles per each type
     
     // Electrons mean data:
     std::array<double, 3> position;

@@ -10,9 +10,8 @@
 #include "EnergyData.hpp"
 #include "CrossSectionsData.hpp"
 
-class CrossSectionsData;
-class MeanData;
-class EnergyData;
+#include "Common.hpp"
+
 
 class RateDataBase {
 public:
@@ -26,20 +25,20 @@ public:
     virtual void computeRates() = 0;
 
     // Getter for rates:
-    double getRate(const INTER& key) const { return rates[key]; }
+    double getRate(const mc::InteractionType key) const { return rates[key]; }
 
 protected:
-    std::array<double,INTERACTIONS> rates; // Reaction rates
+    std::array<double,mc::INTERACTIONS> rates; // Reaction rates
 
-    // Converts INTER enum to string for printing:
-    std::string INTER_to_string(const INTER & interaction) const {
+    // Converts IntractionType to string:
+    const std::string inter_to_string(mc::InteractionType interaction) const {
         switch (interaction) {
-            case EFFECTIVE: return "EFFECTIVE";
-            case IONIZATION: return "IONIZATION";
-            case ATTACHMENT: return "ATTACHMENT";
-            case EXCITATION: return "EXCITATION";
-            case ELASTIC: return "ELASTIC";
-            default: return "UNKNOWN";
+            case mc::EFFECTIVE:  return "EFFECTIVE";
+            case mc::IONIZATION: return "IONIZATION";
+            case mc::ATTACHMENT: return "ATTACHMENT";
+            case mc::EXCITATION: return "EXCITATION";
+            case mc::ELASTIC:    return "ELASTIC";
+            default:                          return "UNKNOWN";
         }
     }
 };
@@ -73,14 +72,14 @@ public:
     void setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst);
 
     // Getters:
-    double get_errors(const INTER & rate_key) const { return rates_errors[rate_key]; }
+    double get_errors(const mc::InteractionType rate_key) const { return rates_errors[rate_key]; }
 
     // Printer:
     void printRates() const
     {
         std::cout << "\nReaction Rates:" << std::endl;
         for (int i = 0; i < 3; i++) {
-            std::cout << "Rate " << INTER_to_string(static_cast<INTER>(i)) << ": " << rates[i] << std::endl;
+            std::cout << "Rate " << inter_to_string(static_cast<mc::InteractionType>(i)) << ": " << rates[i] << std::endl;
             std::cout << "Error: " << rates_errors[i] << std::endl;
             std::cout << "-----------" << std::endl;
         }
@@ -88,13 +87,13 @@ public:
     
 private:
 
-    std::array<double, INTERACTIONS> rates_errors; // Errors in reaction rates
+    std::array<double, mc::INTERACTIONS> rates_errors; // Errors in reaction rates
 
     bool conserve; // conserve (1) electron number after ionizatzion/attachment or not (0)
     double N; // Gas number density in m^-3
 
     std::vector<double> x; // linear time interval
-    std::array<std::vector<int>,PARTICLES_TYPES> particles; // Number of particles of each type at each time of vector "x"
+    std::array<std::vector<int>,mc::PARTICLES_TYPES> particles; // Number of particles of each type at each time of vector "x"
 
     // Private methods:
     void computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key);
@@ -113,8 +112,8 @@ struct spec_rate {
 // Calculates the reaction rates by convolution of the electron number with a kernel
 class RateDataConv : public RateDataBase {
     public:
-    RateDataConv( const CrossSectionsData & xs, const EnergyData & en) 
-        : Xsec(xs), E(en)
+    RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix) 
+        : Xsec(xs), E(en), mix(mix)
     {
         // Set the correct size for the specific rates vector:
         size_t specific_rates_size = 0;
@@ -130,8 +129,6 @@ class RateDataConv : public RateDataBase {
         // Iterator to specific rates vector:
         auto it = specific_rates.begin();
 
-        // Vector containing mixture fractions:
-        std::vector<double> mix = Xsec.get_mix();
         // Vector containing the energy values:
         std::vector<double> energy_grid = Xsec.get_energy();
 
@@ -147,7 +144,7 @@ class RateDataConv : public RateDataBase {
                 spec_rate rr;
                 rr.rate = convolution(energy_grid, t.section);
                 rr.specie = Xsec.get_gas()[specie];
-                rr.interaction = INTER_to_string(t.interact);
+                rr.interaction = inter_to_string(t.interact);
                 rr.reaction = t.react;
                 specific_rates.push_back(rr);
 
@@ -167,7 +164,7 @@ class RateDataConv : public RateDataBase {
     {
         std::cout << "\nReaction Rates:" << std::endl;
         for (int i = 0; i < 5; i++) {
-            std::cout << "Rate " << INTER_to_string(static_cast<INTER>(i)) << ": " << rates[i] << std::endl;
+            std::cout << "Rate " << inter_to_string(static_cast<mc::InteractionType>(i)) << ": " << rates[i] << std::endl;
             std::cout << "-----------" << std::endl;
         }
     }
@@ -187,6 +184,7 @@ class RateDataConv : public RateDataBase {
     std::vector<spec_rate> specific_rates; // Reaction Rates specific to each type, reaction and interaction.
     CrossSectionsData Xsec;                // cross_section data
     EnergyData E;                          // Energy data
+    std::vector<double> mix;               // Mixture fractions
 
     double convolution(std::vector<double> x, std::vector<double> y);
     std::vector<double> linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq);

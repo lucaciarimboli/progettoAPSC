@@ -6,8 +6,7 @@
 #include <cmath>
 #include <numeric>
 
-enum ParticleType {ELECTRONS = 0, CATIONS, ANIONS, PARTICLES_TYPES};
-typedef std::vector<std::array<double,3>> MATRIX;
+#include "Common.hpp"
 
 class FluxData {
 
@@ -20,7 +19,7 @@ class FluxData {
           DN({0.0, 0.0, 0.0}),
           N(0) {};
 
-    void compute_drift_velocity(const MATRIX & v_int, const double & t_total){
+    void compute_drift_velocity(const mc::MATRIX & v_int, const double t_total){
         for(const std::array<double,3> &v : v_int){
             for( size_t i = 0; i < 3; i++){
                 v_int_sum[i] += v[i];
@@ -32,7 +31,7 @@ class FluxData {
         } 
     };
 
-    void compute_diffusion_const(const MATRIX & r, const MATRIX & v, const double & den){
+    void compute_diffusion_const(const mc::MATRIX & r, const mc::MATRIX & v, const double den){
         N++;
         std::array<double,3> mean_r = compute_mean(r);
         std::array<double,3> mean_v = compute_mean(v);
@@ -52,7 +51,7 @@ class FluxData {
     void set_D(const std::array<double,3> & D){
         DN = D;
     };
-    void set_N(const size_t & n){
+    void set_N(const size_t n){
         N = n;
     };
 
@@ -63,8 +62,14 @@ class FluxData {
     const std::array<double,3> & get_D() const {
         return DN;
     };
-    const size_t & get_N() const {
+    const size_t get_N() const {
         return N;
+    };
+    const std::array<double,3> & get_w() const {
+        return w;
+    };
+    const std::array<double,3> & get_DN() const {
+        return DN;
     };
 
     private:
@@ -75,7 +80,7 @@ class FluxData {
     size_t N;                         // Number of time steps
 
     // Compute component-by-component mean
-    std::array<double,3> compute_mean(const MATRIX & M){
+    std::array<double,3> compute_mean(const mc::MATRIX & M){
 
         // Matrix cannot be empty
         if (M.empty()) {
@@ -98,7 +103,7 @@ class FluxData {
     };
 
     // Equivalent of Matlab's .* product between matrices
-    MATRIX elementwise_product(const MATRIX & A, const MATRIX & B){
+    const mc::MATRIX elementwise_product(const mc::MATRIX & A, const mc::MATRIX & B) const {
 
         // Matrices cannot be empty
         if (A.empty() || B.empty()) {
@@ -114,7 +119,7 @@ class FluxData {
         }
 
         // Compute product element-by-element:
-        MATRIX A_dot_B;
+        mc::MATRIX A_dot_B;
         A_dot_B.reserve(n);
         for( size_t i = 0; i < n; i++){
             std::array<double,3> column;

@@ -8,7 +8,7 @@ void RateDataCount::setTime(const std::vector<double>& t, const unsigned int & c
 
 void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst) {
     if (count_sst > mean.size()) {throw std::out_of_range("count_sst exceeds the size of mean");}
-    for (size_t i = 0; i < PARTICLES_TYPES; i++) {
+    for (size_t i = 0; i < mc::PARTICLES_TYPES; i++) {
 
         // Set the size for particle vector
         for (auto& p : particles) p.resize(count_sst);
@@ -18,9 +18,9 @@ void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsig
 
         for (size_t i = 0; i < count_sst; i++) {
             // Get the particle counts from MeanData:
-            const std::array<int,PARTICLES_TYPES>& mean_particles = (it + i)->get_particles();
+            const std::array<int,mc::PARTICLES_TYPES>& mean_particles = (it + i)->get_particles();
     
-            for (size_t j = 0; j < PARTICLES_TYPES; j++)
+            for (size_t j = 0; j < mc::PARTICLES_TYPES; j++)
                 particles[j][i] = mean_particles[j]; // Fill the particles vector with the number of particles of each type
         }
     } 
@@ -49,46 +49,46 @@ void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<
 void RateDataCount::computeNonConserved() {
 
     // Compute effective ionization rate:
-    std::vector<double> y(particles[ELECTRONS].size());
+    std::vector<double> y(particles[mc::ELECTRONS].size());
 
     // Define y vector as logarithimcal electrons gain
-    if(particles[ELECTRONS][0] == 0) throw std::invalid_argument("Number of electrons cannot be zero");
+    if(particles[mc::ELECTRONS][0] == 0) throw std::invalid_argument("Number of electrons cannot be zero");
     y[0] = 0.0;
-    std::transform(particles[ELECTRONS].begin() + 1, particles[ELECTRONS].end(), y.begin() + 1, [this](int part_0i) {
+    std::transform(particles[mc::ELECTRONS].begin() + 1, particles[mc::ELECTRONS].end(), y.begin() + 1, [this](int part_0i) {
         if( part_0i == 0) throw std::invalid_argument("Number of electrons cannot be zero");
-        return std::log(static_cast<double>(part_0i) / static_cast<double>(particles[ELECTRONS][0]));
+        return std::log(static_cast<double>(part_0i) / static_cast<double>(particles[mc::ELECTRONS][0]));
     });
 
-    computeRate(x, y, EFFECTIVE);
+    computeRate(x, y, mc::EFFECTIVE);
 
-    double nu_eff = rates[EFFECTIVE] * N;
+    double nu_eff = rates[mc::EFFECTIVE] * N;
     std::transform(x.begin(), x.end(), x.begin(), [nu_eff, this](int xi) {
-        return (std::exp(nu_eff * xi) - 1.0) / nu_eff * static_cast<double>(particles[ELECTRONS][0]);;
+        return (std::exp(nu_eff * xi) - 1.0) / nu_eff * static_cast<double>(particles[mc::ELECTRONS][0]);;
     });
 
     // Compute ionization rate:
-    std::transform(particles[CATIONS].begin(), particles[CATIONS].end(), y.begin(), [this](int part_ij) {
-        return static_cast<double>(part_ij - particles[CATIONS][0]);      // y elements here are int but they are casted to double for coherence with y definition
+    std::transform(particles[mc::CATIONS].begin(), particles[mc::CATIONS].end(), y.begin(), [this](int part_ij) {
+        return static_cast<double>(part_ij - particles[mc::CATIONS][0]);      // y elements here are int but they are casted to double for coherence with y definition
     });
-    computeRate(x, y, IONIZATION);
+    computeRate(x, y, mc::IONIZATION);
 
     // Compute attachment rate:
-    std::transform(particles[ANIONS].begin(), particles[ANIONS].end(), y.begin(), [this](int part_ij) {
-        return static_cast<double>(part_ij - particles[ANIONS][0]);      // same as for ionization rates
+    std::transform(particles[mc::ANIONS].begin(), particles[mc::ANIONS].end(), y.begin(), [this](int part_ij) {
+        return static_cast<double>(part_ij - particles[mc::ANIONS][0]);      // same as for ionization rates
     });
-    computeRate(x, y, ATTACHMENT);
+    computeRate(x, y, mc::ATTACHMENT);
 }
 
 void RateDataCount::computeConserved() {
     // y[0] is for effective ionization, y[1] for ionization and y[2] for attachment
-    std::array<std::vector<double>,PARTICLES_TYPES> y;
+    std::array<std::vector<double>,mc::PARTICLES_TYPES> y;
     size_t count_sst = particles[0].size();
 
-    double initial_electrons = static_cast<double>(particles[ELECTRONS][0]);
+    double initial_electrons = static_cast<double>(particles[mc::ELECTRONS][0]);
     if(initial_electrons == 0) throw std::invalid_argument("Number of electrons cannot be zero");
 
     // Define y vector as normalized particles gain
-    for( size_t i = 0; i < PARTICLES_TYPES; i++) {
+    for( size_t i = 0; i < mc::PARTICLES_TYPES; i++) {
         y[i].resize(count_sst);
         std::transform(particles[i].begin(), particles[i].end(), y[i].begin(), [this,i,initial_electrons](int part_ij) {
             return (static_cast<double>(part_ij - particles[i][0]) / initial_electrons);
@@ -138,9 +138,7 @@ double RateDataConv::convolution(std::vector<double> x, std::vector<double> y) {
     }
 
     // Return the computed rate:
-    double me = 9.10938291e-31; // electron mass
-    double q0 = 1.60217657e-19; // electron charge
-    return std::sqrt(2.0 * q0 / me) * rate;   
+    return std::sqrt(2.0 * mc::q0 / mc::me) * rate;   
 }
 
 // Performs linear interpolation

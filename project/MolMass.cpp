@@ -1,13 +1,5 @@
 #include "MolMass.hpp"
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <numeric>
-#include <cmath>
-
 void MolMass::check_syntax(){
     for( auto it = substance.cbegin(); it != substance.cend(); it++){
         if( characters.find(*it) == characters.cend() ){

@@ -11,20 +11,13 @@
 #include <algorithm>
 #include <cmath>
 
-enum INTER {
-    EFFECTIVE = 0,
-    IONIZATION,
-    ATTACHMENT,
-    EXCITATION,
-    ELASTIC,
-    INTERACTIONS
-};
+#include "Common.hpp"
 
 struct table {
     std::vector<double> section;
     double en_avg;
     std::string react;
-    INTER interact;
+    mc::InteractionType interact;
 };
 
 struct table_tool {   // Just for temporary storage in the constructor
@@ -78,7 +71,7 @@ public:
     const int get_n_react() const { return n_react; }
     // getters for specific cross-section data per specie-interaction type:
     // Option 1: pass indexes of specie and interaction
-    std::vector<table> get_Xsections( const size_t specie, const INTER interaction) const {
+    std::vector<table> get_Xsections( const size_t specie, const mc::InteractionType interaction) const {
         // Check if the specie and interaction indices are valid
         if (specie >= gas.size() || interaction >= Xsections[specie].size()) {
             throw std::out_of_range("Invalid specie or interaction index");
@@ -102,12 +95,12 @@ public:
         }
 
         // Map interaction strings to their corresponding enum values
-        const std::map<std::string, INTER> interaction_map = {
-            {"EFFECTIVE", EFFECTIVE},
-            {"IONIZATION", IONIZATION},
-            {"ATTACHMENT", ATTACHMENT},
-            {"EXCITATION", EXCITATION},
-            {"ELASTIC", ELASTIC}
+        const std::map<std::string, mc::InteractionType> interaction_map = {
+            {"EFFECTIVE", mc::EFFECTIVE},
+            {"IONIZATION", mc::IONIZATION},
+            {"ATTACHMENT", mc::ATTACHMENT},
+            {"EXCITATION", mc::EXCITATION},
+            {"ELASTIC", mc::ELASTIC}
         };
 
         // Check if the interaction exists
@@ -163,12 +156,13 @@ private:
         std::string path = "./Xsec/" + gas[i] + "/" + gas[i] + ".txt";
 
         // Map interactions indexes with their actual name in .txt data files
-        std::map<std::string,INTER> int_map;
-        int_map["EFFECTIVE"]=EFFECTIVE;
-        int_map["IONIZATION"]=IONIZATION;
-        int_map["ATTACHMENT"]=ATTACHMENT;
-        int_map["EXCITATION"]=EXCITATION;
-        int_map["ELASTIC"]=ELASTIC;
+        const std::map<std::string, mc::InteractionType> int_map = {
+            {"EFFECTIVE", mc::EFFECTIVE},
+            {"IONIZATION", mc::IONIZATION},
+            {"ATTACHMENT", mc::ATTACHMENT},
+            {"EXCITATION", mc::EXCITATION},
+            {"ELASTIC", mc::ELASTIC}
+        };
 
         std::ifstream file;               
         std::string line;                  

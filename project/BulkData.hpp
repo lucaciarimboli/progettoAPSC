@@ -1,12 +1,10 @@
 #ifndef BULKDATA_H
 #define BULKDATA_H
 
+#include "MeanData.hpp"
 #include <array>
 #include <vector>
 #include <algorithm>
-#include "MeanData.hpp"
-
-class MeanData;
 
 class BulkData {
     public:

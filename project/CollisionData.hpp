@@ -6,10 +6,13 @@
 #include <random>
 #include <algorithm>
 
+#include "Common.hpp"
+
 class CollisionData {
 
 public:
     // Constructor
+    CollisionData() = default;
     CollisionData(const int n_particles, const int n_react) :
         C(n_react, std::vector<double>(n_particles, 0.0)), Mass(n_react, 0.0), Loss(n_react, 0.0){}
 
@@ -119,7 +122,7 @@ private:
         
         for( size_t i = 0; i < XS.size(); i++){
             for( size_t j = 0; j < XS[i].size(); j++){
-                if( XS[i][j].interact != EFFECTIVE){
+                if( XS[i][j].interact != mc::EFFECTIVE){
                     // Same as for the energy grid, here for the cross-section data
                     std::vector<double> y = XS[i][j].section;
                 
@@ -130,16 +133,16 @@ private:
                     fill_C(x, y, E_in_eV, react_index, mix[i], density, abs_v, nu_max);
 
                     // Update the collision indices and Loss vector:
-                    if( XS[i][j].interact == ELASTIC){
+                    if( XS[i][j].interact == mc::ELASTIC){
                         col_ela.push_back(react_index);
                         // loss[react_index] = 0.0;
-                    } else if( XS[i][j].interact == EXCITATION){
+                    } else if( XS[i][j].interact == mc::EXCITATION){
                         col_exc.push_back(react_index);
                         loss[react_index] = XS[i][j].en_avg;        // VERIFICA SE E' CORRETTO !!
-                    } else if( XS[i][j].interact == IONIZATION){
+                    } else if( XS[i][j].interact == mc::IONIZATION){
                         col_ion.push_back(react_index);
                         loss[react_index] = XS[i][j].en_avg;        // VERIFICA SE E' CORRETTO !!
-                    } else if( XS[i][j].interact == ATTACHMENT){
+                    } else if( XS[i][j].interact == mc::ATTACHMENT){
                         col_att.push_back(react_index);
                         // loss[react_index] = 0.0;
                     }
