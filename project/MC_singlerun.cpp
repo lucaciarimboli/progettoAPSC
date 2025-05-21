@@ -11,8 +11,11 @@ int main() {
     //-----------------------------------------//
 
     // Gas species and their fractions: ( allowed species: "H2", "H2O", "N", "N2", "O", "O2" )
-    std::vector<std::string> gas = {"N2", "N", "O2", "O", "H2O", "H2"};
-    std::vector<double> mix = {0.8, 0.0, 0.2, 0.0, 0.0, 0.0};
+    //std::vector<std::string> gas = {"N2", "N", "O2", "O", "H2O", "H2"};
+    //std::vector<double> mix = {0.8, 0.0, 0.2, 0.0, 0.0, 0.0};
+
+    std::vector<std::string> gas = {"N2", "O2"};
+    std::vector<double> mix = {0.8, 0.2};
 
     // E/N (in Td):
     double EN = 5e3;
@@ -21,14 +24,14 @@ int main() {
     // Temperature (in K):
     double T = 300;
     // Initial number of electrons:
-    unsigned N0 = 10000;
+    unsigned N0 = 100;
     // Maximum allowed number of electrons:
     unsigned Ne_max = 1e6;
     // Energy sharing factor for ionization (in interval [0,1]):
     double W = 0.5;
 
     // Define the maximum energy level and the stp for electrons energy grid (in eV):
-    double E_max = 100;
+    double E_max = 1e3;
     double dE = 1;   // then energy grid will be [0,E_max] with step "E_step"
 
     // Error tolerances:

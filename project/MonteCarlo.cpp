@@ -38,26 +38,6 @@ std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> 
     return std::make_pair(abs_v,E_in_eV);
 }
 
-void MonteCarlo::maximalCollFreq(){
-    // calculates maximal collision rate for gas mixture (in s^-1)
-
-    // Extract total_cross section data from Xsec object:
-    const std::vector<double> & energy = Xsec.get_energy();
-    const std::vector<double> sigma_tot = Xsec.compute_total_Xsection(mix);
-
-    // Check if the size is coherent:
-    if(energy.size() != sigma_tot.size()){
-        std::cerr << "Error: energy and total_xsection vectors have different sizes!" << std::endl;
-        return;
-    }
-
-    // Calculate the maximal collision frequency:
-    for(size_t i = 0; i < energy.size(); i++){
-        double nu = N * sigma_tot[i] * std::sqrt(2.0 * energy[i] * mc::q0 / mc::me); // s^-1
-        if(nu > nu_max) nu_max = nu;
-    }
-}
-
 void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz){
 
     // Initialize mean values
@@ -111,7 +91,7 @@ double MonteCarlo::random(){
 
 void MonteCarlo::freeFlight(){
     // performs non-collissional flight for electrons in electric field
-    dt = - std::log(random()) / nu_max; // generates time step
+    dt = - std::log(random()) / Xsec.get_nu_max(); // generates time step
 
     // Update vector time:
     t.emplace_back(t.back() + dt);
@@ -190,18 +170,19 @@ void MonteCarlo::updateCollisionMatrix(){
 
     // From electron velocity compute energies in eV and extract the velocity modules:
     std::vector<double> E_in_eV;
-    std::vector<double> v_abs;
+    //std::vector<double> v_abs;
     E_in_eV.reserve(num_particles);
-    v_abs.reserve(num_particles);
+    //v_abs.reserve(num_particles);
     std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
             return velocity2energy(vi).second;
         });
-    std::transform(v.begin(), v.end(), std::back_inserter(v_abs), [this](const std::array<double, 3>& vi) {
+    /*std::transform(v.begin(), v.end(), std::back_inserter(v_abs), [this](const std::array<double, 3>& vi) {
             return velocity2energy(vi).first;
-        });
+        });*/
     
     // Build collision matrix and compute indeces:
-    C.collisionmatrix( num_particles, E_in_eV, v_abs, Xsec.get_energy(), Xsec.get_full_xs_data(), mix, mgas, E_max, nu_max, N);
+    //C.ComputeIndeces(num_particles, Xsec, E_in_eV, v_abs, mix, N);
+    C.ComputeIndeces(num_particles, Xsec, E_in_eV, mix, N); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
     // Update total number of collisions:
     collisions += C.getCollisions();
 }
@@ -228,7 +209,7 @@ void MonteCarlo::performCollision(const std::string & type){
     }
 }
 
-std::array<double, 3> MonteCarlo::cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b) {
+std::array<double, 3> MonteCarlo::cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b) const {
     // Function to compute the cross product of two 3D vectors
     return {
         a[1]*b[2] - a[2]*b[1],
@@ -243,12 +224,12 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
     double E_2 = 0.0;                       // total energy after collision
     std::array<double,3> e_x = {1.0, 0.0, 0.0};  // x-direction versor
 
-    std::vector<double> sin_phi(ind.size(),0.0);
-    std::vector<double> cos_phi(ind.size(),0.0);
-    std::vector<double> sin_xsi(ind.size(),0.0);
-    std::vector<double> cos_xsi(ind.size(),0.0);
-    std::vector<double> sin_theta(ind.size(),0.0);
-    std::vector<double> cos_theta(ind.size(),0.0);
+    double sin_phi;
+    double cos_phi;
+    double sin_xsi;
+    double cos_xsi;
+    double sin_theta;
+    double cos_theta;
 
     for(size_t i = 0; i < ind.size(); i++){
 
@@ -262,17 +243,17 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
 
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * random();
-        sin_phi[i] = std::sin(phi);
-        cos_phi[i] = std::cos(phi);
+        sin_phi = std::sin(phi);
+        cos_phi = std::cos(phi);
 
         // Randomly generate xsi: electron scattering angle 
-        if(isotropic) cos_xsi[i] = 1 - 2 * random();
-        else cos_xsi[i] = (2 + v2e.second - 2 * (1+v2e.second) * random()) / v2e.second;
-        sin_xsi[i] = std::sqrt(1 - cos_xsi[i] * cos_xsi[i]);
+        if(isotropic) cos_xsi = 1 - 2 * random();
+        else cos_xsi = (2 + v2e.second - 2 * (1+v2e.second) * random()) / v2e.second;
+        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi);
 
         // Compute theta: angle between x-axis and incident velocity:
-        cos_theta[i] = e_1[0];
-        sin_theta[i] = std::sqrt(1 - cos_theta[i] * cos_theta[i]);
+        cos_theta = e_1[0];
+        sin_theta = std::sqrt(1 - cos_theta * cos_theta);
 
         // Compute the new direction e_2 of the scattered electron:
         std::array<double,3> cross1 = cross_product(e_1, e_x);
@@ -281,11 +262,11 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
-        double inverse_sin_theta = (sin_theta[i] > 1e-10) ? 1.0 / sin_theta[i] : 0.0;
+        double inverse_sin_theta = (sin_theta > 1e-10) ? 1.0 / sin_theta : 0.0;
         for (int j = 0; j < 3; j++) {
-            e_2[j] = cos_xsi[i] * e_1[j] +
-                    sin_xsi[i] * sin_phi[i] * inverse_sin_theta * cross1[j] +
-                    sin_xsi[i] * cos_phi[i] * inverse_sin_theta * cross3[j];
+            e_2[j] = cos_xsi * e_1[j] +
+                    sin_xsi * sin_phi * inverse_sin_theta * cross1[j] +
+                    sin_xsi * cos_phi * inverse_sin_theta * cross3[j];
         }
 
         // Normalize e_2:
@@ -293,7 +274,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        E_2 += std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi[i])));
+        E_2 += std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi)));
 
         // Update velocity:
         double v2_abs = std::sqrt(2.0 * E_2 * mc::q0 / mc::me);
@@ -312,12 +293,12 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
     double E_2 = 0.0;                       // total energy after collision
     std::array<double,3> e_x = {1.0, 0.0, 0.0};  // x-direction versor
 
-    std::vector<double> sin_phi(ind.size(),0.0);
-    std::vector<double> cos_phi(ind.size(),0.0);
-    std::vector<double> sin_xsi(ind.size(),0.0);
-    std::vector<double> cos_xsi(ind.size(),0.0);
-    std::vector<double> sin_theta(ind.size(),0.0);
-    std::vector<double> cos_theta(ind.size(),0.0);
+    double sin_phi;
+    double cos_phi;
+    double sin_xsi;
+    double cos_xsi;
+    double sin_theta;
+    double cos_theta;
 
     for(size_t i = 0; i < ind.size(); i++){
 
@@ -331,17 +312,17 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
 
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * random();
-        sin_phi[i] = std::sin(phi);
-        cos_phi[i] = std::cos(phi);
+        sin_phi = std::sin(phi);
+        cos_phi = std::cos(phi);
 
         // Randomly generate xsi: electron scattering angle 
-        if(isotropic) cos_xsi[i] = 1 - 2 * random();
-        else cos_xsi[i] = (2 + v2e.second - 2 * (1+v2e.second) * random()) / v2e.second;
-        sin_xsi[i] = std::sqrt(1 - cos_xsi[i] * cos_xsi[i]);
+        if(isotropic) cos_xsi = 1 - 2 * random();
+        else cos_xsi = (2 + v2e.second - 2 * (1+v2e.second) * random()) / v2e.second;
+        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi);
 
         // Compute theta: angle between x-axis and incident velocity:
-        cos_theta[i] = e_1[0];
-        sin_theta[i] = std::sqrt(1 - cos_theta[i] * cos_theta[i]);
+        cos_theta = e_1[0];
+        sin_theta = std::sqrt(1 - cos_theta * cos_theta);
 
         // Compute the new direction e_2 of the scattered electron:
         std::array<double,3> cross1 = cross_product(e_1, e_x);
@@ -350,11 +331,11 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
-        double inverse_sin_theta = (sin_theta[i] > 1e-10) ? 1.0 / sin_theta[i] : 0.0;
+        double inverse_sin_theta = (sin_theta > 1e-10) ? 1.0 / sin_theta : 0.0;
         for (int j = 0; j < 3; j++) {
-            e_2[j] = cos_xsi[i] * e_1[j] +
-                sin_xsi[i] * sin_phi[i] * inverse_sin_theta * cross1[j] +
-                sin_xsi[i] * cos_phi[i] * inverse_sin_theta * cross3[j];
+            e_2[j] = cos_xsi * e_1[j] +
+                sin_xsi * sin_phi * inverse_sin_theta * cross1[j] +
+                sin_xsi * cos_phi * inverse_sin_theta * cross3[j];
         }
 
         // Normalize e_2:
@@ -384,12 +365,12 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
     // Number of created electrons by ionization:
     int delta_Ne = ind.size();
 
-    std::vector<double> sin_phi(ind.size(),0.0);
-    std::vector<double> cos_phi(ind.size(),0.0);
-    std::vector<double> sin_xsi(ind.size(),0.0);
-    std::vector<double> cos_xsi(ind.size(),0.0);
-    std::vector<double> sin_theta(ind.size(),0.0);
-    std::vector<double> cos_theta(ind.size(),0.0);
+    double sin_phi;
+    double cos_phi;
+    double sin_xsi;
+    double cos_xsi;
+    double sin_theta;
+    double cos_theta;
 
     for(int i = 0; i < delta_Ne; i++){
 
@@ -403,17 +384,17 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
 
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * random();
-        sin_phi[i] = std::sin(phi);
-        cos_phi[i] = std::cos(phi);
+        sin_phi = std::sin(phi);
+        cos_phi = std::cos(phi);
 
         // Randomly generate xsi: electron scattering angle 
-        if(isotropic) cos_xsi[i] = 1 - 2 * random();
-        else cos_xsi[i] = (2 + v2e.second - 2 * (1+v2e.second) * random()) / v2e.second;
-        sin_xsi[i] = std::sqrt(1 - cos_xsi[i] * cos_xsi[i]);
+        if(isotropic) cos_xsi = 1 - 2 * random();
+        else cos_xsi = (2 + v2e.second - 2 * (1+v2e.second) * random()) / v2e.second;
+        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi);
 
         // Compute theta: angle between x-axis and incident velocity:
-        cos_theta[i] = e_1[0];
-        sin_theta[i] = std::sqrt(1 - cos_theta[i] * cos_theta[i]);
+        cos_theta = e_1[0];
+        sin_theta = std::sqrt(1 - cos_theta * cos_theta);
 
         // Compute the new direction e_2 of the scattered electron:
         std::array<double,3> cross1 = cross_product(e_1, e_x);
@@ -422,11 +403,11 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
-        double inverse_sin_theta = (sin_theta[i] > 1e-10) ? 1.0 / sin_theta[i] : 0.0;
+        double inverse_sin_theta = (sin_theta > 1e-10) ? 1.0 / sin_theta : 0.0;
         for (int j = 0; j < 3; j++) {
-            e_2[j] = cos_xsi[i] * e_1[j] +
-                    sin_xsi[i] * sin_phi[i] * inverse_sin_theta * cross1[j] +
-                    sin_xsi[i] * cos_phi[i] * inverse_sin_theta * cross3[j];
+            e_2[j] = cos_xsi * e_1[j] +
+                    sin_xsi * sin_phi * inverse_sin_theta * cross1[j] +
+                    sin_xsi * cos_phi * inverse_sin_theta * cross3[j];
         }
 
         // Normalize e_2:

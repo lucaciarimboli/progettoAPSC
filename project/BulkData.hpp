@@ -67,8 +67,10 @@ class BulkData {
         double y_mean = std::accumulate(y.cbegin(), y.cend(), 0.0) / n;
 
         // Compute covariance and variance:
-        std::vector<double> xx(n);
-        std::vector<double> yy(n);
+        std::vector<double> xx;
+        xx.reserve(n);
+        std::vector<double> yy;
+        yy.reserve(n);
         std::transform(t.cbegin(), t.cend(), xx.begin(), [x_mean](double x) { return x - x_mean; });
         std::transform(y.cbegin(), y.cend(), yy.begin(), [y_mean](double y) { return y - y_mean; });
         double cov = std::inner_product(xx.cbegin(), xx.cend(), yy.cbegin(), 0.0);
@@ -79,7 +81,8 @@ class BulkData {
         double q = y_mean - m * x_mean;
 
         // Compute residuals:
-        std::vector<double> res(n);
+        std::vector<double> res;
+        res.reserve(n);
         std::transform(t.cbegin(), t.cend(), y.cbegin(), res.begin(), [m, q](double x, double y) { return y - (q + m * x); });
 
         // Compute standard error for slope:
@@ -142,7 +145,7 @@ class BulkData {
         }
     }
 
-    void compute_diffusion(const double & N){
+    void compute_diffusion(const double N){
         // Each component of y is a vector with the corresponding component of the position for each time after sst.
         std::array<std::vector<double>, 3> y;
         for (const MeanData& m : mean) {
