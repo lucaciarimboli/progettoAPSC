@@ -23,6 +23,28 @@ int main() {
         // Construct CrossSectionsData
         CrossSectionsData xs(species, E_max, mix, density);
 
+        // Print number and types of interactions for each specie
+        for (size_t i = 0; i < species.size(); ++i) {
+            std::vector<std::string> interaction_names;
+            // Check all possible interaction types
+            std::vector<std::string> types = {"EFFECTIVE", "IONIZATION", "ATTACHMENT", "EXCITATION", "ELASTIC"};
+            for (const auto& type : types) {
+                auto xs_tables = xs.get_Xsections(species[i], type);
+                if (!xs_tables.empty()) {
+                    interaction_names.push_back(type);
+                }
+            }
+            std::cout << "Specie: " << species[i]
+                      << " | Total interactions: " << interaction_names.size()
+                      << " | Types: ";
+            for (size_t j = 0; j < interaction_names.size(); ++j) {
+                std::cout << interaction_names[j];
+                if (j + 1 < interaction_names.size()) std::cout << ", ";
+            }
+            std::cout << std::endl;
+        }
+
+
         // Prepare dummy mgas vector (masses for each species, just for test)
         std::vector<double> mgas(species.size(), 1.0);
 
@@ -38,19 +60,11 @@ int main() {
         cd.ComputeIndeces(n_particles, xs, E_in_eV, mix, density);
 
         // Test getters
-        std::cout << "Mass vector: ";
-        for (auto m : cd.getMass()) std::cout << m << " ";
-        std::cout << "\nLoss vector: ";
-        for (auto l : cd.getLoss()) std::cout << l << " ";
-        std::cout << "\nElastic collision indices: ";
-        for (auto i : cd.get_ind("ELASTIC")) std::cout << i << " ";
-        std::cout << "\nExcitation collision indices: ";
-        for (auto i : cd.get_ind("EXCITATION")) std::cout << i << " ";
-        std::cout << "\nIonization collision indices: ";
-        for (auto i : cd.get_ind("IONIZATION")) std::cout << i << " ";
-        std::cout << "\nAttachment collision indices: ";
-        for (auto i : cd.get_ind("ATTACHMENT")) std::cout << i << " ";
-        std::cout << "\nTotal collisions: " << cd.getCollisions() << std::endl;
+        std::cout << "Number of elastic collisions: " << cd.get_ind("ELASTIC").size() << std::endl;
+        std::cout << "Number of excitation collisions: " << cd.get_ind("EXCITATION").size() << std::endl;
+        std::cout << "Number of ionization collisions: " << cd.get_ind("IONIZATION").size() << std::endl;
+        std::cout << "Number of attachment collisions: " << cd.get_ind("ATTACHMENT").size() << std::endl;
+        std::cout << "Total collisions: " << cd.getCollisions() << std::endl;
 
         std::cout << "CollisionData test completed successfully." << std::endl;
     } catch (const std::exception& ex) {

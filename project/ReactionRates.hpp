@@ -38,7 +38,7 @@ protected:
             case mc::ATTACHMENT: return "ATTACHMENT";
             case mc::EXCITATION: return "EXCITATION";
             case mc::ELASTIC:    return "ELASTIC";
-            default:                          return "UNKNOWN";
+            default:             return "UNKNOWN";
         }
     }
 };
@@ -108,6 +108,7 @@ struct spec_rate {
     std::string interaction;          // Type of interaction
     std::string reaction;     // Type of reaction
 };
+
 
 // Calculates the reaction rates by convolution of the electron number with a kernel
 class RateDataConv : public RateDataBase {

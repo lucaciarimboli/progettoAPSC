@@ -59,7 +59,7 @@ private:
     void count_react_and_fill_energy(const size_t i);
 
     // Imports cross-section data from .txt files
-    void import_Xsec_data(const size_t offset, const std::string & current_specie);
+    void import_Xsec_data(const size_t offset, const size_t specie_indexe);
 
     // Linear interpolation function
     void linear_interpolation(std::vector<double>& x, std::vector<double>& y, std::vector<double>& result);

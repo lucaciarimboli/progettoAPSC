@@ -2,7 +2,7 @@
 
 CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, const double E_max, 
                                      const std::vector<double> & mix, const double N):
-    gas(species), n_react(species.size(),0), nu_max(0.0)
+    gas(species), n_react(species.size(),1), nu_max(0.0)
 {
     // Check if the gas species are the same as the cross-section data
     std::array<std::string, 6> valid_species = {"H2", "H2O", "N", "N2", "O", "O2"};
@@ -38,7 +38,7 @@ CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, c
         }
 
         // Fill Xsections by interpolating imported data over the energy grid:
-        import_Xsec_data(offset, gas[i]);
+        import_Xsec_data(offset, i);
         offset += n_react[i];   // Update the offset for the next specie
     }
 
@@ -62,8 +62,7 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
         while(getline(file,line))
         {
             if (line.compare("EFFECTIVE")==0 || line.compare("IONIZATION")==0 ||
-                line.compare("ATTACHMENT")==0 || line.compare("EXCITATION")==0 ||
-                line.compare("ELASTIC") == 0){
+                line.compare("ATTACHMENT")==0 || line.compare("EXCITATION")==0){
                 n_react[i]++;
                 flag = true;
             }
@@ -94,18 +93,17 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
 }
 
 // void CrossSectionsData::import_Xsec_data(const size_t i){
-void CrossSectionsData::import_Xsec_data(const size_t offset, const std::string & current_specie){
+void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t specie_index){
 
     // Path to the cross-section data file
-    std::string path = "./Xsec/" + current_specie + "/" + current_specie + ".txt";
+    std::string path = "./Xsec/" + gas[specie_index] + "/" + gas[specie_index] + ".txt";
 
     // Map interactions indexes with their actual name in .txt data files
     const std::map<std::string, mc::InteractionType> int_map = {
         {"EFFECTIVE", mc::EFFECTIVE},
         {"IONIZATION", mc::IONIZATION},
         {"ATTACHMENT", mc::ATTACHMENT},
-        {"EXCITATION", mc::EXCITATION},
-        {"ELASTIC", mc::ELASTIC}
+        {"EXCITATION", mc::EXCITATION}
     };
 
     std::ifstream file;               
@@ -113,26 +111,30 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const std::string 
     std::string avg_energy,formula;
     bool flag = true;
     unsigned counter=0;
-    std::vector<double> xx, yy;      // energy levels and cross-section values
+    std::vector<double> xx, yy;     // energy levels and cross-section values
 
     // Import data relative to the current specie in Xsec_tool[i]: 
     file.open(path,std::ifstream::in);
     if(file.is_open()){
 
         int j=0;                         // reaction index
+        int j_effective = 0;             // index of effective cross-section
 
         while(getline(file,line)) {
             // Set interaction type and average energy:
             if (line.compare("EFFECTIVE")==0 || line.compare("IONIZATION")==0 ||
-                line.compare("ATTACHMENT")==0 || line.compare("EXCITATION")==0 ||
-                line.compare("ELASTIC") == 0){
+                line.compare("ATTACHMENT")==0 || line.compare("EXCITATION")==0){
 
                 flag = true;
                 auto it = int_map.find(line);
-
+                
                 // Set interaction type
                 //Xsections[i][j].interact = it->second;
                 Xsections[offset + j].interact = it->second;
+
+                if( it->second == mc::EFFECTIVE) {
+                    j_effective = j;
+                }
                 
                 // Set reaction formula:
                 getline(file,formula);
@@ -171,6 +173,22 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const std::string 
                         yy.clear();
                         j++;
                     }
+                }
+            }
+        }
+
+        // Last, compute elastic cross sectional data as "effective - others":
+        Xsections[offset + j].interact = mc::ELASTIC;
+        Xsections[offset + j].react = "Elastic";
+        Xsections[offset + j].en_avg = 0.0;
+        Xsections[offset + j].section = Xsections[offset + j_effective].section;
+            
+        // Subtract all other cross-sections (except effective and elastic itself)
+        for(int k = 0; k < j; k++) {
+            if(k != j_effective) {
+                // Element-wise subtraction
+                for(size_t energy_idx = 0; energy_idx < Xsections[offset + j].section.size(); ++energy_idx) {
+                    Xsections[offset + j].section[energy_idx] -= Xsections[offset + k].section[energy_idx];
                 }
             }
         }

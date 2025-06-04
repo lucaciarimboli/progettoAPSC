@@ -30,9 +30,9 @@ int main() {
     // Energy sharing factor for ionization (in interval [0,1]):
     double W = 0.5;
 
-    // Define the maximum energy level and the stp for electrons energy grid (in eV):
+    // Define the maximum energy level and the step for electrons energy grid (in eV):
     double E_max = 1e3;
-    double dE = 1;   // then energy grid will be [0,E_max] with step "E_step"
+    double dE = 0.1;   // then energy grid will be [0,E_max] with step "E_step"
 
     // Error tolerances:
     double w_err = 0.01;    // for drift velocity  
@@ -71,6 +71,7 @@ int main() {
     // checks end of simulation: End =1 stops the simulation
     bool End = false;
 
+
     while( !End ) {
         // Perform a flight for all electrons without a collision:
         MC.freeFlight();
@@ -78,7 +79,7 @@ int main() {
         MC.collectMeanData();
 
         // If there is enough data at steady state, update accordingly the variables of interest:
-        if(MC.countSteadyState()){
+        if(MC.get_count_sst() > 10) {
             MC.updateEnergyData();
             MC.updateFluxData();
             MC.updateBulkData();
@@ -94,6 +95,7 @@ int main() {
 
         // Check if the simulation has reached steady state:
         MC.checkSteadyState();
+
         // Print the meaningful data at the current time step:
         MC.printOnScreen();
         // Check if the simulation has converged:

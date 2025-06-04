@@ -52,11 +52,11 @@ public:
         mass_in_kg();
 
         // Initialize energy data:
-        //std::vector<double> energy_bins;
-        //nergy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
-        //for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
-        //E = EnergyData(energy_bins);
-        E = EnergyData(E_max, dE);
+        std::vector<double> energy_bins;
+        energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
+        for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
+        E = EnergyData(energy_bins);
+        // E = EnergyData(E_max, dE);
 
         // Set electric field E (constant and uniform):
         set_E(EN);
@@ -81,8 +81,6 @@ public:
     // broadening in x,y and-direction, mean kinetic energy, electron number
     // and total electron current
     void collectMeanData();
-    // Gets the number of time step after steady state
-    bool countSteadyState() const { if(count_sst > 10) return true; else return false; }
     // Calculates mean energy and EEDF data after steady state was reached
     void updateEnergyData();
     // Calculates flux data after steady state was reached
@@ -102,6 +100,9 @@ public:
     bool endSimulation();
     // Prints the results of the simulation
     void printOnScreen();
+
+    // Getters:
+    const unsigned int get_count_sst() const { return count_sst; }
 
 
 private:
@@ -140,10 +141,10 @@ private:
     // maximum electron energy
     double E_max;
     // collision counter
-    unsigned int counter = 0;
+    // unsigned int counter = 0;
     // equilibrium time
     double T_sst = 0.0;
-    // Counter of how many time steps there have been after steady state
+    // counts the number of steady state time steps
     unsigned int count_sst = 0;
 
     // line number in output file:
@@ -164,7 +165,7 @@ private:
     std::array<mc::MATRIX,mc::PARTICLES_TYPES> r;
     // current velocity of electrons
     mc::MATRIX v;
-    // current acceleration of electrons
+    // acceleration of electrons (constant & uniform as the E field)
     std::array<double,3> a;
     // current time-integrated velocity
     mc::MATRIX v_int;
@@ -228,6 +229,10 @@ private:
     void attachmentCollision(const std::vector<size_t> & ind);
     // Generates random numbers p from an uniform distribution U[0,1];
     double random();
+
+
+    // For debugging:
+    unsigned int iii = 0;
 
 };
 

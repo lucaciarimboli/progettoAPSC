@@ -97,7 +97,6 @@ void MonteCarlo::freeFlight(){
     t.emplace_back(t.back() + dt);
     
     double ne = v.size(); // number of electrons
-
     double dt2 = std::pow(dt,2); // to avoid redundant calculations 
 
     if(T_sst > 0.0){
@@ -122,6 +121,8 @@ void MonteCarlo::freeFlight(){
                 v[i][j] += a[j] * dt;
         }
     }
+
+    //counter++;
 }
 
 void MonteCarlo::collectMeanData(){
@@ -448,16 +449,16 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
     if(conserve){
         for( int i = 0; i < delta_Ne; i++){
             // select a random electron:
-            int random_index = static_cast<int>(random() * (r[mc::ELECTRONS].size() - 1));
+            int random_index = static_cast<int>(random() * (r[mc::ELECTRONS].size()));
             // remove it from the simulation:
             r[mc::ELECTRONS].erase(r[mc::ELECTRONS].begin() + random_index);
             v.erase(v.begin() + random_index);
         }
     }
+    
+    // Update number of particles in mean data:
+    mean.back().add_new_particles({delta_Ne, delta_Ne, 0});
 
-    // Add new electrons and cations to mean data
-    const std::array<int, mc::PARTICLES_TYPES> delta_particles = {delta_Ne, delta_Ne, 0};
-    mean.back().add_new_particles(delta_particles);
     // Update total energy loss counter:
     EnergyLossIonization += E_1 - E_2;
 }
@@ -487,23 +488,22 @@ void MonteCarlo::attachmentCollision(const std::vector<size_t> & ind){
         // If required, enforce electron population conservation:
         if(conserve){
             // select a random electron:
-            int random_index = static_cast<int>(random() * (r[mc::ELECTRONS].size() - 1));
+            int random_index = static_cast<int>(random() * (r[mc::ELECTRONS].size()));
             // clone it to compensate the removed one:
             r[mc::ELECTRONS].push_back(r[mc::ELECTRONS][random_index]);
             v.push_back(v[random_index]);
         }
     }
-    
-    // Remove electrons and add anions to mean data
-    const std::array<int, mc::PARTICLES_TYPES> delta_particles = {-delta_Ne, delta_Ne, 0};
-    mean.back().add_new_particles(delta_particles);
+
+    // Update number of particles in mean data:
+    mean.back().add_new_particles({- delta_Ne, 0, delta_Ne});
 }
 
 void MonteCarlo::checkSteadyState(){
 
-    // Check if the steady state is reached:
-    if(T_sst == 0.0 && collisions/1e6 >= line && collisions >= col_equ){ 
-       
+    // If sst has not been reached yet, check after last iteration:
+    if(count_sst == 0 && collisions/1e6 >= line && collisions >= col_equ){
+
         // check if the interval 80-90 % of energy data is larger than the interval 90-100%:
         int N = mean.size();
         size_t n = std::round( N / 10.0);
@@ -517,8 +517,16 @@ void MonteCarlo::checkSteadyState(){
         }
 
         if(sum1 >= sum2){
-            T_sst = t.back();       // last recorded time
-            counter = 0;
+            // Steady state has been reached
+            T_sst = t.back();
+            std::cout << "Steady state reached at t = " << T_sst << " ms\n";
+
+            // For debugging purposes:
+            std::cout << "Number of iterations until steady state: " << iii << "\n";
+            std::cout << "Number of collisions until steady state: " << collisions << "\n";
+            std::cout << "Number of electrons at steady state: " << v.size() << "\n";
+
+            //counter = 0;
             collisions = 0;
             line = 1;
         }
@@ -565,6 +573,9 @@ bool MonteCarlo::endSimulation() {
     }
 
     return false;
+
+    // For debugging purposes:
+    iii++;
 }
 
 void MonteCarlo::printOnScreen() {
@@ -579,7 +590,7 @@ void MonteCarlo::printOnScreen() {
             const std::array<double, 3> & DN_bulk_err = bulk.get_DN_err();  
             const std::array<double, 3> & w_flux = flux.get_w();
             const std::array<double, 3> & DN_flux = flux.get_DN();
-
+ 
             std::printf(
                 " Werr: %i"
                 " DNerr %i"
@@ -614,10 +625,37 @@ void MonteCarlo::printOnScreen() {
             std::printf(
                 " collisions: %i"
                 " electrons: %i"
-                " mean energy: %.2e\n",
+                " mean energy: %.2e\n"
+
+
+                // for debugging purposes:
+                " ITERATION NUMBER: %i\n"
+                " electrons according to vel: %i"
+                " electrons according to pos: %i\n"
+                " number of cations (pos): %i"
+                " number of cations (mean): %i\n"
+                " number of anions (pos): %i "
+                " number of anions (mean): %i\n"
+                " current time: %.3e ms"
+                " dt: %.3e ms\n"
+                " count_sst: %i \n\n",
+
                 collisions,
                 mean.back().get_particles()[mc::ELECTRONS],
-                mean.back().get_energy()
+                mean.back().get_energy(),
+
+                // For debugging purposes:
+                iii,
+                v.size(),
+                r[mc::ELECTRONS].size(),
+                r[mc::CATIONS].size(),
+                mean.back().get_particles()[mc::CATIONS],
+                r[mc::ANIONS].size(),
+                mean.back().get_particles()[mc::ANIONS],
+                t.back(),
+                dt,
+                count_sst
+
             );
         }
     }
