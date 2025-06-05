@@ -1,4 +1,4 @@
-#include "CollisionData.hpp"
+#include "utils/CollisionData.hpp"
 
 CollisionData::CollisionData(const CrossSectionsData& Xsec, const std::vector<double>& mgas)
 {
@@ -43,18 +43,16 @@ CollisionData::CollisionData(const CrossSectionsData& Xsec, const std::vector<do
 }
 
 void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsData& Xsec,
-    const std::vector<double>& E_in_eV, const std::vector<double>& mix, const double density)
+    const std::vector<double>& E_in_eV, const std::vector<double>& mix, const double density, const std::vector<double>& R)
 {
     // Check if the number of particles matches the size of E_in_eV and v_abs:
-    if( n_electrons != E_in_eV.size()){
-        throw std::invalid_argument("Number of particles and corresponding velocities/energies do not match.");
-    }
-
-    const int n_react = Xsec.get_n_react(); // Number of reactions
+    //if( n_electrons != E_in_eV.size()){
+    //    throw std::invalid_argument("Number of particles and corresponding velocities/energies do not match.");
+    //}
 
     // Define random number generator:
-    std::default_random_engine gen;
-    std::uniform_real_distribution<> randu(0.0,1.0);
+    //std::default_random_engine gen;
+    //std::uniform_real_distribution<> randu(0.0,1.0);
 
     // Define vector to store which reaction will happen for each electron:
     std::vector<size_t> ind;
@@ -63,11 +61,8 @@ void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsDat
     // Compute the cumulative sum by electron of the collision matrix:
     for( int e_index = 0; e_index < n_electrons; e_index++){
 
-        // Generate a random number between 0 and 1:
-        double R = randu(gen);
-
         // Compute the collision matrix row corresponding to the current electron:
-        const size_t collision_index = CollisionMatrix(R, Xsec, mix, E_in_eV[e_index], density);
+        const size_t collision_index = CollisionMatrix(R[e_index], Xsec, mix, E_in_eV[e_index], density);
 
         // Assign the collision index to the corresponding electron:
         ind[e_index] = collision_index;

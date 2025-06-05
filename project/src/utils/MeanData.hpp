@@ -22,8 +22,8 @@ class MeanData
         : particles({ne, 0, 0}),
           position(r),
           sigma(s),
-          energy(0.0),
-          velocity({0.0, 0.0, 0.0}) {};
+          velocity({0.0, 0.0, 0.0}),
+          energy(0.0) {};
     // Constructor that computes mean data from input matrices:
     MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATRIX & r, const mc::MATRIX & v)
         : particles(p){

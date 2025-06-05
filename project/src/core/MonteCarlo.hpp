@@ -12,14 +12,14 @@
 #include <random>
 #include <algorithm>
 
-#include "CrossSectionsData.hpp"
-#include "MolMass.hpp"
-#include "MeanData.hpp"
-#include "EnergyData.hpp"
-#include "FluxData.hpp"
-#include "BulkData.hpp"
-#include "ReactionRates.hpp"
-#include "CollisionData.hpp"
+#include "utils/CrossSectionsData.hpp"
+#include "utils/MolMass.hpp"
+#include "utils/MeanData.hpp"
+#include "utils/EnergyData.hpp"
+#include "utils/FluxData.hpp"
+#include "utils/BulkData.hpp"
+#include "utils/ReactionRates.hpp"
+#include "utils/CollisionData.hpp"
 
 #include "Common.hpp"
 
@@ -36,13 +36,13 @@ public:
                 const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz,
                 const bool conserve, const bool isotropic):
 
-    gas(gas), mix(mix), N0(N0), Ne_max(Ne_max), W(W), w_err(std::abs(w_err)), DN_err(std::abs(DN_err)),
-    col_equ(col_equ), col_max(col_max), conserve(conserve), isotropic(isotropic), E_max(E_max),
-    mgas(gas.size(),0.0), N(p/(mc::kB * T)), Xsec(gas, E_max, mix, N), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
-    v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)), bulk(),
-    flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve)
-
-    {   
+    N0(N0), N(p/(mc::kB * T)), gas(gas), mgas(gas.size(),0.0), mix(mix), Xsec(gas, E_max, mix, N),
+    w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
+    conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
+    v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
+    bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
+    gen(std::random_device{}()), randu(0.0,1.0) {
+        
         // The check for the validity of the gas species is done in "CrossSectionsData" constructor
 
         // Check mix vector validity:
@@ -129,9 +129,9 @@ private:
     // maximum allowed number of electorns
     const unsigned Ne_max;
     // number of collisions until equilibrium (default: 20e6)
-    const unsigned col_equ;
+    const unsigned long col_equ;
     // number of collisions at which simulation ends (default: 20e6) 
-    const unsigned col_max;
+    const unsigned long col_max;
     // conserve (1) electron number after ionizatzion/attachment or not (0)
     const bool conserve;    
     // (1) isotropic, (0) non-isotropic scattering according to Vahedi et al.
@@ -174,8 +174,8 @@ private:
     // Collision matrix and collision indeces:
     CollisionData C;
     // total number of all real collisions that happend
-    int collisions = 0;
-            
+    unsigned long collisions = 0;
+
     // temporal mean data of electron swarm
     std::vector<MeanData> mean; 
     // bulk transport data
@@ -200,8 +200,13 @@ private:
     double EnergyLossInelastic  = 0;
     double EnergyLossIonization = 0;
             
-    //Status
+    // Status
     unsigned int converge = 0;
+
+    // Random number generator:
+    std::default_random_engine gen;
+    // Uniform distribution for random numbers:
+    std::uniform_real_distribution<> randu;
 
 
     // PRIVATE METHODS:
@@ -227,13 +232,6 @@ private:
     void ionizationCollision(const std::vector<size_t> & ind, const std::vector<double> & Loss);
     // Performs attachment collision for electrons
     void attachmentCollision(const std::vector<size_t> & ind);
-    // Generates random numbers p from an uniform distribution U[0,1];
-    double random();
-
-
-    // For debugging:
-    unsigned int iii = 0;
-
 };
 
 #endif  // MONTECARLO_HPP

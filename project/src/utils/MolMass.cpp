@@ -1,4 +1,4 @@
-#include "MolMass.hpp"
+#include "utils/MolMass.hpp"
 
 void MolMass::check_syntax(){
     for( auto it = substance.cbegin(); it != substance.cend(); it++){

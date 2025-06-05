@@ -2,9 +2,9 @@
 #include <vector>
 #include <string>
 #include <random>
-#include "CrossSectionsData.hpp"
-#include "CollisionData.hpp"
-#include "Common.hpp"
+#include "src/utils/CrossSectionsData.hpp"
+#include "src/utils/CollisionData.hpp"
+#include "include/Common.hpp"
 
 // Dummy mc namespace and constants for compilation if not included elsewhere
 // namespace mc { constexpr double q0 = 1.602e-19; constexpr double me = 9.109e-31; }

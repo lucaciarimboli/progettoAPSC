@@ -1,12 +1,11 @@
 #ifndef COLLISION_MATRIX_H
 #define COLLISION_MATRIX_H
 
-#include "CrossSectionsData.hpp"
 #include <vector>
-#include <random>
 #include <algorithm>
 #include <unordered_set>
 
+#include "utils/CrossSectionsData.hpp"
 #include "Common.hpp"
 
 class CollisionData {
@@ -20,7 +19,8 @@ public:
 
     // Build collision matrix and compute indeces:
     void ComputeIndeces(const int n_electrons, const CrossSectionsData& Xsec,
-        const std::vector<double>& E_in_eV, const std::vector<double>& mix, const double density);
+        const std::vector<double>& E_in_eV, const std::vector<double>& mix,
+        const double density, const std::vector<double>& R);
 
     // Getters:
     //const double getC(const int i, const int j, const int n_articles) const { return C[i*n_particles + j]; }

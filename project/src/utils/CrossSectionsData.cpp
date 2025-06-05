@@ -1,4 +1,4 @@
-#include "CrossSectionsData.hpp"
+#include "utils/CrossSectionsData.hpp"
 
 CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, const double E_max, 
                                      const std::vector<double> & mix, const double N):
@@ -50,7 +50,7 @@ CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, c
 // and fills the energy vector with the energy levels from each reaction, sorted and deduplicated.
 void CrossSectionsData::count_react_and_fill_energy(const size_t i){
     // Path to the cross-section data file
-    std::string path = "./Xsec/" + gas[i] + "/" + gas[i] + ".txt";
+    std::string path = "data/Xsec/" + gas[i] + "/" + gas[i] + ".txt";
 
     std::ifstream file;               
     std::string line;     
@@ -96,7 +96,7 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
 void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t specie_index){
 
     // Path to the cross-section data file
-    std::string path = "./Xsec/" + gas[specie_index] + "/" + gas[specie_index] + ".txt";
+    std::string path = "data/Xsec/" + gas[specie_index] + "/" + gas[specie_index] + ".txt";
 
     // Map interactions indexes with their actual name in .txt data files
     const std::map<std::string, mc::InteractionType> int_map = {

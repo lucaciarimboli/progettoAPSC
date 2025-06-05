@@ -6,9 +6,9 @@
 #include <string>
 #include <array>
 #include <cmath>
-#include "MeanData.hpp"
-#include "EnergyData.hpp"
-#include "CrossSectionsData.hpp"
+#include "utils/MeanData.hpp"
+#include "utils/EnergyData.hpp"
+#include "utils/CrossSectionsData.hpp"
 
 #include "Common.hpp"
 
@@ -51,7 +51,7 @@ public:
     // RATES RELATED TO EXCITATION AND ELASTIC COLLISIONS ARE SIMPLY SET TO 0.0
 
     RateDataCount(const double & dens, bool cons) 
-        : N(dens), conserve(cons)
+        : conserve(cons), N(dens)
     {
         rates_errors.fill(0.0);
     }
@@ -122,8 +122,6 @@ class RateDataConv : public RateDataBase {
 
     void computeRates() override
     {
-        // Iterator to specific rates vector:
-        auto it = specific_rates.begin();
 
         // Vector containing the energy values:
         std::vector<double> energy_grid = Xsec.get_energy();
