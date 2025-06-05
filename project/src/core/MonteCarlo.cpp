@@ -54,6 +54,8 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
     r[mc::CATIONS].clear();
     r[mc::ANIONS].clear();
 
+
+    std::default_random_engine gen;
     // Standard Gaussian distribution
     std::normal_distribution<double> randn(0.0,1.0);
 
@@ -115,7 +117,6 @@ void MonteCarlo::freeFlight(){
         }
     }
 
-    //counter++;
 }
 
 void MonteCarlo::collectMeanData(){
@@ -154,7 +155,7 @@ void MonteCarlo::updateReactionRates(){
     rates_count.computeRates();
 
     // 2. REACTION RATES BY CONVOLUTION:
-    rates_conv.setEnergy(E);
+    //rates_conv.setEnergy(E);
     rates_conv.computeRates();
 };
 
@@ -271,10 +272,11 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        E_2 += std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi)));
+        double E_2_el = std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi)));
+        E_2 += E_2_el;
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * E_2 * mc::q0 / mc::me);
+        double v2_abs = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -340,10 +342,11 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        E_2 += std::max(0.0, v2e.second - Loss[el_index]);
+        double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
+        E_2 += E_2_el;
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * E_2 * mc::q0 / mc::me);
+        double v2_abs = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -412,10 +415,11 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        E_2 += std::max(0.0, v2e.second - Loss[el_index]);
+        double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
+        E_2 += E_2_el;
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * W * E_2 * mc::q0 / mc::me); // W is the energy sharing in ionizing collision
+        double v2_abs = std::sqrt(2.0 * W * E_2_el * mc::q0 / mc::me); // W is the energy sharing in ionizing collision
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -618,8 +622,7 @@ void MonteCarlo::printOnScreen() {
             std::printf(
                 " collisions: %lu"
                 " electrons: %i"
-                " mean energy: %.2e\n"
-
+                " mean energy: %.2e eV\n"
 
                 // for debugging purposes:
                 " ITERATION NUMBER: %zu\n"

@@ -2,6 +2,7 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <chrono>
 #include "core/MonteCarlo.hpp"
 
 int main() {
@@ -80,10 +81,26 @@ int main() {
 
         // If there is enough data at steady state, update accordingly the variables of interest:
         if(MC.get_count_sst() > 10) {
+            std::cout << "\n Updating data at steady state...\n" << std::endl;
+            auto start = std::chrono::high_resolution_clock::now();
             MC.updateEnergyData();
+            auto end = std::chrono::high_resolution_clock::now();
+            std::cout << "Energy data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
+
+            start = std::chrono::high_resolution_clock::now();
             MC.updateFluxData();
+            end = std::chrono::high_resolution_clock::now();
+            std::cout << "Flux data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
+
+            start = std::chrono::high_resolution_clock::now();
             MC.updateBulkData();
+            end = std::chrono::high_resolution_clock::now();
+            std::cout << "Bulk data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
+
+            start = std::chrono::high_resolution_clock::now();
             MC.updateReactionRates();
+            end = std::chrono::high_resolution_clock::now();
+            std::cout << "Reaction rates updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
         }
 
         // Perform collisions:

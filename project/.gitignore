@@ -1,2 +1,6 @@
 build/
 /core*
+
+# VS Code settings and configuration files
+.vscode/
+.vscode/*.json

@@ -40,6 +40,13 @@ public:
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
     conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
+    E([&]() {
+        std::vector<double> energy_bins;
+        energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);
+        for (double energy = 0.0; energy <= E_max; energy += dE) 
+            energy_bins.push_back(energy);
+        return EnergyData(energy_bins);
+    }()),
     bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
     gen(std::random_device{}()), randu(0.0,1.0) {
         
@@ -52,10 +59,10 @@ public:
         mass_in_kg();
 
         // Initialize energy data:
-        std::vector<double> energy_bins;
-        energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
-        for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
-        E = EnergyData(energy_bins);
+        //std::vector<double> energy_bins;
+        //energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
+        //for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
+        //E = EnergyData(energy_bins);
         // E = EnergyData(E_max, dE);
 
         // Set electric field E (constant and uniform):
@@ -178,6 +185,8 @@ private:
 
     // temporal mean data of electron swarm
     std::vector<MeanData> mean; 
+    // energy data
+    EnergyData E;
     // bulk transport data
     BulkData bulk;
     // flux transport data
@@ -185,8 +194,6 @@ private:
     // reaction rates
     RateDataConv rates_conv;
     RateDataCount rates_count;
-    // energy data
-    EnergyData E;
             
     // electric field function in x-direction
     double E_x;

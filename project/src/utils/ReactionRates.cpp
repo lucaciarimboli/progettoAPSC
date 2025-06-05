@@ -144,9 +144,9 @@ double RateDataConv::convolution(std::vector<double> x, std::vector<double> y) {
 // Performs linear interpolation
 std::vector<double> RateDataConv::linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq){
 
-    if (x.empty() || y.empty() || x.size() != y.size()) {
-        throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
-    }
+    //if (x.empty() || y.empty() || x.size() != y.size()) {
+    //    throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
+    //}
 
     std::vector<double> result(xq.size());
 

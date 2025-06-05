@@ -144,8 +144,8 @@ class RateDataConv : public RateDataBase {
     }
 
     // Setters:
-    void setSigma(const CrossSectionsData & xs) { Xsec = xs; } // Set the cross-section data
-    void setEnergy(const EnergyData & en) { E = en; } // Set the energy data
+    //void setSigma(const CrossSectionsData & xs) { Xsec = xs; } // Set the cross-section data
+    //void setEnergy(const EnergyData & en) { E = en; } // Set the energy data
     // Getters:
     const std::vector<spec_rate> & getSpecificRates() const { return specific_rates; }   // Get the specific rates
     // Printers:
@@ -171,9 +171,9 @@ class RateDataConv : public RateDataBase {
 
     private:
     std::vector<spec_rate> specific_rates; // Reaction Rates specific to each type, reaction and interaction.
-    CrossSectionsData Xsec;                // cross_section data
-    EnergyData E;                          // Energy data
-    std::vector<double> mix;               // Mixture fractions
+    const CrossSectionsData& Xsec;                // cross_section data
+    const EnergyData& E;                          // Energy data
+    const std::vector<double>& mix;               // Mixture fractions
 
     double convolution(std::vector<double> x, std::vector<double> y);
     std::vector<double> linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq);

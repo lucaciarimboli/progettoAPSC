@@ -50,10 +50,6 @@ void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsDat
     //    throw std::invalid_argument("Number of particles and corresponding velocities/energies do not match.");
     //}
 
-    // Define random number generator:
-    //std::default_random_engine gen;
-    //std::uniform_real_distribution<> randu(0.0,1.0);
-
     // Define vector to store which reaction will happen for each electron:
     std::vector<size_t> ind;
     ind.resize(n_electrons,1);
@@ -62,6 +58,7 @@ void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsDat
     for( int e_index = 0; e_index < n_electrons; e_index++){
 
         // Compute the collision matrix row corresponding to the current electron:
+        //const size_t collision_index = CollisionMatrix(R[e_index], Xsec, mix, E_in_eV[e_index], density);
         const size_t collision_index = CollisionMatrix(R[e_index], Xsec, mix, E_in_eV[e_index], density);
 
         // Assign the collision index to the corresponding electron:
