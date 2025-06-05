@@ -14,12 +14,31 @@ This project simulates electron transport in gas mixtures using a Monte-Carlo ap
 
 ## Build
 
-To build the project, use your preferred C++ build system (e.g., CMake or Make). Make sure to include all source files in `src/` and set the include path to `include/`.
+This project uses a Makefile for building. Available commands:
+
+```bash
+# Build the executable (default)
+make
+
+# Build and run the simulation
+make run
+
+# Build with debug flags
+make debug
+
+# Clean build files
+make clean
+
+# Show help with available targets
+make help
+```
+
+The executable will be created in the `build/` directory as `mc_sim`.
 
 ## Usage
 
 1. Edit `src/main/MC_singlerun.cpp` to set simulation parameters and gas mixtures.
-2. Build and run the executable.
+2. Build and run using `make run` or build with `make` and run `./build/mc_sim`.
 3. Output and results will be printed to the console.
 
 ## Extending
