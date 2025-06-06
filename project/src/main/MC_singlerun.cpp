@@ -8,7 +8,7 @@
 int main() {
 
     // Start the clock
-    //auto start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
     
     //-----------------------------------------//
     //          SIMULATION PARAMETERS:         //
@@ -28,7 +28,7 @@ int main() {
     // Temperature (in K):
     const double T = 300;
     // Initial number of electrons:
-    const unsigned long N0 = 100;
+    const unsigned long N0 = 1e4;
     // Maximum allowed number of electrons:
     const unsigned long Ne_max = 1e6;
     // Energy sharing factor for ionization (in interval [0,1]):
@@ -36,7 +36,7 @@ int main() {
 
     // Define the maximum energy level and the step for electrons energy grid (in eV):
     const double E_max = 1e5;
-    const double dE = 1;   // then energy grid will be [0,E_max] with step "E_step"
+    const double dE = 0.1;   // then energy grid will be [0,E_max] with step "E_step"
 
     // Error tolerances:
     const double w_err = 0.01;    // for drift velocity  
@@ -84,17 +84,10 @@ int main() {
 
         // If there is enough data at steady state, update accordingly the variables of interest:
         if(MC.get_count_sst() > 10) {
-            std::cout << "\n Updating data at steady state...\n" << std::endl;
-            auto start = std::chrono::high_resolution_clock::now();
             MC.updateEnergyData();
-            auto end = std::chrono::high_resolution_clock::now();
-            std::cout << "Energy data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
             MC.updateFluxData();
             MC.updateBulkData();
-            start = std::chrono::high_resolution_clock::now();
             MC.updateReactionRates();
-            end = std::chrono::high_resolution_clock::now();
-            std::cout << "Reaction rates updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
         }
 
         // Perform collisions:
@@ -114,7 +107,7 @@ int main() {
     }
 
     // Print the simulation time:
-    /*auto end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
     if (duration >= 3600) {
         const int hours = duration / 3600;
@@ -123,7 +116,7 @@ int main() {
     } else {
         const int minutes = duration / 60;
         std::cout << "Reaction rates updated in " << minutes << " minutes\n";
-    }*/
+    }
     
     return 0;
 }

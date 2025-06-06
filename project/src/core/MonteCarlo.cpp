@@ -162,7 +162,6 @@ void MonteCarlo::updateReactionRates(){
     rates_count.computeRates();
 
     // 2. REACTION RATES BY CONVOLUTION:
-    //rates_conv.setEnergy(E);
     rates_conv.computeRates();
 };
 
@@ -596,22 +595,22 @@ void MonteCarlo::printOnScreen() {
             const std::array<double, 3> & DN_flux = flux.get_DN();
  
             std::printf(
-                "\n Werr: %i\n"
-                " DNerr %i\n"
+                "\n Relative Error Bulk Velocity: %.3e\n"
+                " Relative Error Diffusion Coeff: %.3e\n"
                 " Collisions: %lu\n"
                 " Electrons: %i\n"
                 " Mean Energy: %.3e eV\n"
-                " w_bulk: %.3e m/s\n"
-                " w_flux: %.3e m/s\n"
-                " DN_bulk: %.2e (ms)^-1\n"
-                " DN_flux: %.2e (ms)^-1\n"
+                " Bulk Velocity: %.3e m/s\n"
+                " Flux Velocity: %.3e m/s\n"
+                " Bulk Diffusion Coeff: %.2e (ms)^-1\n"
+                " Flux Diffusion Coeff: %.2e (ms)^-1\n"
                 " Effective React Rate (counted): %.2e m^3/s\n"
                 " Effective React Rate (computed): %.2e m^3/s\n"
                 " Alpha: %.3e m^-1\n"
                 " Eta: %.3e m^-1\n",
 
-                static_cast<int>(std::abs(w_bulk_err[2] / w_bulk[2])),
-                static_cast<int>(std::abs(DN_bulk_err[2] / DN_bulk[2])),
+                std::abs(w_bulk_err[2] / w_bulk[2]),
+                std::abs(DN_bulk_err[2] / DN_bulk[2]),
                 collisions,
                 mean.back().get_particles()[mc::ELECTRONS],
                 E.get_E_mean(),
@@ -629,20 +628,16 @@ void MonteCarlo::printOnScreen() {
             std::printf(
                 "\n Collisions: %lu\n"
                 " Electrons: %i\n"
-                " Mean Energy: %.2e eV\n"
-
-                // for debugging purposes:
                 " Cations: %i\n"
                 " Anions: %i\n"
+                " Mean Energy: %.2e eV\n"
                 " Current Time: %.3e ms\n",
 
                 collisions,
                 mean.back().get_particles()[mc::ELECTRONS],
-                mean.back().get_energy(),
-
-                // For debugging purposes:
                 mean.back().get_particles()[mc::CATIONS],
                 mean.back().get_particles()[mc::ANIONS],
+                mean.back().get_energy(),
                 t.back()
 
             );

@@ -11,6 +11,7 @@
 #include <utility>
 #include <random>
 #include <algorithm>
+#include <chrono>
 
 #include "utils/CrossSectionsData.hpp"
 #include "utils/MolMass.hpp"
