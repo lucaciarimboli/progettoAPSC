@@ -6,6 +6,9 @@
 #include "core/MonteCarlo.hpp"
 
 int main() {
+
+    // Start the clock
+    //auto start = std::chrono::high_resolution_clock::now();
     
     //-----------------------------------------//
     //          SIMULATION PARAMETERS:         //
@@ -86,17 +89,8 @@ int main() {
             MC.updateEnergyData();
             auto end = std::chrono::high_resolution_clock::now();
             std::cout << "Energy data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
-
-            start = std::chrono::high_resolution_clock::now();
             MC.updateFluxData();
-            end = std::chrono::high_resolution_clock::now();
-            std::cout << "Flux data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
-
-            start = std::chrono::high_resolution_clock::now();
             MC.updateBulkData();
-            end = std::chrono::high_resolution_clock::now();
-            std::cout << "Bulk data updated in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
-
             start = std::chrono::high_resolution_clock::now();
             MC.updateReactionRates();
             end = std::chrono::high_resolution_clock::now();
@@ -118,6 +112,18 @@ int main() {
         // Check if the simulation has converged:
         End = MC.endSimulation();
     }
+
+    // Print the simulation time:
+    /*auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+    if (duration >= 3600) {
+        const int hours = duration / 3600;
+        const int minutes = (duration % 3600) / 60;
+        std::cout << "Reaction rates updated in " << hours << " hours " << minutes << " minutes\n";
+    } else {
+        const int minutes = duration / 60;
+        std::cout << "Reaction rates updated in " << minutes << " minutes\n";
+    }*/
     
     return 0;
 }

@@ -22,31 +22,27 @@ public:
         if (energy_bins.size() < 2) {
             throw std::invalid_argument("Energy bins must have at least two elements.");
         }
-        for (size_t i = 1; i < energy_bins.size(); ++i) {
+        /*for (size_t i = 1; i < energy_bins.size(); ++i) {
             if (energy_bins[i] <= energy_bins[i - 1]) {
             throw std::invalid_argument("Energy bins must be monotonically increasing.");
         }
-        }
+        }*/
     };
 
     // Update energy statistics
-    void update_energy(const std::vector<double>& E_in_eV, double & dt, size_t & ne, const double & t_total) {
+    void update_energy(const std::vector<double>& E_in_eV, const double dt, const unsigned int ne, const double t_total) {
 
         E_sum += std::accumulate(E_in_eV.begin(), E_in_eV.end(), 0.0) * dt;
         E_mean = E_sum / t_total;
 
         // Count energy in every bin 
-        for (const auto &en : E_in_eV) {
-            // Loop over the bins except the last one
-            for (size_t i = 0; i < energy.size()-1; i++) {
-                if (en >= energy[i] && en < energy[i+1]) {
-                    EEPF_sum[i]++;
-                    break;
-                }
-            }
-            // Last bin 
-            if (en >= energy[energy.size() - 1]) {
-                EEPF_sum.back()++;
+        for (unsigned int i = 0; i < ne; i++) {
+            const double en = E_in_eV[i];
+            // Use binary search to find the appropriate bin
+            if (en >= energy.front() && en <= energy.back()) {
+                const double step_size = energy[1] - energy[0];
+                const size_t bin_index = std::min(static_cast<size_t>(en / step_size), energy.size() - 1);
+                EEPF_sum[bin_index]++;
             }
         }
     }
@@ -56,24 +52,21 @@ public:
         // Normalize EEPF
         double dE = energy[1] - energy[0];
         double total_sum = std::accumulate(EEPF_sum.begin(), EEPF_sum.end(), 0.0);
-        for (size_t j = 0; j < energy.size(); ++j) {
-            if(total_sum > 0.0){    //for safety
-            EEPF[j] = EEPF_sum[j] / (total_sum * dE);
+        if(total_sum > 0.0){
+
+            for (size_t j = 1; j < energy.size(); j++) {
+                EEPF[j] = EEPF_sum[j] / (total_sum * dE);
+                EEDF[j] = EEPF[j] / std::sqrt(energy[j]);
             }
+
+            // Handle separately the energy level E=0 to avoid division by 0:
+            EEPF[0] = EEPF_sum[0] / (total_sum * dE);
+            EEDF[0] = EEPF[0] / std::sqrt(energy[1]);
         }
-        
-        // Compute EEDF
-        for (size_t j = 0; j < energy.size(); ++j) {
-            double energy_bin = energy[j];
-            if (energy_bin == 0) {
-                energy_bin = energy[1]; // Handle zero energy case
-            }
-            EEDF[j] = EEPF[j] / std::sqrt(energy_bin);
-        }  
     }
 
     // Setters:
-    void set_energy(const std::vector<double>& energy_bins){ energy = energy_bins; }
+    // void set_energy(const std::vector<double>& energy_bins){ energy = energy_bins; }
     // Getters:
     const std::vector<double>& get_energy() const { return energy; }
     const double get_E_mean() const { return E_mean; }
@@ -81,7 +74,7 @@ public:
     const std::vector<double>& get_EEDF() const { return EEDF; }
 
 private:
-    std::vector<double> energy;    // Energy bins
+    const std::vector<double> energy;    // Energy bins
     std::vector<int> EEPF_sum;     // Histogram data
     std::vector<double> EEPF;      // Normalized Electron Energy Probability Function
     std::vector<double> EEDF;      // Electrons Energy Distribution Function

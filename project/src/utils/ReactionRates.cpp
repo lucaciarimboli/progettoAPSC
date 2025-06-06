@@ -106,65 +106,35 @@ void RateDataCount::computeConserved() {
 }
 
 // Compute the convolution for vectors x,y over the energy grid provided in E
-double RateDataConv::convolution(std::vector<double> x, std::vector<double> y) {
-    // Check correctness of x,y
-    if(y.size() != x.size()) {
-        throw std::invalid_argument("x and y vectors must have the same size");
-    }
+double RateDataConv::convolution(const std::vector<double>& x, const std::vector<double>& y) {
 
-    // Ensure energy starts at 0
-    if (x[0] > 0) {
-        y.insert(y.begin(), y[0]);
-        x.insert(x.begin(), 0.0);
-    }
-
-    // Add a large energy value (1e10 eV) at the end
-    y.push_back(y.back());
-    x.push_back(1e10);
+    // By construction in CrossSectionData.cpp,
+    // the Xsections energy grid covers all the energy values of the simulation grid.
+    // Convolution and linear interpolation can be called safely without further checks.
 
     // Get energy values and electrons energy probability function:
     const std::vector<double>& energy = E.get_energy();
     const std::vector<double>& EEPF = E.get_EEPF(); 
-
-    // Interpolate cross-section values to match the energy grid of E
-    std::vector<double> sigma_f = linear_interpolation(x, y, energy);
-
     double dx = energy[1] - energy[0]; // Assume uniform grid spacing
     double rate = 0.0;
 
-    // Perform the convolution integral:
-    for (size_t i = 0; i < EEPF.size(); i++) {
-        rate += EEPF[i] * std::sqrt(energy[i]) * sigma_f[i] * dx;
+    // Interpolate cross-section values to match the energy grid of E
+    //const std::vector<double> sigma_f = linear_interpolation(x, y, energy);
+    size_t i = 0; // Index for the x vector (energy grid for xs)
+    for (size_t n = 0; n < energy.size(); n++) {
+
+        // Interpolate xs value over the energy grid:
+        const double xq = energy[n]; 
+        const double t = (xq - x[i]) / (x[i + 1] - x[i]);
+        const double sigma_f = y[i] + t * (y[i + 1] - y[i]);
+        
+        // Update index i:
+        while( i < x.size() - 1 && xq > x[i + 1]) i++;
+
+        // Update convolution integral result:
+        rate += EEPF[n] * std::sqrt(xq) * sigma_f * dx;
     }
 
     // Return the computed rate:
     return std::sqrt(2.0 * mc::q0 / mc::me) * rate;   
 }
-
-// Performs linear interpolation
-std::vector<double> RateDataConv::linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq){
-
-    //if (x.empty() || y.empty() || x.size() != y.size()) {
-    //    throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
-    //}
-
-    std::vector<double> result(xq.size());
-
-    for (size_t n = 0; n < xq.size(); n++) {
-        double query = xq[n];
-        size_t i = 0;
-
-        if (query <= x.front()) {
-        i = 0;
-        } else if (query >= x.back()) {
-        i = x.size() - 2;
-        } else {
-        while (i < x.size() - 1 && query > x[i + 1]) i++;
-        }
-
-        double t = (query - x[i]) / (x[i + 1] - x[i]);
-        result[n] = y[i] + t * (y[i + 1] - y[i]);
-    }
-
-    return result;
-} 

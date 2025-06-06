@@ -19,9 +19,9 @@ CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, c
         count_react_and_fill_energy(i);
     }
 
-    // Make sure that the energy vector contains the endpoints of the energy grid of the simulation:
+    // Make sure that the energy range for XS data contains the energy levels of the simulation:
     if( energy[0] > 0.0) energy.insert(energy.begin(), 0.0);
-    if( energy.back() < E_max) energy.push_back(E_max);
+    if( energy.back() < E_max) energy.push_back(1.01*E_max);
     const size_t en_sz = energy.size();
 
     // "offset" identifies the starting index of the current specie in Xsections:

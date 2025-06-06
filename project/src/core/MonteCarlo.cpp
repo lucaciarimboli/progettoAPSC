@@ -91,30 +91,36 @@ void MonteCarlo::freeFlight(){
     // Update vector time:
     t.emplace_back(t.back() + dt);
     
-    double ne = v.size(); // number of electrons
-    double dt2 = std::pow(dt,2); // to avoid redundant calculations 
+    const double ne = v.size(); // number of electrons
+    const double dt2 = std::pow(dt,2); // to avoid redundant calculations 
 
     if(T_sst > 0.0){
         count_sst++;
         v_int.resize(ne);
         v2_int.resize(ne);
         double dt3 = std::pow(dt,3);
-        for(size_t i = 0; i < ne; i++){     // i indicates the electron
-            for(size_t j = 0; j < 3; j++){  // j indicates the coordinate (x,y,z)
-                // integrated velocity
-                v_int[i][j] = v[i][j]*dt + 0.5 * a[j] * dt2;
-                // integrated velocity squared
-                v2_int[i][j] = std::pow(v[i][j],2)*dt + a[j]*v[i][j] * dt2 + std::pow(a[j],2)/3 * dt3;
-            }
+        for(size_t i = 0; i < ne; i++){
+            // integrated velocity
+            v_int[i][0] = v[i][0]*dt + 0.5 * a[0] * dt2;
+            v_int[i][1] = v[i][1]*dt + 0.5 * a[1] * dt2;
+            v_int[i][2] = v[i][2]*dt + 0.5 * a[2] * dt2;
+            // integrated velocity squared
+            v2_int[i][0] = std::pow(v[i][0],2)*dt + a[0]*v[i][0] * dt2 + std::pow(a[0],2)/3 * dt3;
+            v2_int[i][1] = std::pow(v[i][1],2)*dt + a[1]*v[i][1] * dt2 + std::pow(a[1],2)/3 * dt3;
+            v2_int[i][2] = std::pow(v[i][2],2)*dt + a[2]*v[i][2] * dt2 + std::pow(a[2],2)/3 * dt3;
         }
     }
 
     // Update space and velocity:
     for(size_t i = 0; i < ne; i++){
-            for(size_t j = 0; j < 3; j++){
-                r[mc::ELECTRONS][i][j] += v[i][j]*dt + 0.5 * a[j] * dt2;
-                v[i][j] += a[j] * dt;
-        }
+        r[mc::ELECTRONS][i][0] += v[i][0]*dt + 0.5 * a[0] * dt2;
+        v[i][0] += a[0] * dt;
+
+        r[mc::ELECTRONS][i][1] += v[i][1]*dt + 0.5 * a[1] * dt2;
+        v[i][1] += a[1] * dt;
+
+        r[mc::ELECTRONS][i][2] += v[i][2]*dt + 0.5 * a[2] * dt2;
+        v[i][2] += a[2] * dt;
     }
 
 }
@@ -125,12 +131,13 @@ void MonteCarlo::collectMeanData(){
 }
 
 void MonteCarlo::updateEnergyData(){
-    size_t ne = v.size();
+    const unsigned int ne = v.size();
 
     t_total += dt * ne; // sum of all times for all electrons
-    std::vector<double> E_in_eV;
-    E_in_eV.reserve(ne);
-    std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
+
+    // Compute kinetic energy for each electron:
+    std::vector<double> E_in_eV(ne);    
+    std::transform(v.begin(), v.end(), E_in_eV.begin(), [this](const std::array<double, 3>& vi) {
         return velocity2energy(vi).second;
     });
 
@@ -589,18 +596,18 @@ void MonteCarlo::printOnScreen() {
             const std::array<double, 3> & DN_flux = flux.get_DN();
  
             std::printf(
-                " Werr: %i"
-                " DNerr %i"
-                " collisions: %lu"
-                " electrons: %i"
-                " E: %.3e eV"
-                " w_bulk: %.3e m/s"
-                " w_flux: %.3e m/s"
-                " DN_bulk: %.2e (ms)^-1"
-                " DN_flux: %.2e (ms)^-1"
-                " Reff_count: %.2e m^3/s"
-                " Reff_calc: %.2e m^3/s"
-                " Alpha: %.3e m^-1"
+                "\n Werr: %i\n"
+                " DNerr %i\n"
+                " Collisions: %lu\n"
+                " Electrons: %i\n"
+                " Mean Energy: %.3e eV\n"
+                " w_bulk: %.3e m/s\n"
+                " w_flux: %.3e m/s\n"
+                " DN_bulk: %.2e (ms)^-1\n"
+                " DN_flux: %.2e (ms)^-1\n"
+                " Effective React Rate (counted): %.2e m^3/s\n"
+                " Effective React Rate (computed): %.2e m^3/s\n"
+                " Alpha: %.3e m^-1\n"
                 " Eta: %.3e m^-1\n",
 
                 static_cast<int>(std::abs(w_bulk_err[2] / w_bulk[2])),
@@ -620,22 +627,20 @@ void MonteCarlo::printOnScreen() {
 
         } else {
             std::printf(
-                " collisions: %lu"
-                " electrons: %i"
-                " mean energy: %.2e eV\n"
+                "\n Collisions: %lu\n"
+                " Electrons: %i\n"
+                " Mean Energy: %.2e eV\n"
 
                 // for debugging purposes:
-                " ITERATION NUMBER: %zu\n"
-                " number of cations: %i\n"
-                " number of anions: %i\n"
-                " current time: %.3e ms",
+                " Cations: %i\n"
+                " Anions: %i\n"
+                " Current Time: %.3e ms\n",
 
                 collisions,
                 mean.back().get_particles()[mc::ELECTRONS],
                 mean.back().get_energy(),
 
                 // For debugging purposes:
-                t.size() - 1,
                 mean.back().get_particles()[mc::CATIONS],
                 mean.back().get_particles()[mc::ANIONS],
                 t.back()

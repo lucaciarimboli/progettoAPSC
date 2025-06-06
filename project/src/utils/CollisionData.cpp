@@ -93,9 +93,14 @@ const size_t CollisionData::CollisionMatrix(const double R, const CrossSectionsD
 
             // Compute the collision frequency by interpolation:
             size_t k = 0;
-            if (E_in_eV <= xx.front()) {
+            /*if (E_in_eV <= xx.front()) {
                 k = 0;
             } else if (E_in_eV >= xx.back()) {
+                k = xx.size() - 2;
+            } else {
+                while (k < xx.size() - 1 && E_in_eV > xx[k + 1]) k++;
+            }*/
+            if (E_in_eV >= xx.back()) {
                 k = xx.size() - 2;
             } else {
                 while (k < xx.size() - 1 && E_in_eV > xx[k + 1]) k++;

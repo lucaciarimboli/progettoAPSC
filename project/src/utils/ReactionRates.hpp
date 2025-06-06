@@ -124,9 +124,9 @@ class RateDataConv : public RateDataBase {
     {
 
         // Vector containing the energy values:
-        std::vector<double> energy_grid = Xsec.get_energy();
+        const std::vector<double> & energy_grid = Xsec.get_energy();
 
-        // Loop over all reactions::
+        // Loop over all reactions:
         for(const table & t : Xsec.get_full_xs_data()) {
 
             // Compute the reaction rate for element "t"
@@ -175,8 +175,8 @@ class RateDataConv : public RateDataBase {
     const EnergyData& E;                          // Energy data
     const std::vector<double>& mix;               // Mixture fractions
 
-    double convolution(std::vector<double> x, std::vector<double> y);
-    std::vector<double> linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq);
+    double convolution(const std::vector<double>& x, const std::vector<double>& y);
+    //std::vector<double> linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& xq);
 };
 
 #endif // REACTION_RATES_HPP
