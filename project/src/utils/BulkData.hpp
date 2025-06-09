@@ -44,6 +44,7 @@ class BulkData {
     std::array<double, 3> DN_err; // Error in diffusion constant
                  
     std::vector<double> t;        // time starting from T_sst
+    double t_max;                 // maximum time after steady state
     std::vector<MeanData> mean;   // mean data of steady states
 
     void normalize(std::vector<double> & y, const double & y_max) {

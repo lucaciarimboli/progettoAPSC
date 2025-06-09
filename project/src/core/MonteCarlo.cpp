@@ -644,3 +644,148 @@ void MonteCarlo::printOnScreen() {
         }
     }
 }
+
+// ...existing code...
+
+void MonteCarlo::saveResults(const int64_t duration) const {
+    
+    // Cenerate file .txt to save results
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    std::tm* local_time = std::localtime(&time_t);
+    std::stringstream ss;
+    ss << "results/" << std::put_time(local_time, "%Y-%m-%d_%H-%M") << ".txt";
+    std::string filename = ss.str();
+    
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not create results file: " << filename << std::endl;
+        return;
+    }
+    
+    file << std::fixed << std::setprecision(6);
+    
+    // Header
+    file << "# Monte Carlo Electron Transport Simulation Results\n";
+    file << "# Generated on: " << std::ctime(&time_t);
+    file << "# ================================================\n\n";
+    
+    // Simulation parameters
+    file << "[SIMULATION_PARAMETERS]\n";
+    file << "EN = " << E_z / (N * 1e-21) << " Td\n";  // Convert back to Td
+    file << "N0 = " << N0 << "\n";
+    file << "N = " << N << " m^-3\n";
+    file << "col_max = " << col_max << "\n";
+    file << "col_equ = " << col_equ << "\n";
+    file << "conserve = " << (conserve ? "true" : "false") << "\n";
+    file << "isotropic = " << (isotropic ? "true" : "false") << "\n";
+    file << "W = " << W << "\n";
+    file << "E_max = " << E_max << " eV\n\n";
+    
+    // Gas composition
+    file << "[GAS_COMPOSITION]\n";
+    for (size_t i = 0; i < gas.size(); i++) {
+        file << "gas[" << i << "] = " << gas[i] << "\n";
+        file << "mix[" << i << "] = " << mix[i] << "\n";
+    }
+    file << "\n";
+    
+    // Energy data
+    file << "[ENERGY_DATA]\n";
+    file << "E_mean = " << E.get_E_mean() << " eV\n\n";
+    
+    // Bulk transport data
+    if (!bulk.is_empty()) {
+        const auto& w_bulk = bulk.get_w();
+        const auto& w_bulk_err = bulk.get_w_err();
+        const auto& DN_bulk = bulk.get_DN();
+        const auto& DN_bulk_err = bulk.get_DN_err();
+        
+        file << "[BULK_TRANSPORT_DATA   ]\n";
+        file << "w_x = " << w_bulk[0] << " m/s\n";
+        file << "w_y = " << w_bulk[1] << " m/s\n";
+        file << "w_z = " << w_bulk[2] << " m/s\n";
+        file << "w_x_err = " << w_bulk_err[0] << " m/s\n";
+        file << "w_y_err = " << w_bulk_err[1] << " m/s\n";
+        file << "w_z_err = " << w_bulk_err[2] << " m/s\n";
+        file << "DN_x = " << DN_bulk[0] << " m^2/s\n";
+        file << "DN_y = " << DN_bulk[1] << " m^2/s\n";
+        file << "DN_z = " << DN_bulk[2] << " m^2/s\n";
+        file << "DN_x_err = " << DN_bulk_err[0] << " m^2/s\n";
+        file << "DN_y_err = " << DN_bulk_err[1] << " m^2/s\n";
+        file << "DN_z_err = " << DN_bulk_err[2] << " m^2/s\n\n";
+    }
+    
+    // Flux transport data
+    const auto& w_flux = flux.get_w();
+    const auto& DN_flux = flux.get_DN();
+    
+    file << "[FLUX_TRANSPORT_DATA]\n";
+    file << "w_x = " << w_flux[0] << " m/s\n";
+    file << "w_y = " << w_flux[1] << " m/s\n";
+    file << "w_z = " << w_flux[2] << " m/s\n";
+    file << "DN_x = " << DN_flux[0] << " m^2/s\n";
+    file << "DN_y = " << DN_flux[1] << " m^2/s\n";
+    file << "DN_z = " << DN_flux[2] << " m^2/s\n\n";
+
+    // Transport coefficients
+    if (!bulk.is_empty()) {
+        const auto& w_bulk = bulk.get_w();
+        file << "[TRANSPORT_COEFFICIENTS]\n";
+        file << "alpha = " << rates_count.getRate(mc::IONIZATION) * 2.4e25 / w_bulk[2] << " m^-1\n";
+        file << "eta = " << rates_count.getRate(mc::ATTACHMENT) * 2.4e25 / w_bulk[2] << " m^-1\n\n";
+    }
+    
+    // Reaction rates
+    file << "[REACTION_RATES]\n";
+    file << "# Counted rates:\n";
+    file << "effective_count = " << rates_count.getRate(mc::EFFECTIVE) << " m^3/s\n";
+    file << "ionization_count = " << rates_count.getRate(mc::IONIZATION) << " m^3/s\n";
+    file << "attachment_count = " << rates_count.getRate(mc::ATTACHMENT) << " m^3/s\n";
+    
+    file << "# Rates computed by convolution:\n";
+    file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) << " m^3/s\n";
+    file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) << " m^3/s\n";
+    file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) << " m^3/s\n\n";
+    
+    // Final state
+    file << "[FINAL_STATE]\n";
+    file << "iterations =" << t.size() << "\n";
+    file << "collisions = " << collisions << "\n";
+    file << "electrons = " << v.size() << "\n";
+    file << "cations = " << r[mc::CATIONS].size() << "\n";
+    file << "anions = " << r[mc::ANIONS].size() << "\n";
+    file << "steady_state_time = " << T_sst << " ms\n";
+    file << "final_time = " << t.back() << " ms\n";
+    file << "convergence_status = " << converge << "\n\n";
+    if (duration >= 3600) {
+        const int hours = duration / 3600;
+        const int minutes = (duration % 3600) / 60;
+        file << "convergence_time = " << hours << " hours " << minutes << " minutes\n";
+    } else {
+        const int minutes = duration / 60;
+        file << "convergence_time = " << minutes << " minutes\n";
+    }
+    
+    
+    // Energy losses
+    file << "[ENERGY_LOSSES]\n";
+    file << "elastic = " << EnergyLossElastic << " eV\n";
+    file << "inelastic = " << EnergyLossInelastic << " eV\n";
+    file << "ionization = " << EnergyLossIonization << " eV\n";
+
+    // Energy distribution
+    const auto& energy_grid = E.get_energy();
+    const auto& EEDF = E.get_EEDF();
+    const auto& EEPF = E.get_EEPF();
+    file << "[ENERGY_DISTRIBUTION]\n";
+    file << "# energy[eV] EEDF EEPF\n";
+    //size_t n_points = std::min(static_cast<size_t>(100), energy_grid.size());
+    for (size_t i = 0; i < energy_grid.size(); i++) {
+        file << energy_grid[i] << " " << EEDF[i] << " " << EEPF[i] << "\n";
+    }
+    file << "\n";
+    
+    file.close();
+    std::cout << "Results saved to: " << filename << std::endl;
+}

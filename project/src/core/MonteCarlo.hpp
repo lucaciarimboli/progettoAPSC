@@ -12,6 +12,9 @@
 #include <random>
 #include <algorithm>
 #include <chrono>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
 #include "utils/CrossSectionsData.hpp"
 #include "utils/MolMass.hpp"
@@ -106,8 +109,10 @@ public:
     void checkSteadyState();
     // Stops the simulation
     bool endSimulation();
-    // Prints the results of the simulation
+    // Prints the results of the simulation every iteration
     void printOnScreen();
+    // Prints the final results of the simulation to a file
+    void saveResults(const int64_t duration) const;
 
     // Getters:
     const unsigned int get_count_sst() const { return count_sst; }

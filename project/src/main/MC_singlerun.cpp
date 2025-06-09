@@ -28,7 +28,7 @@ int main() {
     // Temperature (in K):
     const double T = 300;
     // Initial number of electrons:
-    const unsigned long N0 = 1e4;
+    const unsigned long N0 = 100;
     // Maximum allowed number of electrons:
     const unsigned long Ne_max = 1e6;
     // Energy sharing factor for ionization (in interval [0,1]):
@@ -36,7 +36,7 @@ int main() {
 
     // Define the maximum energy level and the step for electrons energy grid (in eV):
     const double E_max = 1e5;
-    const double dE = 0.1;   // then energy grid will be [0,E_max] with step "E_step"
+    const double dE = 10;   // then energy grid will be [0,E_max] with step "E_step"
 
     // Error tolerances:
     const double w_err = 0.01;    // for drift velocity  
@@ -56,6 +56,9 @@ int main() {
     const bool conserve = true;
     // Flag for isotropic scattering:
     const bool isotropic = true;
+    // Flag for saving results:
+    const bool save_in_file = true;
+
 
     //------------------------------------------//
     //       INITIALIZE MonteCarlo OBJECT       //
@@ -112,11 +115,16 @@ int main() {
     if (duration >= 3600) {
         const int hours = duration / 3600;
         const int minutes = (duration % 3600) / 60;
-        std::cout << "Reaction rates updated in " << hours << " hours " << minutes << " minutes\n";
+        std::cout << "Simulation ended in " << hours << " hours " << minutes << " minutes\n";
     } else {
         const int minutes = duration / 60;
-        std::cout << "Reaction rates updated in " << minutes << " minutes\n";
+        std::cout << "Simulation ended in " << minutes << " minutes\n";
     }
-    
+
+     // Save results when simulation ends
+    if(save_in_file){
+        MC.saveResults(duration);
+    }
+
     return 0;
 }

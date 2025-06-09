@@ -54,12 +54,12 @@ class MeanData
                                 return sum + 0.5 * mc::me * abs_v * abs_v / mc::q0;
                            }) / ne;
 
-            // Compute standard deviation:
+            // Compute standard deviation of position:
             for (size_t i = 0; i < 3; i++) {
                 sigma[i] = std::sqrt(std::accumulate(r.cbegin(), r.cend(), 0.0,
                                 [i, this](double sum, const std::array<double, 3>& ri) { 
-                                    return sum + std::pow(ri[i] - position[i], 2);
-                                }) / ne);
+                                    return sum + (ri[i] - position[i]) * (ri[i] - position[i]);
+                                }) / (ne - 1));
             }
     };
 

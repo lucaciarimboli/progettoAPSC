@@ -11,7 +11,8 @@ void BulkData::update_time_vector(const std::vector<double> & tt, const unsigned
     t.assign(tt.cend() - count_sst, tt.cend());
     std::transform(t.begin() + 1, t.end(), t.begin() + 1, [this](double val) { return val - t[0]; });
     t[0] = 0.0;
-    normalize(t, t.back());
+    t_max = t.back();
+    normalize(t, t_max);
 }
 
 void BulkData::update_mean_data(const unsigned int & count_sst, const std::vector<MeanData> & mea) {
@@ -25,11 +26,11 @@ void BulkData::update_mean_data(const unsigned int & count_sst, const std::vecto
 
         for (size_t j = 0; j < 3; j++) {
             pos[j] -= pos0[j];
-            sig[j] = 0.5 * (sig[j] * sig[j] - sig0[j] * sig0[j]);;
+            sig[j] = 0.5 * (sig[j] * sig[j] - sig0[j] * sig0[j]);
         }
 
         it->set_position(pos);
-        it->set_sigma(sig);
+        it->set_sigma(sig);     // Actually this is the diffusion coefficient: DN = variance / 2, not the standard deviation.
     }
 
     mean[0].set_position({0.0, 0.0, 0.0});
@@ -50,7 +51,6 @@ void BulkData::compute_drift(){
         }
     }
 
-    const double t_max = t.back();
     for (size_t i = 0; i < 3; i++) {
         const double y_max = *std::max_element(y[i].cbegin(), y[i].cend());
         normalize(y[i], y_max);
@@ -71,7 +71,6 @@ void BulkData::compute_diffusion(const double N){
         }
     }
 
-    const double t_max = t.back();
     for (size_t i = 0; i < 3; i++) {
         const double y_max = *std::max_element(y[i].cbegin(), y[i].cend());
         normalize(y[i], y_max);
@@ -112,9 +111,17 @@ std::array<double,2> BulkData::linear_regression(const std::vector<double>& y){
 
     // The smallest # of dof is n = 8. t_value = 1.860 for 95% confidence interval with 8 dof.
     // A t-student quantile table would be required, to avoid importing external libraries just for this task,
-    // an overestimate of the confidence interval is acceptable.
+    // an estimate using a linear behavior of the quantile from 8 dof (1.860) to infinite dof (1.645) is applied.
+
+    // Consider that this is a rough estimate but it is accetable since the convergence is expected to
+    // verify roughly at n of the order of 10^5, so the actual "t_value" becomes after few iterations
+    // very close to 1.645.
+
+    // This estimate is safe as the actual t-student values decrease faster than linearly
+    // (e.g. for 100 d.o.f: actual t_value = 1.660, computed value: 1.662)
 
     // Confidence interval of 95% for slope with 8 dof (minimum value of n-2):
-    double t_value = 1.860; 
+    //double t_value = 1.860; 
+    double t_value = 1.645 + 1.72 / (n - 2); // linear interpolation for t-student quantile
     return { m, 2 * t_value * standard_err };
 };
