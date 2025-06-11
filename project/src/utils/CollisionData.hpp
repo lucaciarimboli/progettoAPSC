@@ -15,8 +15,6 @@ public:
     // Constructor
     CollisionData() = default;
     CollisionData(const CrossSectionsData& Xsec, const std::vector<double>& mgas);
-    // Destructor
-    ~CollisionData() = default;
 
     // Build collision matrix and compute indeces:
     void ComputeIndeces(const int n_electrons, const CrossSectionsData& Xsec,

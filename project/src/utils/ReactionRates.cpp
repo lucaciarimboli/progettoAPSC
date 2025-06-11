@@ -7,7 +7,8 @@ void RateDataCount::setTime(const std::vector<double>& t, const unsigned int & c
 }
 
 void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst) {
-    if (count_sst > mean.size()) {throw std::out_of_range("count_sst exceeds the size of mean");}
+    //if (count_sst > mean.size()) {throw std::out_of_range("count_sst exceeds the size of mean");}
+
     for (size_t i = 0; i < mc::PARTICLES_TYPES; i++) {
 
         // Set the size for particle vector
@@ -16,12 +17,12 @@ void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsig
         // Iterator to mean elements starting from sst
         auto it = mean.cend() - count_sst;
 
-        for (size_t i = 0; i < count_sst; i++) {
+        for (size_t j = 0; j < count_sst; j++) {
             // Get the particle counts from MeanData:
-            const std::array<int,mc::PARTICLES_TYPES>& mean_particles = (it + i)->get_particles();
+            const std::array<int,mc::PARTICLES_TYPES>& mean_particles = (it + j)->get_particles();
     
-            for (size_t j = 0; j < mc::PARTICLES_TYPES; j++)
-                particles[j][i] = mean_particles[j]; // Fill the particles vector with the number of particles of each type
+            for (size_t k = 0; k < mc::PARTICLES_TYPES; k++)
+                particles[k][j] = mean_particles[k]; // Fill the particles vector with the number of particles of each type
         }
     } 
 }

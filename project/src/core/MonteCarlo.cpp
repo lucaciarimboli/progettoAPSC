@@ -1,5 +1,55 @@
 #include "core/MonteCarlo.hpp"
 
+MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<double> & mix,
+                const double EN, const double p, const double T, const unsigned N0, const unsigned Ne_max,
+                const double W, const double E_max, const double dE,
+                const double w_err, const double DN_err, const unsigned col_equ, const unsigned col_max,
+                const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz,
+                const bool conserve, const bool isotropic):
+
+    N0(N0), N(p/(mc::kB * T)), gas(gas), mgas(gas.size(),0.0), mix(mix), Xsec(gas, E_max, mix, N),
+    w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
+    conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
+    v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
+    E([&]() {
+        std::vector<double> energy_bins;
+        energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);
+        for (double energy = 0.0; energy <= E_max; energy += dE) 
+            energy_bins.push_back(energy);
+        return EnergyData(energy_bins);
+    }()),
+    bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
+    gen(std::random_device{}()), randu(0.0,1.0) {
+        
+    // The check for the validity of the gas species is done in "CrossSectionsData" constructor
+
+    // Check mix vector validity:
+    checkFractionSum();
+
+    // Compute mass of the gas species in kg:
+    mass_in_kg();
+
+    // Initialize energy data:
+    //std::vector<double> energy_bins;
+    //energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
+    //for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
+    //E = EnergyData(energy_bins);
+    // E = EnergyData(E_max, dE);
+
+    // Set electric field E (constant and uniform):
+    set_E(EN);
+
+    // Initialize acceleration array after the electric field was set:
+    // (since E is constant and uniform, a does not change and is the same for every electron)
+    a = {mc::q0/mc::me*E_x, mc::q0/mc::me*E_y, mc::q0/mc::me*E_z};
+
+    // Initialize particles by Gaussian distribution:
+    initialParticles(pos_xyz, sigma_xyz);
+
+    // Initialize data for computation of collision frequencies:
+    C = CollisionData(Xsec, mgas);
+}
+
 void MonteCarlo::checkFractionSum(){
 
     // Check if the size of gas and mix vectors are equal
@@ -30,7 +80,7 @@ void MonteCarlo::mass_in_kg(){
     }
 }
 
-std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v){
+std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v) const {
     // calculates absolute value of velocity abs_v and energy
     // E_in_eV in eV for one electron.
     double abs_v = std::sqrt(std::inner_product(v.cbegin(), v.cend(), v.cbegin(), 0.0));
@@ -60,12 +110,12 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
     std::normal_distribution<double> randn(0.0,1.0);
 
     for (size_t n = 0; n < N0; n++) {
-        r[mc::ELECTRONS].emplace_back();
-        auto& re = r[mc::ELECTRONS].back();
         // Initialize to pos_xyz + noise if sigma_xyz != 0
-        for (size_t i = 0; i < 3; ++i) {
-            re[i] = pos_xyz[i] + sigma_xyz[i] * randn(gen);
-        }
+        r[mc::ELECTRONS].emplace_back(std::array<double, 3>{
+            pos_xyz[0] + sigma_xyz[0] * randn(gen),
+            pos_xyz[1] + sigma_xyz[1] * randn(gen),
+            pos_xyz[2] + sigma_xyz[2] * randn(gen)
+        });
     }
 
     // Electrons velocities are initialized with 0.0, add noise:
@@ -89,25 +139,32 @@ void MonteCarlo::freeFlight(){
     dt = - std::log(randu(gen)) / Xsec.get_nu_max(); // generates time step
 
     // Update vector time:
-    t.emplace_back(t.back() + dt);
+    t.push_back(t.back() + dt);
     
     const double ne = v.size(); // number of electrons
-    const double dt2 = std::pow(dt,2); // to avoid redundant calculations 
+    const double dt2 = dt * dt;
+    const double dt3 = dt2 * dt;
 
     if(T_sst > 0.0){
         count_sst++;
-        v_int.resize(ne);
-        v2_int.resize(ne);
-        double dt3 = std::pow(dt,3);
+        v_int.clear();
+        v2_int.clear();
+        v_int.reserve(ne);
+        v2_int.reserve(ne);
         for(size_t i = 0; i < ne; i++){
             // integrated velocity
-            v_int[i][0] = v[i][0]*dt + 0.5 * a[0] * dt2;
-            v_int[i][1] = v[i][1]*dt + 0.5 * a[1] * dt2;
-            v_int[i][2] = v[i][2]*dt + 0.5 * a[2] * dt2;
+            v_int.emplace_back(std::array<double, 3>{
+                v[i][0]*dt + 0.5 * a[0] * dt2,
+                v[i][1]*dt + 0.5 * a[1] * dt2,
+                v[i][2]*dt + 0.5 * a[2] * dt2
+            });
+
             // integrated velocity squared
-            v2_int[i][0] = std::pow(v[i][0],2)*dt + a[0]*v[i][0] * dt2 + std::pow(a[0],2)/3 * dt3;
-            v2_int[i][1] = std::pow(v[i][1],2)*dt + a[1]*v[i][1] * dt2 + std::pow(a[1],2)/3 * dt3;
-            v2_int[i][2] = std::pow(v[i][2],2)*dt + a[2]*v[i][2] * dt2 + std::pow(a[2],2)/3 * dt3;
+            v2_int.emplace_back(std::array<double, 3>{
+                v[i][0]*v[i][0]*dt + a[0]*v[i][0] * dt2 + a[0]*a[0] / 3 * dt3,
+                v[i][1]*v[i][1]*dt + a[1]*v[i][1] * dt2 + a[1]*a[1] / 3 * dt3,
+                v[i][2]*v[i][2]*dt + a[2]*v[i][2] * dt2 + a[2]*a[2] / 3 * dt3
+            });
         }
     }
 
@@ -525,14 +582,13 @@ void MonteCarlo::checkSteadyState(){
         if(sum1 >= sum2){
             // Steady state has been reached
             T_sst = t.back();
-            std::cout << "Steady state reached at t = " << T_sst << " ms\n";
+            std::cout << "Steady state reached at t = " << T_sst * 1e9 << " ns\n";
 
             // For debugging purposes:
             std::cout << "Number of iterations until steady state: " << t.size()-1 << "\n";
             std::cout << "Number of collisions until steady state: " << collisions << "\n";
             std::cout << "Number of electrons at steady state: " << v.size() << "\n";
 
-            //counter = 0;
             collisions = 0;
             line = 1;
         }
@@ -560,8 +616,8 @@ bool MonteCarlo::endSimulation() {
         const std::array<double, 3> & w_bulk_err = bulk.get_w_err();
         const std::array<double, 3> & DN_bulk = bulk.get_DN();
         const std::array<double, 3> & DN_bulk_err = bulk.get_DN_err();  
-        if (std::abs(w_bulk_err[2] / w_bulk[2]) < w_err &&
-            std::abs(DN_bulk_err[2] / DN_bulk[2]) < DN_err) {
+        if (std::abs(w_bulk_err[2] / w_bulk[2]) < w_err) {
+            //&& std::abs(DN_bulk_err[2] / DN_bulk[2]) < DN_err) {
 
             converge = 0;
             std::cout << "Simulation ended: errors in w < " 
@@ -631,21 +687,19 @@ void MonteCarlo::printOnScreen() {
                 " Cations: %i\n"
                 " Anions: %i\n"
                 " Mean Energy: %.2e eV\n"
-                " Current Time: %.3e ms\n",
+                " Current Time: %.3e ns\n",
 
                 collisions,
                 mean.back().get_particles()[mc::ELECTRONS],
                 mean.back().get_particles()[mc::CATIONS],
                 mean.back().get_particles()[mc::ANIONS],
                 mean.back().get_energy(),
-                t.back()
+                t.back() * 1e9
 
             );
         }
     }
 }
-
-// ...existing code...
 
 void MonteCarlo::saveResults(const int64_t duration) const {
     
@@ -701,7 +755,7 @@ void MonteCarlo::saveResults(const int64_t duration) const {
         const auto& DN_bulk = bulk.get_DN();
         const auto& DN_bulk_err = bulk.get_DN_err();
         
-        file << "[BULK_TRANSPORT_DATA   ]\n";
+        file << "[BULK_TRANSPORT_DATA]\n";
         file << "w_x = " << w_bulk[0] << " m/s\n";
         file << "w_y = " << w_bulk[1] << " m/s\n";
         file << "w_z = " << w_bulk[2] << " m/s\n";
@@ -739,40 +793,38 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     // Reaction rates
     file << "[REACTION_RATES]\n";
     file << "# Counted rates:\n";
-    file << "effective_count = " << rates_count.getRate(mc::EFFECTIVE) << " m^3/s\n";
-    file << "ionization_count = " << rates_count.getRate(mc::IONIZATION) << " m^3/s\n";
-    file << "attachment_count = " << rates_count.getRate(mc::ATTACHMENT) << " m^3/s\n";
-    
+    file << "effective_count = " << rates_count.getRate(mc::EFFECTIVE) * 1e12 << "e+12 m^3/s\n";
+    file << "ionization_count = " << rates_count.getRate(mc::IONIZATION) * 1e12 << "e+12 m^3/s\n";
+    file << "attachment_count = " << rates_count.getRate(mc::ATTACHMENT) * 1e12 << "e+12 m^3/s\n";
     file << "# Rates computed by convolution:\n";
-    file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) << " m^3/s\n";
-    file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) << " m^3/s\n";
-    file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) << " m^3/s\n\n";
-    
+    file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) * 1e12 << "e+12 m^3/s\n";
+    file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) * 1e12 << "e+12 m^3/s\n";
+    file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) * 1e12 << "e+12 m^3/s\n\n";
+
     // Final state
     file << "[FINAL_STATE]\n";
-    file << "iterations =" << t.size() << "\n";
+    file << "iterations = " << t.size() << "\n";
     file << "collisions = " << collisions << "\n";
     file << "electrons = " << v.size() << "\n";
     file << "cations = " << r[mc::CATIONS].size() << "\n";
     file << "anions = " << r[mc::ANIONS].size() << "\n";
-    file << "steady_state_time = " << T_sst << " ms\n";
-    file << "final_time = " << t.back() << " ms\n";
-    file << "convergence_status = " << converge << "\n\n";
+    file << "steady_state_time = " << T_sst * 1e9 << " ns\n";
+    file << "final_time = " << t.back() * 1e9 << " ns\n";
+    file << "convergence_status = " << converge << "\n";
     if (duration >= 3600) {
         const int hours = duration / 3600;
         const int minutes = (duration % 3600) / 60;
-        file << "convergence_time = " << hours << " hours " << minutes << " minutes\n";
+        file << "convergence_time = " << hours << " hours " << minutes << " minutes\n\n";
     } else {
         const int minutes = duration / 60;
-        file << "convergence_time = " << minutes << " minutes\n";
+        file << "convergence_time = " << minutes << " minutes\n\n";
     }
-    
     
     // Energy losses
     file << "[ENERGY_LOSSES]\n";
     file << "elastic = " << EnergyLossElastic << " eV\n";
     file << "inelastic = " << EnergyLossInelastic << " eV\n";
-    file << "ionization = " << EnergyLossIonization << " eV\n";
+    file << "ionization = " << EnergyLossIonization << " eV\n\n";
 
     // Energy distribution
     const auto& energy_grid = E.get_energy();

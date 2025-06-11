@@ -38,53 +38,7 @@ public:
                 const double W, const double E_max, const double dE,
                 const double w_err, const double DN_err, const unsigned col_equ, const unsigned col_max,
                 const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz,
-                const bool conserve, const bool isotropic):
-
-    N0(N0), N(p/(mc::kB * T)), gas(gas), mgas(gas.size(),0.0), mix(mix), Xsec(gas, E_max, mix, N),
-    w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
-    conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
-    v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
-    E([&]() {
-        std::vector<double> energy_bins;
-        energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);
-        for (double energy = 0.0; energy <= E_max; energy += dE) 
-            energy_bins.push_back(energy);
-        return EnergyData(energy_bins);
-    }()),
-    bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
-    gen(std::random_device{}()), randu(0.0,1.0) {
-        
-        // The check for the validity of the gas species is done in "CrossSectionsData" constructor
-
-        // Check mix vector validity:
-        checkFractionSum();
-
-        // Compute mass of the gas species in kg:
-        mass_in_kg();
-
-        // Initialize energy data:
-        //std::vector<double> energy_bins;
-        //energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
-        //for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
-        //E = EnergyData(energy_bins);
-        // E = EnergyData(E_max, dE);
-
-        // Set electric field E (constant and uniform):
-        set_E(EN);
-
-        // Initialize acceleration array after the electric field was set:
-        // (since E is constant and uniform, a does not change and is the same for every electron)
-        a = {mc::q0/mc::me*E_x, mc::q0/mc::me*E_y, mc::q0/mc::me*E_z};
-
-        // Initialize particles by Gaussian distribution:
-        initialParticles(pos_xyz, sigma_xyz);
-
-        // Initialize data for computation of collision frequencies:
-        C = CollisionData(Xsec, mgas);
-    }
-                
-    // Destructor
-    ~MonteCarlo() = default;
+                const bool conserve, const bool isotropic);
     
     // Performs non-collissional flight for electrons in electric field
     void freeFlight();
@@ -117,6 +71,11 @@ public:
     // Getters:
     const unsigned int get_count_sst() const { return count_sst; }
 
+
+    //------------------- FOR DEBUGGING PURPOSES --------------------------//
+    const std::vector<MeanData>& get_mean_data() const { return mean; }
+    const std::vector<double>& get_time_vector() const { return t; }
+    //---------------------------------------------------------------------//
 
 private:
 
@@ -165,7 +124,7 @@ private:
     // computation time:
     // elapsedTime;
 
-    // current time
+    // current time [s]
     std::vector<double> t;
     // current time step dt
     double dt;
@@ -234,7 +193,7 @@ private:
     // Sets E parallel to z-direction --> replaces "solvePoissin_3D()"
     void set_E(const double EN);
     // Calculates absolute value of velocity and energy in eV
-    std::pair<double,double> velocity2energy(const std::array<double,3> & v);
+    std::pair<double,double> velocity2energy(const std::array<double,3> & v) const;
     // Computes cross product of two 3D vectors (needed in methods that perform collisions):
     std::array<double, 3> cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b) const;
     // Performs elastic collision (isotropic or non-isotropic)

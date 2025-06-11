@@ -1,4 +1,5 @@
 build/
+results/
 /core*
 
 # VS Code settings and configuration files

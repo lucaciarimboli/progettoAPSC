@@ -28,7 +28,7 @@ int main() {
     // Temperature (in K):
     const double T = 300;
     // Initial number of electrons:
-    const unsigned long N0 = 100;
+    const unsigned long N0 = 1e5;
     // Maximum allowed number of electrons:
     const unsigned long Ne_max = 1e6;
     // Energy sharing factor for ionization (in interval [0,1]):
@@ -126,5 +126,17 @@ int main() {
         MC.saveResults(duration);
     }
 
+
+    // FOR DEBUGGING PURPOSES:
+    const std::vector<MeanData>& meandata = MC.get_mean_data();
+    const std::vector<double>& time = MC.get_time_vector();
+
+    std::ofstream file("tests/rz_data.csv");
+    file << "time" << "r_z" << "var_z" << "\n";
+    for(size_t i = 0; i < meandata.size(); i++) {
+        file << time[i] << "," << meandata[i].get_position()[2] << "," << meandata[i].get_variance()[2] << "\n";
+    }
+    file.close();
+    
     return 0;
 }

@@ -21,7 +21,7 @@ class MeanData
     MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int ne)
         : particles({ne, 0, 0}),
           position(r),
-          sigma(s),
+          var({s[0]*s[0], s[1]*s[1], s[2]*s[2]}), // variance is sigma^2
           velocity({0.0, 0.0, 0.0}),
           energy(0.0) {};
     // Constructor that computes mean data from input matrices:
@@ -30,22 +30,21 @@ class MeanData
 
             const int ne = r.size();
         
-            // Control that number of electrons is non-zero.
-            if (ne == 0) {
-                std::cerr << "Warning: ne is zero. Mean values will be zero.\n";
-                return;
-            }
-        
             // Compute mean position:
-            for (size_t i = 0; i < 3; i++) {
-                position[i] = std::accumulate(r.cbegin(), r.cend(), 0.0, 
-                                [i](double sum, const std::array<double, 3>& ri) { return sum + ri[i]; }) / ne;
-            }
+            position[0] = std::accumulate(r.cbegin(), r.cend(), 0.0, 
+                                [](double sum, const std::array<double, 3>& ri) { return sum + ri[0]; }) / ne;
+            position[1] = std::accumulate(r.cbegin(), r.cend(), 0.0, 
+                                [](double sum, const std::array<double, 3>& ri) { return sum + ri[1]; }) / ne;
+            position[2] = std::accumulate(r.cbegin(), r.cend(), 0.0, 
+                                [](double sum, const std::array<double, 3>& ri) { return sum + ri[2]; }) / ne;
+
             // Compute mean velocity:
-            for (size_t i = 0; i < 3; i++) {
-                velocity[i] = std::accumulate(v.cbegin(), v.cend(), 0.0, 
-                                [i](double sum, const std::array<double, 3>& vi) { return sum + vi[i]; }) / ne;
-            }
+            velocity[0] = std::accumulate(v.cbegin(), v.cend(), 0.0, 
+                                [](double sum, const std::array<double, 3>& vi) { return sum + vi[0]; }) / ne;
+            velocity[1] = std::accumulate(v.cbegin(), v.cend(), 0.0, 
+                                [](double sum, const std::array<double, 3>& vi) { return sum + vi[1]; }) / ne;
+            velocity[2] = std::accumulate(v.cbegin(), v.cend(), 0.0, 
+                                [](double sum, const std::array<double, 3>& vi) { return sum + vi[2]; }) / ne;
 
             // Compute mean energy:
             energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
@@ -54,14 +53,21 @@ class MeanData
                                 return sum + 0.5 * mc::me * abs_v * abs_v / mc::q0;
                            }) / ne;
 
-            // Compute standard deviation of position:
-            for (size_t i = 0; i < 3; i++) {
-                sigma[i] = std::sqrt(std::accumulate(r.cbegin(), r.cend(), 0.0,
-                                [i, this](double sum, const std::array<double, 3>& ri) { 
-                                    return sum + (ri[i] - position[i]) * (ri[i] - position[i]);
-                                }) / (ne - 1));
-            }
+            // Compute variance of position:
+            var[0] = std::accumulate(r.cbegin(), r.cend(), 0.0,
+                                [this](double sum, const std::array<double, 3>& ri) {
+                                    return sum + (ri[0] - position[0]) * (ri[0] - position[0]);
+                                }) / (ne - 1);
+            var[1] = std::accumulate(r.cbegin(), r.cend(), 0.0,
+                                [this](double sum, const std::array<double, 3>& ri) {
+                                    return sum + (ri[1] - position[1]) * (ri[1] - position[1]);
+                                }) / (ne - 1);
+            var[2] = std::accumulate(r.cbegin(), r.cend(), 0.0,
+                                [this](double sum, const std::array<double, 3>& ri) {
+                                    return sum + (ri[2] - position[2]) * (ri[2] - position[2]);
+                                }) / (ne - 1);
     };
+
 
     // Add particles (e.g. created by ionization):
     void add_new_particles(const std::array<int,mc::PARTICLES_TYPES> & p){
@@ -77,8 +83,8 @@ class MeanData
     void set_position(const std::array<double,3> & pos){
         position = pos;
     };
-    void set_sigma(const std::array<double,3> & sig){
-        sigma = sig;
+    void set_variance(const std::array<double,3> & var){
+        this->var = var;
     };
     void set_velocity(const std::array<double,3> & vel){
         velocity = vel;
@@ -97,8 +103,8 @@ class MeanData
    const  std::array<double,3> & get_position() const{
         return position;
     }
-    const std::array<double,3> & get_sigma() const{
-        return sigma;
+    const std::array<double,3> & get_variance() const{
+        return var;
     }
     const std::array<double,3> & get_velocity() const{
         return velocity;
@@ -113,7 +119,7 @@ class MeanData
     
     // Electrons mean data:
     std::array<double, 3> position;
-    std::array<double, 3> sigma;
+    std::array<double, 3> var;
     std::array<double, 3> velocity;
     double energy;
 };
