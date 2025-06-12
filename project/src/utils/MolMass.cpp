@@ -28,6 +28,8 @@ void MolMass::fix_spaces(){
 }
 
 void MolMass::Compute_M(){
+    // Computes "M" in atomic units from "substance" 
+
     // "substance" is a string of the chemical formula of s substance.
     // example "Fe2(SO4)3";
     // In this case "M" would have length 1: it contains the molar mass of the substance

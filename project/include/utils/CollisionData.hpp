@@ -12,32 +12,24 @@
 class CollisionData {
 
 public:
-    // Constructor
+    // Constructors:
     CollisionData() = default;
     CollisionData(const CrossSectionsData& Xsec, const std::vector<double>& mgas);
 
-    // Build collision matrix and compute indeces:
+    // Public Method:
     void ComputeIndeces(const int n_electrons, const CrossSectionsData& Xsec,
         const std::vector<double>& E_in_eV, const std::vector<double>& mix,
         const double density, const std::vector<double>& R);
 
     // Getters:
-    //const double getC(const int i, const int j, const int n_articles) const { return C[i*n_particles + j]; }
     const std::vector<double>& getMass() const { return Mass; }
     const std::vector<double>& getLoss() const { return Loss; }
-    const std::vector<size_t>& get_ind(std::string type) const {
-        if (type == "ELASTIC")         return ind_ela;
-        else if (type == "EXCITATION") return ind_exc;
-        else if (type == "IONIZATION") return ind_ion;
-        else if (type == "ATTACHMENT") return ind_att;
-        else throw std::invalid_argument("Invalid collision type");
-    }
-    // Count and return the number of real collisions happened:
-    const int getCollisions() const {
-        return ind_ela.size() + ind_exc.size() + ind_ion.size() + ind_att.size();
-    }
+    const std::vector<size_t>& get_ind(std::string type) const;
+    const int getCollisions() const;
 
 private:
+    
+    // Class Members:
 
     // Vectors with fixed indeces defined by the constructor:
     std::vector<double> mass;             // gas specie mass for each reaction
@@ -57,15 +49,11 @@ private:
     std::vector<size_t> ind_ion;           // Collision indices for ionization collision
     std::vector<size_t> ind_att;           // Collision indices for attachment collision
 
-    // Build collision matrix and update current index based on the random number:
+    // Private Methods:
     const size_t CollisionMatrix(const double R, const CrossSectionsData& Xsec,
         const std::vector<double>& mix, const double E_in_eV, const double density);
-
-    // Fill the Mass vector with the mass of the gas species:
     void fill_Mass(const std::vector<size_t>& ind);
-    // Fill the Loss vector with the energy loss of the gas species:
     void fill_Loss(const std::vector<size_t> & ind);
-    // Find the collision indeces for each type of collision:
     void find_collision_indeces( const std::vector<size_t>& ind);
 
 };

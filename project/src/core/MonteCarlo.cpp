@@ -9,7 +9,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
 
     N0(N0), N(p/(mc::kB * T)), gas(gas), mgas(gas.size(),0.0), mix(mix), Xsec(gas, E_max, mix, N),
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
-    conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
+    conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
     E([&]() {
         std::vector<double> energy_bins;
@@ -37,7 +37,9 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     // E = EnergyData(E_max, dE);
 
     // Set electric field E (constant and uniform):
-    set_E(EN);
+    const double E_x = 0;
+    const double E_y = 0;
+    const double E_z = EN * N * 1e-21; // Electric field strength in V/m, EN is the energy in eV
 
     // Initialize acceleration array after the electric field was set:
     // (since E is constant and uniform, a does not change and is the same for every electron)
@@ -51,6 +53,8 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
 }
 
 void MonteCarlo::checkFractionSum(){
+    // Checks if sum of gas fractions is equal to 1
+    // if not the case: last entry of mix will be corrected
 
     // Check if the size of gas and mix vectors are equal
     if(gas.size() != mix.size()){
@@ -89,6 +93,7 @@ std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> 
 }
 
 void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz){
+    // Sets initial position and velocity of electrons
 
     // Initialize mean values
     MeanData m(pos_xyz,sigma_xyz,N0);
@@ -126,16 +131,8 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
     // }
 }
 
-void MonteCarlo::set_E(const double EN){
-    // Works for the case: EN constant, uniform and user defined.
-    // "solvePoisson()" is an extension of this method.
-    E_x = 0;
-    E_y = 0;
-    E_z = EN * N * 1e-21; // set E // z direction !
-}
-
 void MonteCarlo::freeFlight(){
-    // performs non-collissional flight for electrons in electric field
+    // Performs non-collisional flight for electrons in electric field
     dt = - std::log(randu(gen)) / Xsec.get_nu_max(); // generates time step
 
     // Update vector time:
@@ -183,11 +180,17 @@ void MonteCarlo::freeFlight(){
 }
 
 void MonteCarlo::collectMeanData(){
+    // Gets electron collective data: mean position, mean
+    // broadening in x,y and-direction, mean kinetic energy, electron number
+    // and total electron current
+
     // Update mean vector for the new time step
     mean.emplace_back(mean.back().get_particles(), r[mc::ELECTRONS], v);
 }
 
 void MonteCarlo::updateEnergyData(){
+    // Calculates mean energy and EEDF data after steady state was reached
+
     const unsigned int ne = v.size();
 
     t_total += dt * ne; // sum of all times for all electrons
@@ -203,15 +206,18 @@ void MonteCarlo::updateEnergyData(){
 }
 
 void MonteCarlo::updateFluxData(){
+    // Calculates flux data after steady state was reached
     flux.compute_drift_velocity(v_int,t_total);
-    flux.compute_diffusion_const(r[mc::ELECTRONS],v,N);
+    flux.compute_diffusion_const(r[mc::ELECTRONS],v,N, count_sst);
 }
 
 void MonteCarlo::updateBulkData(){
+    // Calculates bulk data after steady state was reached
     bulk.update_bulk(t,count_sst,mean,N);
 }
 
 void MonteCarlo::updateReactionRates(){
+    // Calculates reaction rates after steady state was reached
 
     // 1. REACTION RATES BY COUNTING:
     rates_count.setTime(t,count_sst);
@@ -223,6 +229,8 @@ void MonteCarlo::updateReactionRates(){
 };
 
 void MonteCarlo::updateCollisionMatrix(){
+    // Decides which collision will happen for each electron
+
     // Extract number of electrons:
     const int num_particles = v.size();
 
@@ -280,6 +288,7 @@ std::array<double, 3> MonteCarlo::cross_product(const std::array<double, 3>& a, 
 }
 
 void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::vector<double> & Mass){
+    // Performs elastic collision (isotropic or non-isotropic)
 
     double E_1 = 0.0;                       // total energy before collision
     double E_2 = 0.0;                       // total energy after collision
@@ -350,6 +359,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
 }
 
 void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::vector<double> & Loss){
+    // Performs inelastic collision (isotropic or non-isotropic)
 
     double E_1 = 0.0;                       // total energy before collision
     double E_2 = 0.0;                       // total energy after collision
@@ -420,6 +430,7 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
 }
 
 void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std::vector<double> & Loss){
+    // Performs ionization collision for electrons
 
     double E_1 = 0.0;                       // total energy before collision
     double E_2 = 0.0;                       // total energy after collision
@@ -527,6 +538,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
 }
 
 void MonteCarlo::attachmentCollision(const std::vector<size_t> & ind){
+    // Performs attachment collision for electrons
 
     // Number of created anions / removed electrons by attachment:
     int delta_Ne = ind.size();
@@ -563,6 +575,8 @@ void MonteCarlo::attachmentCollision(const std::vector<size_t> & ind){
 }
 
 void MonteCarlo::checkSteadyState(){
+    // Checks if the simulation has reached steady state.
+    // If so, it updates the time step and the number of collisions
 
     // If sst has not been reached yet, check after last iteration:
     if(count_sst == 0 && collisions/1e6 >= line && collisions >= col_equ){
@@ -596,6 +610,8 @@ void MonteCarlo::checkSteadyState(){
 }
 
 bool MonteCarlo::endSimulation() {
+    // Stops the simulation
+
     // End simulation if too many electrons
     if (!conserve && v.size() > Ne_max) {
         converge = 1;
@@ -638,6 +654,8 @@ bool MonteCarlo::endSimulation() {
 }
 
 void MonteCarlo::printOnScreen() {
+    // Prints the status of relevant variables every 10^6 collisions
+
     if ((collisions / 1e6) >= line) {
         line += 1;
 
@@ -702,8 +720,9 @@ void MonteCarlo::printOnScreen() {
 }
 
 void MonteCarlo::saveResults(const int64_t duration) const {
-    
-    // Cenerate file .txt to save results
+    // Prints the final results of the simulation to a file
+
+    // Generate file .txt to save results
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     std::tm* local_time = std::localtime(&time_t);
@@ -726,7 +745,7 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     
     // Simulation parameters
     file << "[SIMULATION_PARAMETERS]\n";
-    file << "EN = " << E_z / (N * 1e-21) << " Td\n";  // Convert back to Td
+    file << "EN = " << EN << " Td\n";
     file << "N0 = " << N0 << "\n";
     file << "N = " << N << " m^-3\n";
     file << "col_max = " << col_max << "\n";

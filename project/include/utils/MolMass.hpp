@@ -16,42 +16,31 @@ class MolMass
     MolMass()=default;
     MolMass(const std::string & s): substance{s} {}
 
-    // Assignment operator
+    // Assignment operator:
     MolMass operator=(const MolMass & MM){
         substance=MM.get_substance();
         return *this;
     }
 
-    // Getters and setters (customized as they are needed in "Compute_M")
+    // Public Method:
+    void Compute_M();
+    void append_substance(const char & c){ substance += c; }
+
+    // Setters:
     void set_M(const double & m){
         M.clear();
         M.emplace_back(m);
     }
+    void set_substance(const std::string & s){ substance = s; }
 
-    void set_substance(const std::string & s){
-        substance = s;
-    }
-
-    void append_substance(const char & c){
-        substance += c;
-    }
-
-    const std::vector<double> & get_M() const{
-        return M;
-    } 
-
-    const double get_front_M() const{
-        return M.front();
-    }
-
-    const std::string & get_substance() const{
-        return substance;
-    }
-
-    // Computes "M" in atomic units from "substance" 
-    void Compute_M();
+    // Getters:
+    const std::vector<double> & get_M() const{ return M; } 
+    const double get_front_M() const{ return M.front(); }
+    const std::string & get_substance() const{ return substance; }
 
     private:
+
+    // Class Members:
     std::string substance;   // Substance
     std::vector<double> M;   // Molar masses in atomic units
     unsigned int factor = 1; // single substance number factor (e.g. "2" in "O2")
@@ -88,8 +77,9 @@ class MolMass
             {"Nn", 1.0}  // Nn = Not named
     };
 
+    // Private Methods:
     void check_syntax();
     void fix_spaces();
 };
 
-#endif
+#endif 

@@ -45,6 +45,8 @@ CollisionData::CollisionData(const CrossSectionsData& Xsec, const std::vector<do
 void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsData& Xsec,
     const std::vector<double>& E_in_eV, const std::vector<double>& mix, const double density, const std::vector<double>& R)
 {
+    // Build collision matrix and compute indeces:
+
     // Check if the number of particles matches the size of E_in_eV and v_abs:
     //if( n_electrons != E_in_eV.size()){
     //    throw std::invalid_argument("Number of particles and corresponding velocities/energies do not match.");
@@ -71,9 +73,24 @@ void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsDat
     find_collision_indeces(ind);
 }
 
+const std::vector<size_t>& CollisionData::get_ind(std::string type) const {
+    if (type == "ELASTIC")         return ind_ela;
+    else if (type == "EXCITATION") return ind_exc;
+    else if (type == "IONIZATION") return ind_ion;
+    else if (type == "ATTACHMENT") return ind_att;
+    else throw std::invalid_argument("Invalid collision type");
+}
+
+const int CollisionData::getCollisions() const {
+    // Count and return the number of real collisions happened:
+    return ind_ela.size() + ind_exc.size() + ind_ion.size() + ind_att.size();
+}
+
 const size_t CollisionData::CollisionMatrix(const double R, const CrossSectionsData& Xsec,
     const std::vector<double>& mix, const double E_in_eV, const double density)
 {    
+    // Build collision matrix and update current index based on the random number
+
     const std::vector<double>& xx = Xsec.get_energy();  // energy bins (eV) from xs data
     double nu_max = Xsec.get_nu_max();
 
@@ -134,6 +151,7 @@ const size_t CollisionData::CollisionMatrix(const double R, const CrossSectionsD
 }
 
 void CollisionData::fill_Mass(const std::vector<size_t>& ind) {
+    // Fill the Mass vector with the mass of the gas species
 
     // Initialize Mass vector with zeros:
     Mass.clear();
@@ -156,6 +174,7 @@ void CollisionData::fill_Mass(const std::vector<size_t>& ind) {
 }
 
 void CollisionData::fill_Loss(const std::vector<size_t> & ind) {
+    // Fill the Loss vector with the energy loss of the gas species:
 
     // Initialize Loss vector with zeros:
     Loss.clear();
@@ -189,6 +208,8 @@ void CollisionData::fill_Loss(const std::vector<size_t> & ind) {
 }
 
 void CollisionData::find_collision_indeces(const std::vector<size_t>& ind) {
+    // Find the collision indeces for each type of collision:
+
     // Initialize index vectors as empty:
     ind_ela.clear(); ind_ela.reserve(ind.size());
     ind_exc.clear(); ind_exc.reserve(ind.size());

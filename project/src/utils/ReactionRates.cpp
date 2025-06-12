@@ -1,5 +1,27 @@
 #include "utils/ReactionRates.hpp"
 
+const std::string RateDataBase::inter_to_string(mc::InteractionType interaction) const {
+    // Converts IntractionType to string
+    switch (interaction) {
+        case mc::EFFECTIVE:  return "EFFECTIVE";
+        case mc::IONIZATION: return "IONIZATION";
+        case mc::ATTACHMENT: return "ATTACHMENT";
+        case mc::EXCITATION: return "EXCITATION";
+        case mc::ELASTIC:    return "ELASTIC";
+        default:             return "UNKNOWN";
+    }
+}
+
+// Compute the reaction rates based on the time and particle data.
+void RateDataCount::computeRates()
+{
+    if (!conserve) {
+        computeNonConserved();
+    } else {
+        computeConserved();
+    }
+}
+
 void RateDataCount::setTime(const std::vector<double>& t, const unsigned int & count_sst){
     x.assign(t.cend() - count_sst, t.cend());
     std::transform(x.begin() + 1, x.end(), x.begin() + 1, [this](double xx) { return xx - x[0]; });
@@ -104,6 +126,36 @@ void RateDataCount::computeConserved() {
     // computeRate(x, y[ELECTRONS], EFFECTIVE);
     // computeRate(x, y[CATIONS], IONIZATION);
     // computeRate(x, y[ANIONS], ATTACHMENT);
+}
+
+RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix) 
+    : Xsec(xs), E(en), mix(mix)
+{
+    // Set the correct size for the specific rates vector:
+    // + mix.size() to account for effective xs data
+    specific_rates.reserve(Xsec.get_n_react() + mix.size());
+}
+
+void RateDataConv::computeRates()
+{
+
+    // Vector containing the energy values:
+    const std::vector<double> & energy_grid = Xsec.get_energy();
+
+    // Loop over all reactions:
+    for(const table & t : Xsec.get_full_xs_data()) {
+
+        // Compute the reaction rate for element "t"
+        spec_rate rr;
+        rr.rate = convolution(energy_grid, t.section);
+        rr.specie = Xsec.get_gas()[t.specie_index];
+        rr.interaction = inter_to_string(t.interact);
+        rr.reaction = t.react;
+        specific_rates.push_back(rr);
+
+        // Update total reaction rate
+        rates[t.interact] += rr.rate * mix[t.specie_index];
+    }    
 }
 
 // Compute the convolution for vectors x,y over the energy grid provided in E

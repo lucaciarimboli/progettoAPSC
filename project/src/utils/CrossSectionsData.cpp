@@ -46,6 +46,12 @@ CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, c
     maximalCollFreq(mix, N);
 }
 
+const unsigned CrossSectionsData::get_n_react() const {
+    unsigned sum = 0;
+    for (auto n : n_react) sum += n;
+    return sum - gas.size(); // Exclude effective xs data for each specie
+}
+
 // Counts the number of reactions for each specie and the number of cross-sections data points
 // and fills the energy vector with the energy levels from each reaction, sorted and deduplicated.
 void CrossSectionsData::count_react_and_fill_energy(const size_t i){
@@ -92,8 +98,8 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
     }
 }
 
-// void CrossSectionsData::import_Xsec_data(const size_t i){
 void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t specie_index){
+    // Imports cross-section data from .txt files
 
     // Path to the cross-section data file
     std::string path = "data/Xsec/" + gas[specie_index] + "/" + gas[specie_index] + ".txt";
@@ -197,7 +203,8 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t speci
 
 // Linear interpolation function
 void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector<double>& y, std::vector<double>& result) {
-
+    // Linear interpolation function
+    
     if (x.empty() || y.empty() || x.size() != y.size()) {
         throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
     }

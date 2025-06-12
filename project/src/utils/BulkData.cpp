@@ -5,10 +5,20 @@ void BulkData::normalize(std::vector<double> & y, const double & y_max) {
     };
 
 void BulkData::update_bulk(const std::vector<double> & tt, const unsigned int & count_sst, const std::vector<MeanData> & mea, const double & N){
+    // PER MIGLIORARE update_bulk() CONSIDERA DI AGGIORNARE SOLO L'ELEMENTO IN CODA DI t E mean
+    // --> DA RIVEDERE ALLA FINE
     update_time_vector(tt, count_sst);
     update_mean_data(count_sst, mea);
     compute_drift();
     compute_diffusion(N);
+};
+
+bool BulkData::is_empty() const {
+    // Check if bulk has meaningful data or not yet (steady state not reached or not enough data):
+    return (w[0] == 0.0 && w[1] == 0.0 && w[2] == 0.0 &&
+            DN[0] == 0.0 && DN[1] == 0.0 && DN[2] == 0.0 &&
+            w_err[0] == 0.0 && w_err[1] == 0.0 && w_err[2] == 0.0 &&
+            DN_err[0] == 0.0 && DN_err[1] == 0.0 && DN_err[2] == 0.0);
 };
 
 void BulkData::update_time_vector(const std::vector<double> & tt, const unsigned int & count_sst) {
@@ -121,6 +131,9 @@ void BulkData::compute_diffusion(const double N){
 }
 
 const std::array<double,2> BulkData::linear_regression(const std::vector<double>& y) const{
+    // Multiple variables linear regression, returns the coefficients of the linear regression and uncertainty.
+    // Returned array is B = [m,u_m] where:
+    // y[i] = q + m*t[i] + res, m € (m-um/2,m+um/2) with >95% confidence.
         
     size_t n = y.size();
 
