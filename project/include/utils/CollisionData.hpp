@@ -24,7 +24,7 @@ public:
     // Getters:
     const std::vector<double>& getMass() const { return Mass; }
     const std::vector<double>& getLoss() const { return Loss; }
-    const std::vector<size_t>& get_ind(std::string type) const;
+    const std::vector<size_t>& get_ind(mc::InteractionType type) const;
     const int getCollisions() const;
 
 private:

@@ -95,10 +95,7 @@ int main() {
 
         // Perform collisions:
         MC.updateCollisionMatrix();
-        MC.performCollision("ELASTIC");
-        MC.performCollision("EXCITATION");
-        MC.performCollision("IONIZATION");
-        MC.performCollision("ATTACHMENT");
+        MC.performCollisions();
 
         // Check if the simulation has reached steady state:
         MC.checkSteadyState();

@@ -73,11 +73,11 @@ void CollisionData::ComputeIndeces(const int n_electrons, const CrossSectionsDat
     find_collision_indeces(ind);
 }
 
-const std::vector<size_t>& CollisionData::get_ind(std::string type) const {
-    if (type == "ELASTIC")         return ind_ela;
-    else if (type == "EXCITATION") return ind_exc;
-    else if (type == "IONIZATION") return ind_ion;
-    else if (type == "ATTACHMENT") return ind_att;
+const std::vector<size_t>& CollisionData::get_ind(mc::InteractionType type) const {
+    if (type == mc::ELASTIC)         return ind_ela;
+    else if (type == mc::EXCITATION) return ind_exc;
+    else if (type == mc::IONIZATION) return ind_ion;
+    else if (type == mc::ATTACHMENT) return ind_att;
     else throw std::invalid_argument("Invalid collision type");
 }
 

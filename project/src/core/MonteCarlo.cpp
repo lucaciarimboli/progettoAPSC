@@ -256,25 +256,32 @@ void MonteCarlo::updateCollisionMatrix(){
     collisions += C.getCollisions();
 }
 
-void MonteCarlo::performCollision(const std::string & type){
+void MonteCarlo::performCollisions(){
     // Perform collisions according to the type of collision
-    const std::vector<size_t> & ind = C.get_ind(type);
-    if(ind.empty()) return; // in case no collisions occoured this time step
 
     const std::vector<double> & Mass = C.getMass();
     const std::vector<double> & Loss = C.getLoss();
 
-    if(type == "ELASTIC"){
-        elasticCollision(ind, Mass);
+    const std::vector<size_t> & ind_ela = C.get_ind(mc::ELASTIC);
+    const std::vector<size_t> & ind_exc = C.get_ind(mc::EXCITATION);
+    const std::vector<size_t> & ind_ion = C.get_ind(mc::IONIZATION);
+    const std::vector<size_t> & ind_att = C.get_ind(mc::ATTACHMENT);
+
+    // If any, perform elastic collisions:
+    if(!(ind_ela.empty())){
+        elasticCollision(ind_ela, Mass);
     }
-    else if(type == "EXCITATION"){
-        inelasticCollision(ind, Loss);
+    // If any, perform inelastic collisions:
+    if(!(ind_exc.empty())){
+        inelasticCollision(ind_exc, Loss);
     }
-    else if(type == "IONIZATION"){
-        ionizationCollision(ind, Loss);
+    // if any, perform ionization collisions:
+    if(!(ind_ion.empty())){
+        ionizationCollision(ind_ion, Loss);
     }
-    else if(type == "ATTACHMENT"){
-        attachmentCollision(ind);
+    // If any, perform attachment collision:
+    if(!(ind_att.empty())){
+        attachmentCollision(ind_att);
     }
 }
 

@@ -31,21 +31,24 @@ void RateDataCount::setTime(const std::vector<double>& t, const unsigned int & c
 void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst) {
     //if (count_sst > mean.size()) {throw std::out_of_range("count_sst exceeds the size of mean");}
 
-    for (size_t i = 0; i < mc::PARTICLES_TYPES; i++) {
+    // Set the size for particle vector
+    particles[mc::ELECTRONS].clear();
+    particles[mc::ANIONS].clear();
+    particles[mc::CATIONS].clear();
 
-        // Set the size for particle vector
-        for (auto& p : particles) p.resize(count_sst);
+    particles[mc::ELECTRONS].reserve(count_sst);
+    particles[mc::ANIONS].reserve(count_sst);
+    particles[mc::CATIONS].reserve(count_sst);
 
-        // Iterator to mean elements starting from sst
-        auto it = mean.cend() - count_sst;
+    for (auto it = mean.cend() - count_sst; it != mean.cend(); it++) {
 
-        for (size_t j = 0; j < count_sst; j++) {
-            // Get the particle counts from MeanData:
-            const std::array<int,mc::PARTICLES_TYPES>& mean_particles = (it + j)->get_particles();
+        // Get the particle counts from MeanData:
+        const std::array<int,mc::PARTICLES_TYPES>& mean_particles = it->get_particles();
     
-            for (size_t k = 0; k < mc::PARTICLES_TYPES; k++)
-                particles[k][j] = mean_particles[k]; // Fill the particles vector with the number of particles of each type
-        }
+        // Fill the particles vector with the number of particles of each type
+        particles[mc::ELECTRONS].push_back(mean_particles[mc::ELECTRONS]);
+        particles[mc::ANIONS].push_back(mean_particles[mc::ANIONS]);
+        particles[mc::CATIONS].push_back(mean_particles[mc::CATIONS]);
     } 
 }
 
@@ -105,27 +108,25 @@ void RateDataCount::computeNonConserved() {
 void RateDataCount::computeConserved() {
     // y[0] is for effective ionization, y[1] for ionization and y[2] for attachment
     std::array<std::vector<double>,mc::PARTICLES_TYPES> y;
-    size_t count_sst = particles[0].size();
+    size_t count_sst = particles[mc::ELECTRONS].size();
+    y[0].resize(count_sst, 0.0);
+    y[1].resize(count_sst, 0.0);
+    y[2].resize(count_sst, 0.0);
 
-    double initial_electrons = static_cast<double>(particles[mc::ELECTRONS][0]);
-    if(initial_electrons == 0) throw std::invalid_argument("Number of electrons cannot be zero");
-
-    // Define y vector as normalized particles gain
-    for( size_t i = 0; i < mc::PARTICLES_TYPES; i++) {
-        y[i].resize(count_sst);
-        std::transform(particles[i].begin(), particles[i].end(), y[i].begin(), [this,i,initial_electrons](int part_ij) {
-            return (static_cast<double>(part_ij - particles[i][0]) / initial_electrons);
-        });
-    }
+    const double initial_electrons = static_cast<double>(particles[mc::ELECTRONS][0]);
+    //if(initial_electrons == 0) throw std::invalid_argument("Number of electrons cannot be zero");
 
     // Compute effective ionization, ionization and attachment rates:
     for (int i = 0; i < 3; i++){
+
+        // Define y vector as normalized particles gain
+        std::transform(particles[i].cbegin(), particles[i].cend(), y[i].begin(), [this,i,initial_electrons](int part_ij) {
+            return (static_cast<double>(part_ij - particles[i][0]) / initial_electrons);
+        });
+
+        // Compute effective ionization, ionization and attachment rates:
         computeRate(x, y[i], i);
     }
-    // Equivalent to:
-    // computeRate(x, y[ELECTRONS], EFFECTIVE);
-    // computeRate(x, y[CATIONS], IONIZATION);
-    // computeRate(x, y[ANIONS], ATTACHMENT);
 }
 
 RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix) 

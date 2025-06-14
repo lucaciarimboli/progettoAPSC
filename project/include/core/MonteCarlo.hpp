@@ -49,7 +49,7 @@ public:
     void updateBulkData();
     void updateReactionRates();
     void updateCollisionMatrix();
-    void performCollision(const std::string & type);
+    void performCollisions();
     void checkSteadyState();
     bool endSimulation();
     void printOnScreen();
