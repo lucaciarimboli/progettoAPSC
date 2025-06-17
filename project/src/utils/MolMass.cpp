@@ -1,33 +1,48 @@
-#include "utils/MolMass.hpp"
+//#include "utils/MolMass.hpp"
+#include "../../include/utils/MolMass.hpp"
 
-void MolMass::check_syntax(){
-    for( auto it = substance.cbegin(); it != substance.cend(); it++){
-        if( characters.find(*it) == characters.cend() ){
-            std::cerr << "Wrong symbol '" << *it << "' in the formula!" << std::endl;
-        }
+void MolMass::fix_spaces() {
+    // The string "substance" might be a string of the chemical formula of s substance or a vector of substances
+    // opened by '[', closed by ']', and divided by space, comma or semicolon.
+    // This method uniforms the syntax of the string "substance" so that:
+    //    - There are no spaces
+    //    - In case of a mix, the separator between diffent species is ",", the opening and closure are '[', ']'.
+
+    // Remove any space at the beginning or at the end of the string:
+    substance = std::regex_replace(substance, std::regex(R"(^\s+|\s+$)"), "");
+
+    // If the string represents a mix, remove every space and set "," as separator between different species:
+    if (substance.front() == '[') {
+        if(substance.back() != ']') throw std::invalid_argument("Invalid chemical formula in MolMass");
+
+        std::string content = substance.substr(1,substance.length()-2);
+        content = std::regex_replace(content, std::regex(R"(\s*[,;\s]+\s*)"), ",");
+        content = std::regex_replace(content, std::regex(R"(^,+|,+$)"), "");
+        substance = '[' + content + ']';
     }
+
+    // Remove all remaining spaces:
+    substance = std::regex_replace(substance, std::regex(R"(\s)"), "");
 }
 
-void MolMass::fix_spaces(){
-    // Keep at most one space in between chars
-    size_t pos = substance.find("  ");
-    while (pos != std::string::npos) {
-        substance.replace(pos, 2, " ");
-        pos = substance.find("  ");
-    }
+bool MolMass::check_syntax() const {
 
-    // Remove spaces around brackets
-    pos = substance.find(" ]");
-    if (pos != std::string::npos) {
-        substance.replace(pos, 2, "]");
-    }
-    pos = substance.find("[ ");
-    if (pos != std::string::npos) {
-        substance.replace(pos, 2, "[");
-    }
+    // Case "substance" is a single substance:
+    std::regex sub_reg(R"(^([A-Z][a-z]?\d*|\([A-Z][a-z]?\d*([A-Z][a-z]?\d*)*\)\d*)+$)");
+    
+    // Case "substance" is a mixture:
+    std::regex mix_reg(R"(^\[[A-Z][\w(),;\s]+\]$)");
+    
+    // Case "substance" is a named formula:
+    std::regex named_reg(R"(^".*"(\(\d+\.?\d*\))?$)");
+    
+    // If "substance" format does not match any of the allowed one, return false:
+    return std::regex_match(substance, sub_reg) ||
+           std::regex_match(substance, mix_reg) ||
+           std::regex_match(substance, named_reg);
 }
 
-void MolMass::Compute_M(){
+void MolMass::Compute_M() {
     // Computes "M" in atomic units from "substance" 
 
     // "substance" is a string of the chemical formula of s substance.
@@ -41,126 +56,119 @@ void MolMass::Compute_M(){
     // "[C3H5(OH)3,C3H7OH,C12H22O11,NaCl]";
     // In this case "M" would have as components the molar masses of each susbtance. 
 
-    check_syntax(); // Check "substance" syntax
-    fix_spaces(); // Fix spaces within "substance"
-
-    auto it = substance.cbegin();
-
-    M.clear(); 
+    // Finally, "substance" could explicitely contain the molar mass value in the form: "Name(123.45)"
     
-    if( *it == '['){    // GESTISCI NEL CONSTRUCTOR!!!
+    M.clear();
 
-        it++;    // skip the first char '['
-        std::string single_substance;
-
-        while( it != this->substance.cend() ){
-            if( *it == ' ' || *it == ',' || *it == ';' || *it == ']' ){
-                MolMass single_molmass(single_substance);
-                single_molmass.Compute_M();
-                this->M.emplace_back(single_molmass.get_front_M());    // MolMass(single_substance) returns a vector<double> of size 1, not a double --> .front() needed
-                single_substance.clear();
-                while( it != this->substance.cend() && 
-                    (*it == ' ' || *it == ',' || *it == ';' || *it == ']') ){
-                    it++;
-                }
-            } else if( characters.find(*it) != characters.cend() ){
-                single_substance += *it;
-                it++;
-            }
-        }
+    // Check/fix the syntax of the substance:
+    if (substance.empty()) return;
+    fix_spaces();
+    if(!check_syntax()) throw std::invalid_argument("Invalid chemical formula in MolMass");
+    
+    // Handle mixture notation [sub1,sub2,...]
+    if (substance.front() == '[') {
+        compute_mixture();
+        return;
     }
 
-    else{       // Single substance
+    // Handle named substance with explicit mass "Name(123.45)"
+    else if (substance.front() == '"') {
+        compute_named_substance();
+        return;
+    }
+    
+    // Handle chemical formula
+    M.emplace_back(compute_substance(substance));
+}
 
-        // substance string might be either written as a name or as a chemical formula:
-        if( *it != '"'){ // " indicates substance written as a name
+double MolMass::compute_substance(const std::string& formula) {
+    double total_mass = 0.0;
+    
+    // Extend the formula by removing brackets to simplify the computation:
+    std::string adapted_formula = adapt_formula(formula);
+    
+    // Parse elements with their counts
+    std::regex reg(R"(([A-Z][a-z]?)(\d*))");
+    std::sregex_iterator iter(adapted_formula.begin(), adapted_formula.end(), reg);
+    std::sregex_iterator end_iter;
+    
+    while(iter != end_iter) {
+        // Extract element string:
+        std::string element = (*iter)[1].str();
 
-            // A std::vector stores separately substance single elements as MolMass objects.
-            // e.g. if substance="H20", elements=[(H2 data);(O data)]
-            std::vector<MolMass> elements; 
-
-            bool number_flag = 0;   // necessary for computing element.factor
-
-            while( it != substance.cend()){
-                if((*it >= 'A') && (*it <= 'Z')){
-                    MolMass elem;
-                    elem.append_substance(*it);
-                    // elem.factor = 1;
-                    elements.emplace_back(elem);
-                    number_flag = 0;
-                }
-                else if((*it >= 'a') && (*it <= 'z')){
-                    MolMass & elem = elements.back(); // elem is the last Element created
-                    elem.append_substance(*it);
-                    // elements.back().factor = 1;
-                    number_flag = 0;
-                }
-                else if((*it >= '0') && (*it <= '9')){
-                    MolMass & elem = elements.back();
-                    if(number_flag){    // The previous char of 'substance' was a number
-                        elem.factor = 10*elem.factor + *it - '0'; 
-                    } else{
-                        elem.factor = *it -'0';
-                    }
-                    number_flag = 1;
-                }
-                else if((*it == '+') || (*it == '-')){
-                    MolMass & elem = elements.back();
-                    elem.factor = 1;
-                }
-                else if(*it == '('){
-                    unsigned int bracket_level = 1;     // keeps track of the level of nested parentheses
-                    std::string bracket_substance;  // string to store the substance between "()""
-
-                    while( bracket_level > 0){
-                        it++;
-                        if(*it == '(') bracket_level++;
-                        else if (*it == ')') bracket_level--;
-                        
-                        if( bracket_level > 0) bracket_substance += *it;
-                    }
-                    // One Element accounts for the whole substance within () is added to "elements":
-                                       
-                    MolMass elem(bracket_substance);
-                    elem.Compute_M(); 
-                    elem.set_substance("$");    // Mark that "elem" is actually a substance that was inside brackets.
-                    elements.emplace_back(elem); // Add brackets substance to elements
-                    number_flag = 0;
-                }
-                it++;
-            }
-            
-            // Update molar masses of elements from "elements_mm" (unordered_map with mm data)
-            for(MolMass & elem : elements){
-                if(elem.get_substance() != "$"){     // for substances in brackets, "substance_mass" is already filled
-                        auto mm_iterator = this->elements_mm.find(elem.get_substance());
-                        elem.set_M(mm_iterator->second);
-                }
-            }
-
-            double computed_MM = 0;
-
-            // Compute total molar mass
-            for(const MolMass & elem : elements){
-                computed_MM += elem.factor * elem.get_front_M();
-            }
-            this->M.emplace_back(computed_MM);   // MM is a vector<double> to account for the case of multi-substances input
+        // Extract number if any:
+        std::string mult_str = (*iter)[2].str();
+        int multiplier = mult_str.empty() ? 1 : std::stoi(mult_str);
+    
+        auto it = elements_mm.find(element);
+        if (it != elements_mm.end()) {
+            total_mass += multiplier * it->second;
         }
 
-        else if(this->substance.find_first_of("(") != std::string::npos){     // substance is not a chemical formula but a name
-            for( size_t i = 1; i <= this->substance.length(); i++){
-                if(this->substance[i] == '('){
-                    size_t j = i + 1;
-                    std::string MM_str;
-                    while( this->substance[j] != ')'){
-                        MM_str += this->substance[j];
-                        j++;
-                    }
-                    this->M.emplace_back(stod(MM_str));
-                }
-            }
-        }
+        iter++;
+    }
+    
+    return total_mass;
+}
 
-        else this->M.emplace_back(1);
+std::string MolMass::adapt_formula(const std::string& formula) {
+    // Adapt the formula to allow easier molar mass computation.
+    // This is done by "expanding" the brackets (if any).
+    // e.g. "Ca(OH)2" --> "CaO2H2"
+
+    std::string result = formula;
+    std::regex reg(R"(\(([^()]+)\)(\d*))");
+    std::smatch match;
+    
+    while (std::regex_search(result, match, reg)) {
+        std::string content = match[1].str();
+        int multiplier1 = match[2].str().empty() ? 1 : std::stoi(match[2].str());
+        
+        std::string expanded = "";
+        std::regex element_in_brackets(R"(([A-Z][a-z]?)(\d*))");
+        std::sregex_iterator iter(content.cbegin(), content.cend(), element_in_brackets);
+        std::sregex_iterator end_iter;
+
+        while(iter != end_iter) {
+            std::string element = (*iter)[1].str();
+            std::string mult_str = (*iter)[2].str();
+            int multiplier2 = mult_str.empty() ? 1 : std::stoi(mult_str);
+            expanded += element + std::to_string(multiplier2 * multiplier1);
+            iter++;
+        }
+        
+        result = std::regex_replace(result, reg, expanded, std::regex_constants::format_first_only);
+    }
+    
+    return result;
+}
+
+void MolMass::compute_mixture() {
+    // Fill the vector "M" with the molar masses of the corrisponding substances in "substance".
+    // The string "substance" is of the kind: "[sub1,sub2,...,subn]" without spaces.
+    std::regex reg(R"(\[([^\]]+)\])");
+    std::smatch match;
+    if (!std::regex_match(substance, match, reg)) return;
+    std::string content = match[1].str();
+
+    std::regex separator(R"(,)");
+    std::sregex_token_iterator iter(content.cbegin(), content.cend(), separator, -1);
+    std::sregex_token_iterator end_iter;
+    
+    while(iter != end_iter) {
+        std::string formula = iter->str();
+        if (!formula.empty()) M.emplace_back(compute_substance(formula));
+        iter++;
+    }
+}
+
+void MolMass::compute_named_substance() {
+    std::regex reg(R"(\(([0-9.]+)\))");
+    std::smatch match;
+    
+    if (std::regex_search(substance, match, reg)) {
+        M.emplace_back(std::stod(match[1].str()));
+    } else {
+        M.emplace_back(1.0);
     }
 }

@@ -7,7 +7,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
                 const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz,
                 const bool conserve, const bool isotropic):
 
-    N0(N0), N(p/(mc::kB * T)), gas(gas), mgas(gas.size(),0.0), mix(mix), Xsec(gas, E_max, mix, N),
+    N0(N0), N(p/(mc::kB * T)), gas(gas), mix(mix), Xsec(gas, E_max, mix, N),
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
     conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
@@ -73,14 +73,14 @@ void MonteCarlo::checkFractionSum(){
 
 void MonteCarlo::mass_in_kg(){
     // Computes mass of the gas species in kg
+    mgas.reserve(gas.size());
+
     MolMass mol_mass;
-    for(const std::string & sub : gas){
-        mol_mass.set_substance(sub);
+    for(const std::string & substance : gas){
+        mol_mass.set_substance(substance);
         mol_mass.Compute_M();
-        const auto& M_vec = mol_mass.get_M();
-        for (size_t i = 0; i < M_vec.size(); i++) {
-            mgas[i] = M_vec[i] / (mc::Na * 1000);
-        }
+        const double M = mol_mass.get_front_M();
+        mgas.push_back( M / (mc::Na * 1000) );
     }
 }
 

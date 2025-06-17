@@ -8,23 +8,17 @@
 #include <unordered_map>
 #include <numeric>
 #include <cmath>
+#include <regex>
 
 class MolMass
 {
     public:
     // Constructors:
     MolMass()=default;
-    MolMass(const std::string & s): substance{s} {}
-
-    // Assignment operator:
-    MolMass operator=(const MolMass & MM){
-        substance=MM.get_substance();
-        return *this;
-    }
+    MolMass(const std::string & s): substance(s) {};
 
     // Public Method:
     void Compute_M();
-    void append_substance(const char & c){ substance += c; }
 
     // Setters:
     void set_M(const double & m){
@@ -38,20 +32,12 @@ class MolMass
     const double get_front_M() const{ return M.front(); }
     const std::string & get_substance() const{ return substance; }
 
+    
     private:
 
     // Class Members:
     std::string substance;   // Substance
     std::vector<double> M;   // Molar masses in atomic units
-    unsigned int factor = 1; // single substance number factor (e.g. "2" in "O2")
-
-    // Allowed characters
-    const std::unordered_set<char> characters{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
-                                        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 
-                                        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
-                                        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 
-                                        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '(', ')', '[', 
-                                        ']', ';', ',', ' ', '+', '-', '.'};
     
     //Molar masses of each element
     const std::unordered_map<std::string, double> elements_mm = {
@@ -77,9 +63,14 @@ class MolMass
             {"Nn", 1.0}  // Nn = Not named
     };
 
+
     // Private Methods:
-    void check_syntax();
+    bool check_syntax() const;
     void fix_spaces();
+    std::string adapt_formula(const std::string& formula);
+    double compute_substance(const std::string& formula);
+    void compute_mixture();
+    void compute_named_substance();
 };
 
 #endif 
