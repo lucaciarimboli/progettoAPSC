@@ -133,7 +133,7 @@ RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en,
     : Xsec(xs), E(en), mix(mix)
 {
     // Set the correct size for the specific rates vector:
-    // + mix.size() to account for effective xs data
+    // ( "+ mix.size()" to account for effective xs data )
     specific_rates.reserve(Xsec.get_n_react() + mix.size());
 }
 
@@ -149,8 +149,8 @@ void RateDataConv::computeRates()
         // Compute the reaction rate for element "t"
         spec_rate rr;
         rr.rate = convolution(energy_grid, t.section);
-        rr.specie = Xsec.get_gas()[t.specie_index];
-        rr.interaction = inter_to_string(t.interact);
+        rr.specie = t.specie_index;
+        rr.interaction = t.interact;
         rr.reaction = t.react;
         specific_rates.push_back(rr);
 

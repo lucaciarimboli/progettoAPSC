@@ -82,10 +82,10 @@ private:
 
 
 struct spec_rate {
-    double rate;              // Reaction rate
-    std::string specie;               // Index of the specie
-    std::string interaction;          // Type of interaction
-    std::string reaction;     // Type of reaction
+    double rate;                      // Reaction rate
+    size_t specie;                    // Specie (identified by its index in the mix)
+    mc::InteractionType interaction;  // Type of interaction
+    std::string reaction;             // Type of reaction
 };
 
 

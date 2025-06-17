@@ -78,7 +78,7 @@ void MonteCarlo::mass_in_kg(){
         mol_mass.set_substance(sub);
         mol_mass.Compute_M();
         const auto& M_vec = mol_mass.get_M();
-        for (size_t i = 0; i < M_vec.size(); ++i) {
+        for (size_t i = 0; i < M_vec.size(); i++) {
             mgas[i] = M_vec[i] / (mc::Na * 1000);
         }
     }
