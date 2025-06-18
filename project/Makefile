@@ -7,6 +7,7 @@ DEBUG_FLAGS = -g -DDEBUG -O0 -Wall
 SRC_DIR = src
 INCLUDE_DIR = include
 BUILD_DIR = build
+DATA_DIR = data/config
 
 # Source files
 CORE_SOURCES = $(wildcard $(SRC_DIR)/core/*.cpp)
@@ -23,6 +24,9 @@ ALL_OBJECTS = $(CORE_OBJECTS) $(UTILS_OBJECTS) $(MAIN_OBJECTS)
 
 # Executable
 EXECUTABLE = $(BUILD_DIR)/mc_sim
+
+# Json file
+DATA_FILE = $(DATA_DIR)/simulation.json
 
 # Default target
 all: $(EXECUTABLE)
@@ -45,8 +49,8 @@ debug: CXXFLAGS += $(DEBUG_FLAGS)
 debug: $(EXECUTABLE)
 
 # Run the program
-run: $(EXECUTABLE)
-	./$(EXECUTABLE)
+run: 
+	./$(EXECUTABLE) $(DATA_FILE)
 
 # Clean build files
 clean:
@@ -58,8 +62,8 @@ clean:
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  all    - Build executable (default)"
-	@echo "  debug  - Build with debug flags"
-	@echo "  run    - Build and run program"
+	@echo "  all  - Build executable (default)"
+	@echo "  run    - Run program using data from 'data/config/simulation.json'"
 	@echo "  clean  - Remove build directory"
+	@echo "  debug  - Build with debug flags"
 	@echo "  help   - Show this help message"

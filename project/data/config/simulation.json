@@ -1,0 +1,32 @@
+{
+    "simulation": {
+        "gas_species": ["N2", "O2"],
+        "gas_mixture": [0.8, 0.2],
+        "EN_field": 5000.0,
+        "pressure": 101325.0,
+        "temperature": 300.0,
+        "initial_electrons": 1e4,
+        "energy_sharing": 0.5,
+        "initial_position": [0.0, 0.0, 0.0],
+        "initial_broadening": [0.0, 0.0, 0.0]
+    },
+
+    "grid": {
+        "max_energy": 100000.0,
+        "energy_step": 0.1
+    },
+    
+    "tolerances": {
+        "drift_velocity_error": 0.01,
+        "diffusion_error": 0.01,
+        "min_collisions": 1e7,
+        "max_collisions": 1e8,
+        "max_electrons": 1e6
+    },
+
+    "flags": {
+        "conserve_electrons": true,
+        "isotropic_scattering": true,
+        "save_results": true
+    }
+}

@@ -7,9 +7,11 @@ This project simulates electron transport in gas mixtures using a Monte-Carlo ap
 - `src/` - Source code
   - `core/MonteCarlo.cpp, .hpp` - Main Monte Carlo class
   - `main/MC_singlerun.cpp` - main program to run a simulation
-  - `utils/` - Utility classes for cross-sections, molar mass, energy, flux, bulk data, and reaction rates
-- `include/` - Common header
-- `data/Xsec/` - Cross-section data files for different species
+  - `utils/` - Utility classes for molar mass computation, cross sections, energy data, flux data, bulk data, and reaction rates
+- `include/` - Header files
+- `data` - Data files
+  - `Xsec` - Cross-section data files for different species
+  - `config` - File .json with simulation data
 - `tests/` - Test codes
 
 ## Build
@@ -20,13 +22,13 @@ This project uses a Makefile for building. Available commands:
 # Build the executable (default)
 make
 
-# Build and run the simulation
+# Run the simulation using data in 'data/config/simulation.json'
 make run
 
 # Build with debug flags
 make debug
 
-# Clean build files
+# Remove build directory
 make clean
 
 # Show help with available targets
@@ -37,9 +39,14 @@ The executable will be created in the `build/` directory as `mc_sim`.
 
 ## Usage
 
-1. Edit `src/main/MC_singlerun.cpp` to set simulation parameters and gas mixtures.
-2. Build and run using `make run` or build with `make` and run `./build/mc_sim`.
-3. Output and results will be printed to the console.
+1. Build the executable with `make`.
+2. Edit `data/config/simulation.json` to set simulation parameters and gas mixtures.
+3. Run the simulation using `make run`.
+4. Outputs will printed to the console roughly every 1e6 collisions.
+5. Final results will be saved in a .txt file in folder `./results/`.
+6. When done, clean the build directory with `make clean`.
+
+**Note:** For multiple simulation runs, the executable does not require rebuilding. Simply repeat steps 2-5 for each simulation and run `make clean` only upon completion of all simulations.
 
 ## Extending
 

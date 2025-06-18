@@ -4,72 +4,55 @@
 #include <string>
 #include <chrono>
 #include "core/MonteCarlo.hpp"
+#include "ConfigParser.hpp"
 
-int main() {
+int main(int argc, char* argv[]) {
 
     // Start the clock
     auto start = std::chrono::high_resolution_clock::now();
     
     //-----------------------------------------//
-    //          SIMULATION PARAMETERS:         //
+    //       IMPORT SIMULATION PARAMETERS:     //
     //-----------------------------------------//
 
-    // Gas species and their fractions: ( allowed species: "H2", "H2O", "N", "N2", "O", "O2" )
-    //std::vector<std::string> gas = {"N2", "N", "O2", "O", "H2O", "H2"};
-    //std::vector<double> mix = {0.8, 0.0, 0.2, 0.0, 0.0, 0.0};
-
-    const std::vector<std::string> gas = {"N2", "O2"};
-    const std::vector<double> mix = {0.8, 0.2};
-
-    // E/N (in Td):
-    const double EN = 5e3;
-    // Pressure (in Pa):
-    const double p = 101325;
-    // Temperature (in K):
-    const double T = 300;
-    // Initial number of electrons:
-    const unsigned long N0 = 1e5;
-    // Maximum allowed number of electrons:
-    const unsigned long Ne_max = 1e6;
-    // Energy sharing factor for ionization (in interval [0,1]):
-    const double W = 0.5;
-
-    // Define the maximum energy level and the step for electrons energy grid (in eV):
-    const double E_max = 1e5;
-    const double dE = 10;   // then energy grid will be [0,E_max] with step "E_step"
-
-    // Error tolerances:
-    const double w_err = 0.01;    // for drift velocity  
-    const double DN_err = 0.01;   // for diffusion constant
-
-    // Minimum number of collisions for steady state:
-    const unsigned long col_equ = 1e7;
-    // Maximum number of collisions:
-    const unsigned long col_max = 1e8;
-
-    // Initial mean position of electrons (in m):
-    const std::array<double, 3> pos_xyz = {0.0, 0.0, 0.0};
-    // Initial broadening of electrons (in m):
-    const std::array<double, 3> sigma_xyz = {0.0, 0.0, 0.0};
-
-    // Flag for conserving electron number after ionization/attachment:
-    const bool conserve = true;
-    // Flag for isotropic scattering:
-    const bool isotropic = true;
-    // Flag for saving results:
-    const bool save_in_file = true;
-
+    // Carica configurazione
+    ConfigParser config;
+    
+    std::string config_file = "data/config/simulation.json";
+    if (argc > 1) {
+        config_file = argv[1];  // use input file
+    }
+    
+    if (!config.loadFromFile(config_file)) {
+        std::cout << "Warning: using built-in default parameters" << std::endl;
+    } else {
+        std::cout << "Loaded simulation data from: " << config_file << std::endl;
+    }
 
     //------------------------------------------//
     //       INITIALIZE MonteCarlo OBJECT       //
     //------------------------------------------//
 
-    MonteCarlo MC
-    (
-        gas, mix, EN, p, T, N0, Ne_max, W, E_max, dE, w_err, DN_err,
-        col_equ, col_max, pos_xyz, sigma_xyz, conserve, isotropic
+    MonteCarlo MC(
+        config.gas_species, 
+        config.gas_mixture, 
+        config.EN_field, 
+        config.pressure, 
+        config.temperature,
+        config.initial_electrons, 
+        config.max_electrons, 
+        config.energy_sharing,
+        config.max_energy, 
+        config.energy_step,
+        config.drift_velocity_error, 
+        config.diffusion_error,
+        config.min_collisions, 
+        config.max_collisions,
+        config.initial_position, 
+        config.initial_broadening,
+        config.conserve_electrons, 
+        config.isotropic_scattering
     );
-    
 
     //------------------------------------------//
     //         RUN MONTE CARLO SIMULATION       //
@@ -77,7 +60,10 @@ int main() {
     
     // checks end of simulation: End =1 stops the simulation
     bool End = false;
+    // flag to indicate the will of saving results in a file
+    const bool save_in_file = config.save_results;
 
+    std::cout << "\nStarting simulation...\n" << std::endl;
 
     while( !End ) {
         // Perform a flight for all electrons without a collision:
