@@ -1,5 +1,14 @@
 #include "utils/MeanData.hpp"
 
+MeanData::MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int ne):
+    // Constructor to set initial mean values
+    particles({ne, 0, 0}),
+    position(r),
+    var({s[0]*s[0], s[1]*s[1], s[2]*s[2]}), // variance is sigma^2
+    velocity({0.0, 0.0, 0.0}),
+    energy(0.0)
+{};
+
 MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATRIX & r, const mc::MATRIX & v)
     : particles(p){
 

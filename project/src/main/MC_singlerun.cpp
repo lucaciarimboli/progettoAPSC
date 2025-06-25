@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     if (!config.loadFromFile(config_file)) {
         std::cout << "Warning: using built-in default parameters" << std::endl;
     } else {
-        std::cout << "Loaded simulation data from: " << config_file << std::endl;
+        std::cout << "\n Loaded simulation data from: " << config_file << std::endl;
     }
 
     //------------------------------------------//
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     // flag to indicate the will of saving results in a file
     const bool save_in_file = config.save_results;
 
-    std::cout << "\nStarting simulation...\n" << std::endl;
+    std::cout << " Starting simulation..." << std::endl;
 
     while( !End ) {
         // Perform a flight for all electrons without a collision:
@@ -98,19 +98,20 @@ int main(int argc, char* argv[]) {
     if (duration >= 3600) {
         const int hours = duration / 3600;
         const int minutes = (duration % 3600) / 60;
-        std::cout << "Simulation ended in " << hours << " hours " << minutes << " minutes\n";
+        std::cout << " Simulation ended in " << hours << " hours " << minutes << " minutes\n";
     } else {
         const int minutes = duration / 60;
-        std::cout << "Simulation ended in " << minutes << " minutes\n";
+        std::cout << " Simulation ended in " << minutes << " minutes\n";
     }
 
-     // Save results when simulation ends
+    // Save results when simulation ends
     if(save_in_file){
         MC.saveResults(duration);
     }
 
 
-    // FOR DEBUGGING PURPOSES:
+    //----------------------------------------------------------------------------------------------------------//
+    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
     const std::vector<MeanData>& meandata = MC.get_mean_data();
     const std::vector<double>& time = MC.get_time_vector();
 
@@ -120,6 +121,8 @@ int main(int argc, char* argv[]) {
         file << time[i] << "," << meandata[i].get_position()[2] << "," << meandata[i].get_variance()[2] << "\n";
     }
     file.close();
-    
+    //----------------------------------------------------------------------------------------------------------//
+    //----------------------------------------------------------------------------------------------------------//
+
     return 0;
 }

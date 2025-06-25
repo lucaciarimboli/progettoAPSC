@@ -95,12 +95,6 @@ std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> 
 void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz){
     // Sets initial position and velocity of electrons
 
-    // Initialize mean values
-    MeanData m(pos_xyz,sigma_xyz,N0);
-    
-    mean.clear();
-    mean.emplace_back(m);
-
     // Allocate memory to electron population positions:
     r[mc::ELECTRONS].clear();
     r[mc::ELECTRONS].reserve(N0);
@@ -109,8 +103,6 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
     r[mc::CATIONS].clear();
     r[mc::ANIONS].clear();
 
-
-    std::default_random_engine gen;
     // Standard Gaussian distribution
     std::normal_distribution<double> randn(0.0,1.0);
 
@@ -134,13 +126,14 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
 void MonteCarlo::freeFlight(){
     // Performs non-collisional flight for electrons in electric field
     dt = - std::log(randu(gen)) / Xsec.get_nu_max(); // generates time step
+    const double dt2 = dt * dt;
+    const double dt3 = dt2 * dt;
 
     // Update vector time:
     t.push_back(t.back() + dt);
     
-    const double ne = v.size(); // number of electrons
-    const double dt2 = dt * dt;
-    const double dt3 = dt2 * dt;
+    // Number of electrons:
+    const double ne = v.size();
 
     if(T_sst > 0.0){
         count_sst++;
@@ -510,7 +503,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         v.push_back({
             - v_abs_newe * e_2[0],
             - v_abs_newe * e_2[1],
-             - v_abs_newe * e_2[2]
+            - v_abs_newe * e_2[2]
         });
         r[mc::ELECTRONS].push_back({
             r[mc::ELECTRONS][el_index][0],
@@ -603,12 +596,12 @@ void MonteCarlo::checkSteadyState(){
         if(sum1 >= sum2){
             // Steady state has been reached
             T_sst = t.back();
-            std::cout << "Steady state reached at t = " << T_sst * 1e9 << " ns\n";
+            std::cout << "\n Steady state reached at t = " << T_sst * 1e9 << " ns\n";
+            std::cout << " Number of iterations until steady state: " << t.size()-1 << "\n";
+            std::cout << " Number of collisions until steady state: " << collisions << "\n";
 
             // For debugging purposes:
-            std::cout << "Number of iterations until steady state: " << t.size()-1 << "\n";
-            std::cout << "Number of collisions until steady state: " << collisions << "\n";
-            std::cout << "Number of electrons at steady state: " << v.size() << "\n";
+            std::cout << " Size of r[ELECTRONS] at steady state: " << v.size() << "\n";
 
             collisions = 0;
             line = 1;
@@ -622,14 +615,14 @@ bool MonteCarlo::endSimulation() {
     // End simulation if too many electrons
     if (!conserve && v.size() > Ne_max) {
         converge = 1;
-        std::cout << "Simulation ended: maximum number of electrons reached\n";
+        std::cout << "\n Simulation ended: maximum number of electrons reached\n";
         return true;
     }
 
     // End simulation if no electrons
     if (!conserve && v.empty()) {
         converge = 2;
-        std::cout << "Simulation ended: number of electrons is zero\n";
+        std::cout << "\n Simulation ended: number of electrons is zero\n";
         return true;
     }
 
@@ -643,7 +636,7 @@ bool MonteCarlo::endSimulation() {
             //&& std::abs(DN_bulk_err[2] / DN_bulk[2]) < DN_err) {
 
             converge = 0;
-            std::cout << "Simulation ended: errors in w < " 
+            std::cout << "\n Simulation ended: errors in w < " 
                       << 100 * w_err << "% and D < "
                       << 100 * DN_err << "%\n";
             return true;
@@ -653,7 +646,7 @@ bool MonteCarlo::endSimulation() {
     // End simulation if number of collisions exceeds maximum
     if (collisions > col_max) {
         converge = 3;
-        std::cout << "Simulation ended: maximum number of collisions reached\n";
+        std::cout << "\n Simulation ended: maximum number of collisions reached\n";
         return true;
     }
 
@@ -865,5 +858,5 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     file << "\n";
     
     file.close();
-    std::cout << "Results saved to: " << filename << std::endl;
+    std::cout << " Results saved to: " << filename << "\n" << std::endl;
 }

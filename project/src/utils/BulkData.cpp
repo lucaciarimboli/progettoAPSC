@@ -83,7 +83,7 @@ void BulkData::compute_drift(){
     const std::array<double, 2> m2 = linear_regression(z);
 
     w[0] = m0[0] * x_max / t_max;
-    w_err[0] = 0.25 * m0[1] * y_max / t_max;
+    w_err[0] = 0.25 * m0[1] * x_max / t_max;
 
     w[1] = m1[0] * y_max / t_max;
     w_err[1] = 0.25 * m1[1] * y_max / t_max;
@@ -121,7 +121,7 @@ void BulkData::compute_diffusion(const double N){
     const std::array<double, 2> m2 = linear_regression(z);
 
     DN[0] = N * m0[0] * x_max / t_max;
-    DN_err[0] = N * 0.25 * m0[1] * y_max / t_max;
+    DN_err[0] = N * 0.25 * m0[1] * x_max / t_max;
 
     DN[1] = N * m1[0] * y_max / t_max;
     DN_err[1] = N * 0.25 * m1[1] * y_max / t_max;

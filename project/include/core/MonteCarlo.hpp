@@ -58,9 +58,11 @@ public:
     // Getters:
     const unsigned int get_count_sst() const { return count_sst; }
 
+    //---------------------------------------------------------------------//
     //------------------- FOR DEBUGGING PURPOSES --------------------------//
     const std::vector<MeanData>& get_mean_data() const { return mean; }
     const std::vector<double>& get_time_vector() const { return t; }
+    //---------------------------------------------------------------------//
     //---------------------------------------------------------------------//
 
 private:
