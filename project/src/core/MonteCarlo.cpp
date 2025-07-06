@@ -170,6 +170,21 @@ void MonteCarlo::freeFlight(){
         v[i][2] += a[2] * dt;
     }
 
+
+    /*
+    // Con "-" invece di "+" perché l'elettrone si muove in direzione opposta al campo E!
+    for(size_t i = 0; i < ne; i++){
+        r[mc::ELECTRONS][i][0] += v[i][0]*dt - 0.5 * a[0] * dt2;
+        v[i][0] -= a[0] * dt;
+
+        r[mc::ELECTRONS][i][1] += v[i][1]*dt - 0.5 * a[1] * dt2;
+        v[i][1] -= a[1] * dt;
+
+        r[mc::ELECTRONS][i][2] += v[i][2]*dt - 0.5 * a[2] * dt2;
+        v[i][2] -= a[2] * dt;
+    }
+    */
+
 }
 
 void MonteCarlo::collectMeanData(){
@@ -184,17 +199,16 @@ void MonteCarlo::collectMeanData(){
 void MonteCarlo::updateEnergyData(){
     // Calculates mean energy and EEDF data after steady state was reached
 
-    const unsigned int ne = v.size();
-
+    const unsigned int ne = v.size(); // number of electrons
     t_total += dt * ne; // sum of all times for all electrons
+    E.mean_energy(v2_int, t_total);
 
     // Compute kinetic energy for each electron:
     std::vector<double> E_in_eV(ne);    
     std::transform(v.begin(), v.end(), E_in_eV.begin(), [this](const std::array<double, 3>& vi) {
         return velocity2energy(vi).second;
     });
-
-    E.update_energy(E_in_eV,dt,ne,t_total);
+    E.energy_bins(E_in_eV);
     E.compute_distribution_function();  
 }
 

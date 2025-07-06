@@ -19,13 +19,20 @@ EnergyData::EnergyData(const std::vector<double>& energy_bins):
     }*/
 };
 
-void EnergyData::update_energy(const std::vector<double>& E_in_eV, const double dt, const unsigned int ne, const double t_total) {
-    // Update energy statistics
-    E_sum += std::accumulate(E_in_eV.begin(), E_in_eV.end(), 0.0) * dt;
-    E_mean = E_sum / t_total;
+void EnergyData::mean_energy(const mc::MATRIX& v2_int, const double& t_total){
+    // Compute mean energy by time-averaging energies of all electronm trajectories:
 
+    std::vector<double> E_int(v2_int.size());
+    std::transform(v2_int.begin(), v2_int.end(), E_int.begin(), [](const std::array<double, 3>& v2i){
+        return 0.5 * mc::me * (v2i[0] + v2i[1] + v2i[2]) / mc::q0;
+    });
+    E_sum += std::accumulate(E_int.cbegin(), E_int.cend(), 0.0);
+    E_mean = E_sum / t_total;
+}
+
+void EnergyData::energy_bins(const std::vector<double>& E_in_eV) {
     // Count energy in every bin 
-    for (unsigned int i = 0; i < ne; i++) {
+    for (unsigned int i = 0; i < E_in_eV.size(); i++) {
         const double en = E_in_eV[i];
         // Use binary search to find the appropriate bin
         if (en >= energy.front() && en <= energy.back()) {
@@ -52,4 +59,3 @@ void EnergyData::compute_distribution_function() {
         EEDF[0] = EEPF[0] / std::sqrt(energy[1]);
     }
 }
-

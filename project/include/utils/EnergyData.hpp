@@ -5,6 +5,9 @@
 #include <cmath>
 #include <numeric>
 #include <stdexcept>
+#include <algorithm>
+
+#include "Common.hpp"
 
 class EnergyData {
 public:
@@ -13,7 +16,8 @@ public:
     EnergyData(const std::vector<double>& energy_bins);
 
     // Public methods:
-    void update_energy(const std::vector<double>& E_in_eV, const double dt, const unsigned int ne, const double t_total);
+    void mean_energy(const mc::MATRIX& v2_int, const double& t_total);
+    void energy_bins(const std::vector<double>& E_in_eV);
     void compute_distribution_function();
 
     // Getters:

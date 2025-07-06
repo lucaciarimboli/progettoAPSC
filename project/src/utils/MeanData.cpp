@@ -1,7 +1,7 @@
 #include "utils/MeanData.hpp"
 
 MeanData::MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int ne):
-    // Constructor to set initial mean values
+    // Constructor to set initial mean value
     particles({ne, 0, 0}),
     position(r),
     var({s[0]*s[0], s[1]*s[1], s[2]*s[2]}), // variance is sigma^2
