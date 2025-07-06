@@ -2,7 +2,7 @@
 
 EnergyData::EnergyData(const std::vector<double>& energy_bins):
     energy(energy_bins),
-    EEPF_sum(energy_bins.size(), 0), 
+    EEPF_sum(energy_bins.size(), 0),
     EEPF(energy_bins.size(), 0.0),
     EEDF(energy_bins.size(), 0.0),
     E_sum(0.0),

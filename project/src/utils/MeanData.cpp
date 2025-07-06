@@ -35,7 +35,7 @@ MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATR
     // Compute mean energy:
     energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
                     [](double sum, const std::array<double, 3>& vi){
-                        double abs_v = std::sqrt(std::inner_product(vi.cbegin(), vi.cend(), vi.cbegin(), 0.0));
+                        double abs_v = std::sqrt(vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
                         return sum + 0.5 * mc::me * abs_v * abs_v / mc::q0;
                     }) / ne;
 

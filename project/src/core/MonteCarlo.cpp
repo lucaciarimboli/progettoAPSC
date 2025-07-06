@@ -19,7 +19,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
         return EnergyData(energy_bins);
     }()),
     bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
-    gen(std::random_device{}()), randu(0.0,1.0) {
+    gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
         
     // The check for the validity of the gas species is done in "CrossSectionsData" constructor
 
@@ -87,7 +87,7 @@ void MonteCarlo::mass_in_kg(){
 std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v) const {
     // calculates absolute value of velocity abs_v and energy
     // E_in_eV in eV for one electron.
-    double abs_v = std::sqrt(std::inner_product(v.cbegin(), v.cend(), v.cbegin(), 0.0));
+    double abs_v = std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
     double E_in_eV =  0.5 * mc::me *  abs_v * abs_v / mc::q0;
     return std::make_pair(abs_v,E_in_eV);
 }
@@ -102,9 +102,6 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
     // Initialize cations and anions populations as empty:
     r[mc::CATIONS].clear();
     r[mc::ANIONS].clear();
-
-    // Standard Gaussian distribution
-    std::normal_distribution<double> randn(0.0,1.0);
 
     for (size_t n = 0; n < N0; n++) {
         // Initialize to pos_xyz + noise if sigma_xyz != 0
@@ -208,6 +205,7 @@ void MonteCarlo::updateEnergyData(){
     std::transform(v.begin(), v.end(), E_in_eV.begin(), [this](const std::array<double, 3>& vi) {
         return velocity2energy(vi).second;
     });
+
     E.energy_bins(E_in_eV);
     E.compute_distribution_function();  
 }
@@ -328,12 +326,13 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * randu(gen);
         sin_phi = std::sin(phi);
-        cos_phi = std::cos(phi);
+        cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
         if(isotropic) cos_xsi = 1 - 2 * randu(gen);
-        else cos_xsi = (2 + v2e.second - 2 * (1+v2e.second) * randu(gen)) / v2e.second;
-        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi);
+        else cos_xsi = (2 + v2e.second - 2 * std::pow((1+v2e.second),randu(gen))) / v2e.second;
+        const double rand = randn(gen);    // random number to simulate the sign
+        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi) * ((rand>0)-(rand<0));
 
         // Compute theta: angle between x-axis and incident velocity:
         cos_theta = e_1[0];
@@ -399,12 +398,13 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * randu(gen);
         sin_phi = std::sin(phi);
-        cos_phi = std::cos(phi);
+        cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
         if(isotropic) cos_xsi = 1 - 2 * randu(gen);
-        else cos_xsi = (2 + v2e.second - 2 * (1+v2e.second) * randu(gen)) / v2e.second;
-        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi);
+        else cos_xsi = (2 + v2e.second - 2 * std::pow((1+v2e.second), randu(gen))) / v2e.second;
+        const double rand = randn(gen);    // random number to simulate the sign
+        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi) * ((rand>0)-(rand<0));
 
         // Compute theta: angle between x-axis and incident velocity:
         cos_theta = e_1[0];
@@ -473,12 +473,13 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * randu(gen);
         sin_phi = std::sin(phi);
-        cos_phi = std::cos(phi);
+        cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
         if(isotropic) cos_xsi = 1 - 2 * randu(gen);
-        else cos_xsi = (2 + v2e.second - 2 * (1+v2e.second) * randu(gen)) / v2e.second;
-        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi);
+        else cos_xsi = (2 + v2e.second - 2 * std::pow((1+v2e.second), randu(gen))) / v2e.second;
+        const double rand = randn(gen);    // random number to simulate the sign
+        sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi) * ((rand>0)-(rand<0));
 
         // Compute theta: angle between x-axis and incident velocity:
         cos_theta = e_1[0];
@@ -500,7 +501,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
 
         // Normalize e_2:
         double norm = std::sqrt(e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]);
-        for (int j = 0; j < 3; ++j) e_2[j] /= norm;
+        for (int j = 0; j < 3; j++) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
         double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
@@ -513,7 +514,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         }
 
         // Add the new electron to the simulation:
-        double v_abs_newe = std::sqrt(2.0 * (1-W) * E_2 * mc::q0 / mc::me);
+        double v_abs_newe = std::sqrt(2.0 * (1-W) * E_2_el * mc::q0 / mc::me);
         v.push_back({
             - v_abs_newe * e_2[0],
             - v_abs_newe * e_2[1],
@@ -614,9 +615,6 @@ void MonteCarlo::checkSteadyState(){
             std::cout << " Number of iterations until steady state: " << t.size()-1 << "\n";
             std::cout << " Number of collisions until steady state: " << collisions << "\n";
 
-            // For debugging purposes:
-            std::cout << " Size of r[ELECTRONS] at steady state: " << v.size() << "\n";
-
             collisions = 0;
             line = 1;
         }
@@ -646,8 +644,8 @@ bool MonteCarlo::endSimulation() {
         const std::array<double, 3> & w_bulk_err = bulk.get_w_err();
         const std::array<double, 3> & DN_bulk = bulk.get_DN();
         const std::array<double, 3> & DN_bulk_err = bulk.get_DN_err();  
-        if (std::abs(w_bulk_err[2] / w_bulk[2]) < w_err) {
-            //&& std::abs(DN_bulk_err[2] / DN_bulk[2]) < DN_err) {
+        if (std::abs(w_bulk_err[2] / w_bulk[2]) < w_err
+            && std::abs(DN_bulk_err[2] / DN_bulk[2]) < DN_err) {
 
             converge = 0;
             std::cout << "\n Simulation ended: errors in w < " 
@@ -798,9 +796,6 @@ void MonteCarlo::saveResults(const int64_t duration) const {
         file << "DN_x = " << DN_bulk[0] << " m^2/s\n";
         file << "DN_y = " << DN_bulk[1] << " m^2/s\n";
         file << "DN_z = " << DN_bulk[2] << " m^2/s\n";
-        file << "DN_x_err = " << DN_bulk_err[0] << " m^2/s\n";
-        file << "DN_y_err = " << DN_bulk_err[1] << " m^2/s\n";
-        file << "DN_z_err = " << DN_bulk_err[2] << " m^2/s\n\n";
     }
     
     // Flux transport data

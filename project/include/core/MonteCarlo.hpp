@@ -118,8 +118,9 @@ private:
     double EnergyLossInelastic  = 0;    // Heat energy loss in inelastic collisions
     double EnergyLossIonization = 0;    // heat energy loss in ionization collisions
 
-    std::default_random_engine gen;             // Random number generator:
-    std::uniform_real_distribution<> randu;     // Uniform distribution for random numbers:
+    std::default_random_engine gen;             // Random number generator
+    std::uniform_real_distribution<> randu;     // Uniform distribution for random numbers
+    std::normal_distribution<double> randn;     // Normal distribution for random numbers
 
 
     // Private Methods:
