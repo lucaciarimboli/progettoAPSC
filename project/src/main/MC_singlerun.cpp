@@ -95,14 +95,10 @@ int main(int argc, char* argv[]) {
     // Print the simulation time:
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-    if (duration >= 3600) {
-        const int hours = duration / 3600;
-        const int minutes = (duration % 3600) / 60;
-        std::cout << " Simulation ended in " << hours << " hours " << minutes << " minutes\n";
-    } else {
-        const int minutes = duration / 60;
-        std::cout << " Simulation ended in " << minutes << " minutes\n";
-    }
+
+    const int minutes = duration / 60;
+    const int seconds = duration % 60;
+    std::cout << " Simulation ended in " << minutes << " minutes, " << seconds << " seconds\n";    
 
     // Save results when simulation ends
     if(save_in_file){

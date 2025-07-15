@@ -11,14 +11,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
     conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
-    E([&]() {
-        std::vector<double> energy_bins;
-        energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);
-        for (double energy = 0.0; energy <= E_max; energy += dE) 
-            energy_bins.push_back(energy);
-        return EnergyData(energy_bins);
-    }()),
-    bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
+    E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
         
     // The check for the validity of the gas species is done in "CrossSectionsData" constructor
@@ -796,6 +789,9 @@ void MonteCarlo::saveResults(const int64_t duration) const {
         file << "DN_x = " << DN_bulk[0] << " m^2/s\n";
         file << "DN_y = " << DN_bulk[1] << " m^2/s\n";
         file << "DN_z = " << DN_bulk[2] << " m^2/s\n";
+        file << "DN_x_err = " << DN_bulk_err[0] << " m^2/s\n";
+        file << "DN_y_err = " << DN_bulk_err[1] << " m^2/s\n";
+        file << "DN_z_err = " << DN_bulk_err[2] << " m^2/s\n";
     }
     
     // Flux transport data
@@ -839,15 +835,11 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     file << "steady_state_time = " << T_sst * 1e9 << " ns\n";
     file << "final_time = " << t.back() * 1e9 << " ns\n";
     file << "convergence_status = " << converge << "\n";
-    if (duration >= 3600) {
-        const int hours = duration / 3600;
-        const int minutes = (duration % 3600) / 60;
-        file << "convergence_time = " << hours << " hours " << minutes << " minutes\n\n";
-    } else {
-        const int minutes = duration / 60;
-        file << "convergence_time = " << minutes << " minutes\n\n";
-    }
     
+    const int minutes = duration / 60;
+    const int seconds = duration % 60;
+    file << "convergence_time = " << minutes << " minutes, " << seconds << " seconds\n\n";
+
     // Energy losses
     file << "[ENERGY_LOSSES]\n";
     file << "elastic = " << EnergyLossElastic << " eV\n";

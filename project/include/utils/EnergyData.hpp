@@ -13,7 +13,7 @@ class EnergyData {
 public:
     // Constructors:
     EnergyData() = default;
-    EnergyData(const std::vector<double>& energy_bins);
+    EnergyData(const double& E_max, const double& E_step);
 
     // Public methods:
     void mean_energy(const mc::MATRIX& v2_int, const double& t_total);
@@ -22,14 +22,16 @@ public:
 
     // Getters:
     const std::vector<double>& get_energy() const { return energy; }
-    const double get_E_mean() const { return E_mean; }
+    const double& get_dE() const { return dE; }
+    const double& get_E_mean() const { return E_mean; }
     const std::vector<double>& get_EEPF() const { return EEPF; }
     const std::vector<double>& get_EEDF() const { return EEDF; }
 
 private:
 
     // Class members:
-    const std::vector<double> energy;    // Energy bins
+    std::vector<double> energy;    // Energy bins
+    const double dE;                     // Energy step
     std::vector<int> EEPF_sum;           // Histogram data
     std::vector<double> EEPF;            // Normalized Electron Energy Probability Function
     std::vector<double> EEDF;            // Electrons Energy Distribution Function

@@ -141,14 +141,14 @@ void RateDataConv::computeRates()
 {
 
     // Vector containing the energy values:
-    const std::vector<double> & energy_grid = Xsec.get_energy();
+    const std::vector<double> & energy_grid_XS = Xsec.get_energy();
 
     // Loop over all reactions:
     for(const table & t : Xsec.get_full_xs_data()) {
 
         // Compute the reaction rate for element "t"
         spec_rate rr;
-        rr.rate = convolution(energy_grid, t.section);
+        rr.rate = convolution(energy_grid_XS, t.section);
         rr.specie = t.specie_index;
         rr.interaction = t.interact;
         rr.reaction = t.react;
@@ -162,14 +162,23 @@ void RateDataConv::computeRates()
 // Compute the convolution for vectors x,y over the energy grid provided in E
 double RateDataConv::convolution(const std::vector<double>& x, const std::vector<double>& y) {
 
+    // x is an energy grid and y is the corresponding xs data relative to one element.
+    // The aim is to interpolate the values of y over the grid "energy" and then compute
+    // the rate by convolution with the probability density function of having an electron
+    // at a given energy level.
+
     // By construction in CrossSectionData.cpp,
     // the Xsections energy grid covers all the energy values of the simulation grid.
     // Convolution and linear interpolation can be called safely without further checks.
 
+    // x goes from 0.0 to E_max.
+    // energy goes from 0.0 to the least multiple of dE lower than E_max
+    // --> "x" range is equal or larger than "E_max" range
+
     // Get energy values and electrons energy probability function:
     const std::vector<double>& energy = E.get_energy();
     const std::vector<double>& EEPF = E.get_EEPF(); 
-    double dx = energy[1] - energy[0]; // Assume uniform grid spacing
+    const double& dx = E.get_dE(); // Assume uniform grid spacing
     double rate = 0.0;
 
     // Interpolate cross-section values to match the energy grid of E
