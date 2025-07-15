@@ -83,6 +83,7 @@ private:
 
 struct spec_rate {
     double rate;                      // Reaction rate
+    std::vector<double> sigma;        // Cross-section data for the reaction
     size_t specie;                    // Specie (identified by its index in the mix)
     mc::InteractionType interaction;  // Type of interaction
     std::string reaction;             // Type of reaction
@@ -111,8 +112,9 @@ class RateDataConv : public RateDataBase {
     const EnergyData& E;                          // Energy data
     const std::vector<double>& mix;               // Mixture fractions
 
-    // Private Method:
-    double convolution(const std::vector<double>& x, const std::vector<double>& y);
+    // Private Methods:
+    void linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, std::vector<double>& result) const;
+    double convolution(const std::vector<double>& sigma) const;
 };
 
 #endif // REACTION_RATES_HPP

@@ -135,10 +135,6 @@ RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en,
     // Set the correct size for the specific rates vector:
     // ( "+ mix.size()" to account for effective xs data )
     specific_rates.reserve(Xsec.get_n_react() + mix.size());
-}
-
-void RateDataConv::computeRates()
-{
 
     // Vector containing the energy values:
     const std::vector<double> & energy_grid_XS = Xsec.get_energy();
@@ -148,24 +144,20 @@ void RateDataConv::computeRates()
 
         // Compute the reaction rate for element "t"
         spec_rate rr;
-        rr.rate = convolution(energy_grid_XS, t.section);
+        rr.sigma.reserve(E.get_energy().size());
+        linear_interpolation(energy_grid_XS, t.section, rr.sigma);
         rr.specie = t.specie_index;
         rr.interaction = t.interact;
         rr.reaction = t.react;
         specific_rates.push_back(rr);
-
-        // Update total reaction rate
-        rates[t.interact] += rr.rate * mix[t.specie_index];
     }    
 }
 
-// Compute the convolution for vectors x,y over the energy grid provided in E
-double RateDataConv::convolution(const std::vector<double>& x, const std::vector<double>& y) {
+void RateDataConv::linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, std::vector<double>& result) const
+{
 
     // x is an energy grid and y is the corresponding xs data relative to one element.
-    // The aim is to interpolate the values of y over the grid "energy" and then compute
-    // the rate by convolution with the probability density function of having an electron
-    // at a given energy level.
+    // The aim is to interpolate the values of y over the grid "energy".
 
     // By construction in CrossSectionData.cpp,
     // the Xsections energy grid covers all the energy values of the simulation grid.
@@ -177,25 +169,50 @@ double RateDataConv::convolution(const std::vector<double>& x, const std::vector
 
     // Get energy values and electrons energy probability function:
     const std::vector<double>& energy = E.get_energy();
-    const std::vector<double>& EEPF = E.get_EEPF(); 
-    const double& dx = E.get_dE(); // Assume uniform grid spacing
-    double rate = 0.0;
 
     // Interpolate cross-section values to match the energy grid of E
     //const std::vector<double> sigma_f = linear_interpolation(x, y, energy);
     size_t i = 0; // Index for the x vector (energy grid for xs)
-    for (size_t n = 0; n < energy.size(); n++) {
+    for (auto it = energy.cbegin(); it != energy.cend(); it++) {
 
-        // Interpolate xs value over the energy grid:
-        const double xq = energy[n]; 
-        const double t = (xq - x[i]) / (x[i + 1] - x[i]);
-        const double sigma_f = y[i] + t * (y[i + 1] - y[i]);
-        
+        const double xq = *it; // current energy grid node
+
         // Update index i:
         while( i < x.size() - 1 && xq > x[i + 1]) i++;
 
-        // Update convolution integral result:
-        rate += EEPF[n] * std::sqrt(xq) * sigma_f * dx;
+        // Interpolate xs value over the energy grid: 
+        const double t = (xq - x[i]) / (x[i + 1] - x[i]);
+        result.push_back(y[i] + t * (y[i + 1] - y[i]));
+    }
+}
+
+void RateDataConv::computeRates(){
+    for(spec_rate & rr : specific_rates) {
+
+        // Compute the reaction rate for element "rr"
+        rr.rate = convolution(rr.sigma);
+
+        // Update total reaction rate
+        rates[rr.interaction] += rr.rate * mix[rr.specie];
+    }
+
+    rates[mc::EFFECTIVE] = rates[mc::IONIZATION] - rates[mc::ATTACHMENT];
+}
+
+double RateDataConv::convolution(const std::vector<double>& sigma) const
+{
+
+    // Compute the rate by convolution of the cross section
+    // with the probability density function of having an electron at a given energy level.
+
+    // Get energy values and electrons energy probability function:
+    const std::vector<double>& energy = E.get_energy();
+    const std::vector<double>& EEPF = E.get_EEPF(); 
+    const double& dx = E.get_dE(); // Assume uniform grid spacing
+    double rate = 0.0;
+
+    for (size_t j = 0; j < energy.size(); j++) {
+        rate += EEPF[j] * std::sqrt(energy[j]) * sigma[j] * dx;
     }
 
     // Return the computed rate:
