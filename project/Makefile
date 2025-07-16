@@ -1,8 +1,8 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -O0 -Wall
+CXXFLAGS = -std=c++17 -O2 -Wall
 DEBUG_FLAGS = $(CXXFLAGS) -g -DDEBUG
-PROFILER_FLAGS = $(CXXFLAGS) -pg -g -O2
+PROFILER_FLAGS = $(CXXFLAGS) -pg -g -O0
 GPROF_FLAGS = --demangle --display-unused-functions
 
 # Directories

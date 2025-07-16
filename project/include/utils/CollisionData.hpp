@@ -17,9 +17,9 @@ public:
     CollisionData(const CrossSectionsData& Xsec, const std::vector<double>& mgas);
 
     // Public Method:
-    void ComputeIndeces(const int n_electrons, const CrossSectionsData& Xsec,
-        const std::vector<double>& E_in_eV, const std::vector<double>& mix,
-        const double density, const std::vector<double>& R);
+    void ComputeIndeces(const int& n_electrons, const CrossSectionsData& Xsec,
+        const std::vector<double>& E_in_eV, const std::vector<double>& v_abs, const std::vector<double>& mix,
+        const double& density, const std::vector<double>& R);
 
     // Getters:
     const std::vector<double>& getMass() const { return Mass; }
@@ -37,8 +37,8 @@ private:
 
     std::unordered_set<size_t> col_ela;           // react indeces for elastic collision
     std::unordered_set<size_t> col_exc;           // react indeces for excitation collision
-    std::unordered_set<size_t> col_ion;            // react indeces for ionization collision
-    std::unordered_set<size_t> col_att;            // react indeces for attachment collision
+    std::unordered_set<size_t> col_ion;           // react indeces for ionization collision
+    std::unordered_set<size_t> col_att;           // react indeces for attachment collision
 
     // Vectors to be updated at each time step:
     std::vector<double> Mass;              // Mass vector
@@ -50,8 +50,8 @@ private:
     std::vector<size_t> ind_att;           // Collision indices for attachment collision
 
     // Private Methods:
-    const size_t CollisionMatrix(const double R, const CrossSectionsData& Xsec,
-        const std::vector<double>& mix, const double E_in_eV, const double density);
+    const size_t CollisionMatrix(const double& R, const CrossSectionsData& Xsec,
+        const std::vector<double>& mix, const double& E_in_eV, const double& factor);
     void fill_Mass(const std::vector<size_t>& ind);
     void fill_Loss(const std::vector<size_t> & ind);
     void find_collision_indeces( const std::vector<size_t>& ind);

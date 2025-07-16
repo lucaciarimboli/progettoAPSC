@@ -15,6 +15,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
         
     // The check for the validity of the gas species is done in "CrossSectionsData" constructor
+    Xsec.remove_effective_xs();
 
     // Check mix vector validity:
     checkFractionSum();
@@ -80,9 +81,9 @@ void MonteCarlo::mass_in_kg(){
 std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v) const {
     // calculates absolute value of velocity abs_v and energy
     // E_in_eV in eV for one electron.
-    double abs_v = std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-    double E_in_eV =  0.5 * mc::me *  abs_v * abs_v / mc::q0;
-    return std::make_pair(abs_v,E_in_eV);
+    const double abs_v2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+    const double E_in_eV =  0.5 * mc::me *  abs_v2 / mc::q0;
+    return std::make_pair(std::sqrt(abs_v2),E_in_eV);
 }
 
 void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz){
@@ -196,7 +197,8 @@ void MonteCarlo::updateEnergyData(){
     // Compute kinetic energy for each electron:
     std::vector<double> E_in_eV(ne);    
     std::transform(v.begin(), v.end(), E_in_eV.begin(), [this](const std::array<double, 3>& vi) {
-        return velocity2energy(vi).second;
+        const double abs_v2 = vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2];
+        return 0.5 * mc::me * abs_v2 / mc::q0;
     });
 
     E.energy_bins(E_in_eV);
@@ -232,24 +234,25 @@ void MonteCarlo::updateCollisionMatrix(){
     // Extract number of electrons:
     const int num_particles = v.size();
 
-    // From electron velocity compute energies in eV and extract the velocity modules:
+    // From electron velocity compute energies in eV:
+    std::vector<double> v_abs;
+    v_abs.reserve(num_particles);
+    std::transform(v.begin(), v.end(), std::back_inserter(v_abs), [this](const std::array<double, 3>& vi) {
+        return std::sqrt(vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
+    });
+
     std::vector<double> E_in_eV;
-    //std::vector<double> v_abs;
     E_in_eV.reserve(num_particles);
-    //v_abs.reserve(num_particles);
-    std::transform(v.begin(), v.end(), std::back_inserter(E_in_eV), [this](const std::array<double, 3>& vi) {
-            return velocity2energy(vi).second;
-        });
-    /*std::transform(v.begin(), v.end(), std::back_inserter(v_abs), [this](const std::array<double, 3>& vi) {
-            return velocity2energy(vi).first;
-        });*/
+    std::transform(v_abs.begin(), v_abs.end(), std::back_inserter(E_in_eV), [this](const double& vi_abs) {
+        return 0.5 * mc::me *  vi_abs * vi_abs / mc::q0;
+    });
 
     // Generate random numbers for collision indeces:
     std::vector<double> R(num_particles);
     std::generate(R.begin(), R.end(), [this]() { return randu(gen); });
     
     // Build collision matrix and compute indeces:
-    C.ComputeIndeces(num_particles, Xsec, E_in_eV, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
+    C.ComputeIndeces(num_particles, Xsec, E_in_eV, v_abs, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
     // Update total number of collisions:
     collisions += C.getCollisions();
 }

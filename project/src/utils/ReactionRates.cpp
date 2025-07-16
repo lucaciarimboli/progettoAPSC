@@ -135,7 +135,6 @@ RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en,
 
     // Loop over all reactions:
     for(const table & t : Xsec.get_full_xs_data()) {
-
         // Compute the reaction rate for element "t"
         spec_rate rr;
         rr.sigma.reserve(E.get_energy().size());
@@ -181,10 +180,15 @@ void RateDataConv::linear_interpolation(const std::vector<double>& x, const std:
 }
 
 void RateDataConv::computeRates(){
+
+    const double factor = std::sqrt(2.0 * mc::q0 / mc::me) * E.get_dE();
+    const std::vector<double>& EEPF = E.get_EEPF(); 
+    const std::vector<double>& sqrt_energy = E.get_sqrt_E();
+
     for(spec_rate & rr : specific_rates) {
 
         // Compute the reaction rate for element "rr"
-        rr.rate = convolution(rr.sigma);
+        rr.rate = factor * convolution(rr.sigma, EEPF, sqrt_energy);
 
         // Update total reaction rate
         rates[rr.interaction] += rr.rate * mix[rr.specie];
@@ -193,22 +197,36 @@ void RateDataConv::computeRates(){
     rates[mc::EFFECTIVE] = rates[mc::IONIZATION] - rates[mc::ATTACHMENT];
 }
 
-double RateDataConv::convolution(const std::vector<double>& sigma) const
+double RateDataConv::convolution(const std::vector<double>& sigma, const std::vector<double>& EEPF,
+      const std::vector<double>& sqrt_energy) const
 {
-
     // Compute the rate by convolution of the cross section
     // with the probability density function of having an electron at a given energy level.
-
-    // Get energy values and electrons energy probability function:
-    const std::vector<double>& energy = E.get_energy();
-    const std::vector<double>& EEPF = E.get_EEPF(); 
-    const double& dx = E.get_dE(); // Assume uniform grid spacing
+    
     double rate = 0.0;
+    for (size_t j = 0; j < sqrt_energy.size(); j++) {
+        rate += EEPF[j] * sqrt_energy[j] * sigma[j];
+    }
 
-    for (size_t j = 0; j < energy.size(); j++) {
-        rate += EEPF[j] * std::sqrt(energy[j]) * sigma[j] * dx;
+    return rate;
+
+    /*
+    // Loop unrolling to improve performance:
+    double rate1 = 0.0;
+    double rate2 = 0.0;
+    double rate3 = 0.0;
+    double rate4 = 0.0;
+    double rate5 = 0.0;
+
+    for(size_t i = 0; i < EEPF.size(); i+=5){
+        rate1 += EEPF[i] * sqrt_energy[i] * sigma[i];
+        rate2 += EEPF[i+1] * sqrt_energy[i+1] * sigma[i+1];
+        rate3 += EEPF[i+2] * sqrt_energy[i+2] * sigma[i+2];
+        rate4 += EEPF[i+3] * sqrt_energy[i+3] * sigma[i+3];
+        rate5 += EEPF[i+4] * sqrt_energy[i+4] * sigma[i+4];
     }
 
     // Return the computed rate:
-    return std::sqrt(2.0 * mc::q0 / mc::me) * rate;   
+    return rate1 + rate2 + rate3 + rate4 + rate5;  
+    */ 
 }

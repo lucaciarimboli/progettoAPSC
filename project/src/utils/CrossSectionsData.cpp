@@ -304,3 +304,18 @@ const std::vector<table> CrossSectionsData::get_Xsections( const std::string & s
     // Get the cross-section data for the specified specie and interaction
     return get_Xsections(species_index, it->second);
 }
+
+void CrossSectionsData::remove_effective_xs() {
+    // Within the MonteCarlo simulation, the full Xsections vector is accessed only by the classes
+    // RateDataConv and CollisionData. In both cases, the presence effective cross section data is
+    // not only unnecesary, but also it affects drastically the performance due to the need
+    // of checking multiple times if the interaction is effective or not, before accessing the actual data.
+
+    // Since the CrossSectionData class might have more general application as it only imports and stores
+    // the cross-section data from .txt data files, this public method has been specifically defined
+    // for the MonteCarlo collision-code application only and is called in the MonteCarlo class constructor. 
+
+    // Remove effective xs data from the Xsections vector
+    Xsections.erase(std::remove_if(Xsections.begin(), Xsections.end(),
+        [](const table& t) { return t.interact == mc::EFFECTIVE; }), Xsections.end());
+}

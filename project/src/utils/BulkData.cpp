@@ -1,8 +1,8 @@
 #include "utils/BulkData.hpp"
 
 void BulkData::normalize(std::vector<double> & y, const double & y_max) {
-        std::transform(y.begin(), y.end(), y.begin(), [y_max](double yy) { return yy / y_max; });
-    };
+    std::transform(y.begin(), y.end(), y.begin(), [y_max](double yy) { return yy / y_max; });
+};
 
 void BulkData::update_bulk(const std::vector<double> & tt, const unsigned int & count_sst, const std::vector<MeanData> & mea, const double & N){
     // PER MIGLIORARE update_bulk() CONSIDERA DI AGGIORNARE SOLO L'ELEMENTO IN CODA DI t E mean
@@ -135,7 +135,7 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
     // Returned array is B = [m,u_m] where:
     // y[i] = q + m*t[i] + res, m € (m-um/2,m+um/2) with >95% confidence.
         
-    size_t n = y.size();
+    const size_t n = y.size();
 
     // Compute mean values:
     const double x_mean = std::accumulate(t.cbegin(), t.cend(), 0.0) / n;
@@ -177,6 +177,6 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
 
     // Confidence interval of 95% for slope with 8 dof (minimum value of n-2):
     //double t_value = 1.860; 
-    double t_value = 1.645 + 1.72 / (n - 2); // linear interpolation for t-student quantile
+    const double t_value = 1.645 + 1.72 / (n - 2); // linear interpolation for t-student quantile
     return { m, 2 * t_value * standard_err };
 };

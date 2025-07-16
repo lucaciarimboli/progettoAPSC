@@ -41,6 +41,8 @@ public:
     // Option 2: pass strings with specie and interaction names
     const std::vector<table> get_Xsections( const std::string & specie, const std::string & interaction) const;
 
+    void remove_effective_xs();
+
 private:
 
     // Class Members:

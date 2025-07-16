@@ -11,7 +11,12 @@ EnergyData::EnergyData(const double& E_max, const double& E_step):
     }
 
     energy.reserve(n_bins);
-    for (size_t i = 0; i < n_bins; i++) energy.push_back(i * dE);
+    sqrt_E.reserve(n_bins);
+    for (size_t i = 0; i < n_bins; i++){
+        energy.push_back(i * dE);
+        sqrt_E.push_back(std::sqrt(energy.back()));
+
+    }
     // Note that energy.back() <= E_max
 
     EEPF_sum.resize(n_bins, 0);
@@ -51,10 +56,10 @@ void EnergyData::compute_distribution_function() {
 
     for (size_t j = 1; j < energy.size(); j++) {
         EEPF[j] = EEPF_sum[j] / (total_sum * dE);
-        EEDF[j] = EEPF[j] / std::sqrt(energy[j]);
+        EEDF[j] = EEPF[j] / sqrt_E[j];
     }
 
     // Handle separately the energy level E=0 to avoid division by 0 (energy[0] = 0.0):
     EEPF[0] = EEPF_sum[0] / (total_sum * dE);
-    EEDF[0] = EEPF[0] / std::sqrt(energy[1]);
+    EEDF[0] = EEPF[0] / sqrt_E[0];
 }

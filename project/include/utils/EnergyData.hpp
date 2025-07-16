@@ -22,6 +22,7 @@ public:
 
     // Getters:
     const std::vector<double>& get_energy() const { return energy; }
+    const std::vector<double>& get_sqrt_E() const { return sqrt_E; }
     const double& get_dE() const { return dE; }
     const double& get_E_mean() const { return E_mean; }
     const std::vector<double>& get_EEPF() const { return EEPF; }
@@ -30,7 +31,8 @@ public:
 private:
 
     // Class members:
-    std::vector<double> energy;    // Energy bins
+    std::vector<double> energy;          // Energy bins
+    std::vector<double> sqrt_E;          // Square root of energy values
     const double dE;                     // Energy step
     std::vector<int> EEPF_sum;           // Histogram data
     std::vector<double> EEPF;            // Normalized Electron Energy Probability Function
