@@ -53,23 +53,21 @@ void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsig
 }
 
 void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key) {
-    // Check correctness of x,y.
-    if(x.size() < 2) {
-        throw std::invalid_argument("x vector must have at least two elements");
-    }
-    if(y.size() != x.size()) {
-        throw std::invalid_argument("x and y vectors must have the same size");
-    }
-    // Remark that inside MonteCarlo.cpp, if this method is called x,y have the same size >10.
 
-    std::vector<double> ratio(x.size() - 1); // ratio is element-wise division of y by time x
+    std::vector<double> ratio; // ratio is element-wise division of y by time x
+    ratio.reserve(x.size() - 1);
 
     for (size_t i = 1; i < x.size(); i++) {
-        ratio[i - 1] = y[i] / x[i]; 
+        ratio.push_back(y[i] / x[i]);
     }
     
-    rates[rate_key] = std::accumulate(ratio.begin(), ratio.end(), 0.0) / (ratio.size()) / N;
-    rates_errors[rate_key] = std::sqrt(std::inner_product(ratio.begin(), ratio.end(), ratio.begin(), 0.0) / (ratio.size() - 1)) / (x.size() - 1) / N;
+    // Compute mean and standard error of y(2:end)./x(2:end)
+    double mean = std::accumulate(ratio.begin(), ratio.end(), 0.0) / ratio.size();
+    double std = std::sqrt(std::accumulate(ratio.begin(), ratio.end(), 0.0,
+        [mean](double sum, double val) { return sum + (val - mean) * (val - mean);}
+        ) / (ratio.size() - 1));
+    rates[rate_key] = mean / N;
+    rates_errors[rate_key] = std / std::sqrt(static_cast<double>(ratio.size())) / N;
 }
 
 void RateDataCount::computeNonConserved() {
@@ -106,26 +104,22 @@ void RateDataCount::computeNonConserved() {
 }
 
 void RateDataCount::computeConserved() {
-    // y[0] is for effective ionization, y[1] for ionization and y[2] for attachment
-    std::array<std::vector<double>,mc::PARTICLES_TYPES> y;
-    size_t count_sst = particles[mc::ELECTRONS].size();
-    y[0].resize(count_sst, 0.0);
-    y[1].resize(count_sst, 0.0);
-    y[2].resize(count_sst, 0.0);
 
     const double initial_electrons = static_cast<double>(particles[mc::ELECTRONS][0]);
-    //if(initial_electrons == 0) throw std::invalid_argument("Number of electrons cannot be zero");
+    const size_t count_sst = particles[mc::ELECTRONS].size();
+
+    std::vector<double> y(count_sst,0.0);
 
     // Compute effective ionization, ionization and attachment rates:
     for (int i = 0; i < 3; i++){
 
         // Define y vector as normalized particles gain
-        std::transform(particles[i].cbegin(), particles[i].cend(), y[i].begin(), [this,i,initial_electrons](int part_ij) {
+        std::transform(particles[i].cbegin(), particles[i].cend(), y.begin(), [this,i,initial_electrons](int part_ij) {
             return (static_cast<double>(part_ij - particles[i][0]) / initial_electrons);
         });
 
         // Compute effective ionization, ionization and attachment rates:
-        computeRate(x, y[i], i);
+        computeRate(x, y, i);
     }
 }
 

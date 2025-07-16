@@ -1,13 +1,16 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall
-DEBUG_FLAGS = -g -DDEBUG -O0 -Wall
+CXXFLAGS = -std=c++17 -O0 -Wall
+DEBUG_FLAGS = $(CXXFLAGS) -g -DDEBUG
+PROFILER_FLAGS = $(CXXFLAGS) -pg -g -O2
+GPROF_FLAGS = --demangle --display-unused-functions
 
 # Directories
 SRC_DIR = src
 INCLUDE_DIR = include
 BUILD_DIR = build
 DATA_DIR = data/config
+PROFILER_DIR = profiler
 
 # Source files
 CORE_SOURCES = $(wildcard $(SRC_DIR)/core/*.cpp)
@@ -23,16 +26,13 @@ MAIN_OBJECTS = $(MAIN_SOURCES:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 ALL_OBJECTS = $(CORE_OBJECTS) $(UTILS_OBJECTS) $(MAIN_OBJECTS)
 
 # Executable
-EXECUTABLE = $(BUILD_DIR)/mc_sim
+EXEC = $(BUILD_DIR)/mc_sim
 
 # Json file
 DATA_FILE = $(DATA_DIR)/simulation.json
 
-# Default target
-all: $(EXECUTABLE)
-
 # Main executable
-$(EXECUTABLE): $(ALL_OBJECTS) | $(BUILD_DIR)
+$(EXEC): $(ALL_OBJECTS) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Object files compilation
@@ -44,26 +44,42 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Debug build
-debug: CXXFLAGS += $(DEBUG_FLAGS)
-debug: $(EXECUTABLE)
+# Phony targets
+.PHONY: build debug run clean profiler help
+
+# Build target
+all: $(EXEC)	
 
 # Run the program
 run: 
-	./$(EXECUTABLE) $(DATA_FILE)
+	./$(EXEC) $(DATA_FILE)
 
 # Clean build files
 clean:
 	rm -rf $(BUILD_DIR)
 
-# Phony targets
-.PHONY: all debug run clean
+# Debug build
+debug:
+	@$(MAKE) --no-print-directory clean
+	@$(MAKE) --no-print-directory all CXXFLAGS="$(DEBUG_FLAGS)"
+	@$(MAKE) --no-print-directory run
+ 
+# Profiler build and run
+profile: 
+	rm -rf $(PROFILER_DIR)
+	mkdir -p $(PROFILER_DIR)
+	@$(MAKE) --no-print-directory clean
+	@$(MAKE) --no-print-directory all CXXFLAGS="$(PROFILER_FLAGS)"
+	@$(MAKE) --no-print-directory run
+	gprof $(GPROF_FLAGS) $(EXEC) > $(PROFILER_DIR)/report.txt
+	rm -f gmon.out
 
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  all  - Build executable (default)"
-	@echo "  run    - Run program using data from 'data/config/simulation.json'"
-	@echo "  clean  - Remove build directory"
-	@echo "  debug  - Build with debug flags"
-	@echo "  help   - Show this help message"
+	@echo "  all  		 	- Build executable (default)"
+	@echo "  run     		- Run program using data from 'data/config/simulation.json'"
+	@echo "  clean  		- Remove build directory"
+	@echo "  debug  		- Build and run with debug flags"
+	@echo "  profile 		- Build and run with profiling enabled, gprof report saved in 'profiler/'"
+	@echo "  help   		- Show this help message"

@@ -25,17 +25,21 @@ make
 # Run the simulation using data in 'data/config/simulation.json'
 make run
 
-# Build with debug flags
-make debug
-
 # Remove build directory
 make clean
+
+# Build and run with debug flags
+make debug
+
+# Build and run with profiler enabled
+make profile
 
 # Show help with available targets
 make help
 ```
 
 The executable will be created in the `build/` directory as `mc_sim`.
+In case of gprof profiler enabled, the output file is saved in `profiler/` directory as `report.txt`
 
 ## Usage
 

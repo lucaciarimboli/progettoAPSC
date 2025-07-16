@@ -1,6 +1,7 @@
 build/
 results/
 /core*
+profiler/
 
 # VS Code settings and configuration files
 .vscode/

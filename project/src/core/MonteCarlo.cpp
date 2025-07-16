@@ -727,13 +727,19 @@ void MonteCarlo::printOnScreen() {
 void MonteCarlo::saveResults(const int64_t duration) const {
     // Prints the final results of the simulation to a file
 
-    // Generate file .txt to save results
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    std::tm* local_time = std::localtime(&time_t);
-    std::stringstream ss;
-    ss << "results/" << std::put_time(local_time, "%Y-%m-%d_%H-%M") << ".txt";
-    std::string filename = ss.str();
+    // Find the next available filename in the form "results/resultN.txt"
+    int file_index = 1;
+    std::string filename;
+    while(true) {
+        std::stringstream ss;
+        ss << "results/result" << file_index << ".txt";
+        filename = ss.str();
+        std::ifstream test_file(filename);
+        if (!test_file.good()) {
+            break;
+        }
+        file_index++;
+    }
     
     std::ofstream file(filename);
     if (!file.is_open()) {
@@ -741,9 +747,10 @@ void MonteCarlo::saveResults(const int64_t duration) const {
         return;
     }
     
-    file << std::fixed << std::setprecision(6);
-    
-    // Header
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+
+    file << std::scientific << std::setprecision(6);
     file << "# Monte Carlo Electron Transport Simulation Results\n";
     file << "# Generated on: " << std::ctime(&time_t);
     file << "# ================================================\n\n";

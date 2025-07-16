@@ -5,7 +5,7 @@ EnergyData::EnergyData(const double& E_max, const double& E_step):
     E_sum(0.0),
     E_mean(0.0)
 {
-    const size_t n_bins = static_cast<size_t>(E_max / dE) + 1;
+    const size_t n_bins = static_cast<size_t>(E_max / dE);
     if (n_bins < 2) {
         throw std::invalid_argument("Energy bins must have at least two elements.");
     }
