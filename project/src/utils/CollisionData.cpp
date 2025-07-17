@@ -61,7 +61,7 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
 
     // Define vector to store which reaction will happen for each electron:
     std::vector<size_t> ind;
-    ind.resize(n_electrons,1);
+    ind.reserve(n_electrons);
 
     // Common factor in the collision matrix:
     const double common_factor = density / Xsec.get_nu_max();
@@ -69,7 +69,7 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
     // Compute the cumulative sum by electron of the collision matrix:
     for( int i = 0; i < n_electrons; i++){
         // Simulate which collision the i-esim electron undergoes:
-        ind[i] = CollisionMatrix(R[i], Xsec, mix, E_in_eV[i], v_abs[i]*common_factor);
+        ind.push_back(CollisionMatrix(R[i], Xsec, mix, E_in_eV[i], v_abs[i]*common_factor));
     }
 
     // Compute Mass, Loss and indeces vectors:
@@ -85,23 +85,11 @@ const size_t CollisionData::CollisionMatrix(const double& R, const CrossSections
 
     const std::vector<double>& xx = Xsec.get_energy();  // energy bins (eV) from xs data
 
-    // Compute the absolute value of the velocity:
-    // const double v_abs = std::sqrt(2.0 * E_in_eV * mc::q0 / mc::me); // m/s
-
-    size_t react_index = 0;     // Index for the current reaction
     size_t collision_index = 0; // Index for the collision which the electron is undergoing
 
     double c = 0.0;             // cumsum of the collision matrix row corresponding to the current electron
 
     // Compute the collision frequency by interpolation:
-    /*
-    size_t k = 0; // index s.t. xx[k] <= E_in_eV < xx[k+1]
-    if (E_in_eV >= xx.back()) {
-        k = xx.size() - 2;
-    } else {
-        while (k < xx.size() - 1 && E_in_eV > xx[k + 1]) k++;
-    }
-    */
     auto it = std::upper_bound(xx.cbegin(), xx.cend(), E_in_eV);
     const size_t k = std::min(
         static_cast<size_t>(it - xx.begin() - 1),
@@ -110,8 +98,6 @@ const size_t CollisionData::CollisionMatrix(const double& R, const CrossSections
     const double t = (E_in_eV - xx[k]) / (xx[k + 1] - xx[k]);
 
     for(auto it = Xsec.get_full_xs_data().cbegin(); it != Xsec.get_full_xs_data().cend(); it++){ 
-
-        //if( it->interact != mc::EFFECTIVE){
 
         // Obtain by interpolation the xsec value corresponding to electron energy level:
         const std::vector<double>& yy = it->section;
@@ -122,8 +108,6 @@ const size_t CollisionData::CollisionMatrix(const double& R, const CrossSections
 
         if( c > R) break;
         collision_index++;
-        react_index++;
-        //}
     }
 
     return collision_index;

@@ -86,6 +86,8 @@ private:
     const bool isotropic;           // isotropic scattering (true) or not (false)
 
     const double W;                 // energy sharing in ionizing collision
+    const double sqrtW;             // std::sqrt(W) -> pre computation
+    const double sqrt1_W;           // std::sqrt(1-W) -> pre computation
     double E_max;                   // maximum electron energy
     const double EN;                // Electric field per-electron [Td]
 

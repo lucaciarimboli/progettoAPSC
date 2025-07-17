@@ -95,7 +95,7 @@ class RateDataConv : public RateDataBase {
     public:
 
     // Constructor:
-    RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix);
+    RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix, const double& dE);
 
     // Public Method:
     void computeRates() override;
@@ -111,6 +111,8 @@ class RateDataConv : public RateDataBase {
     const CrossSectionsData& Xsec;                // cross_section data
     const EnergyData& E;                          // Energy data
     const std::vector<double>& mix;               // Mixture fractions
+
+    const double factor;                          // Pre-computed "sqrt(2*q0/me)*dE" for performance
 
     // Private Methods:
     void linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, std::vector<double>& result) const;

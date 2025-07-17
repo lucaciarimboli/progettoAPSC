@@ -123,8 +123,8 @@ void RateDataCount::computeConserved() {
     }
 }
 
-RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix) 
-    : Xsec(xs), E(en), mix(mix)
+RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix, const double& dE) 
+    : Xsec(xs), E(en), mix(mix), factor(std::sqrt(2.0 * mc::q0 / mc::me) * dE)
 {
     // Set the correct size for the specific rates vector:
     // ( "+ mix.size()" to account for effective xs data )
@@ -181,7 +181,6 @@ void RateDataConv::linear_interpolation(const std::vector<double>& x, const std:
 
 void RateDataConv::computeRates(){
 
-    const double factor = std::sqrt(2.0 * mc::q0 / mc::me) * E.get_dE();
     const std::vector<double>& EEPF = E.get_EEPF(); 
     const std::vector<double>& sqrt_energy = E.get_sqrt_E();
 
@@ -209,24 +208,4 @@ double RateDataConv::convolution(const std::vector<double>& sigma, const std::ve
     }
 
     return rate;
-
-    /*
-    // Loop unrolling to improve performance:
-    double rate1 = 0.0;
-    double rate2 = 0.0;
-    double rate3 = 0.0;
-    double rate4 = 0.0;
-    double rate5 = 0.0;
-
-    for(size_t i = 0; i < EEPF.size(); i+=5){
-        rate1 += EEPF[i] * sqrt_energy[i] * sigma[i];
-        rate2 += EEPF[i+1] * sqrt_energy[i+1] * sigma[i+1];
-        rate3 += EEPF[i+2] * sqrt_energy[i+2] * sigma[i+2];
-        rate4 += EEPF[i+3] * sqrt_energy[i+3] * sigma[i+3];
-        rate5 += EEPF[i+4] * sqrt_energy[i+4] * sigma[i+4];
-    }
-
-    // Return the computed rate:
-    return rate1 + rate2 + rate3 + rate4 + rate5;  
-    */ 
 }

@@ -9,10 +9,17 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
 
     N0(N0), N(p/(mc::kB * T)), gas(gas), mix(mix), Xsec(gas, E_max, mix, N),
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
-    conserve(conserve), isotropic(isotropic), W(W), E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
+    conserve(conserve), isotropic(isotropic), W(W), sqrtW(std::sqrt(W)), sqrt1_W(std::sqrt(1-W)),
+    E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
-    E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix), rates_count(N, conserve),
+    E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix, dE), rates_count(N, conserve),
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
+    
+    //----------------------------------------------------------------------------------------------------------//
+    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
+    gen.seed(200);
+    //----------------------------------------------------------------------------------------------------------//
+    //----------------------------------------------------------------------------------------------------------//
         
     // The check for the validity of the gas species is done in "CrossSectionsData" constructor
     Xsec.remove_effective_xs();
@@ -22,13 +29,6 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
 
     // Compute mass of the gas species in kg:
     mass_in_kg();
-
-    // Initialize energy data:
-    //std::vector<double> energy_bins;
-    //energy_bins.reserve(static_cast<size_t>(E_max / dE) + 1);  // Avoid reallocations
-    //for (double E = 0.0; E <= E_max; E += dE) energy_bins.push_back(E);
-    //E = EnergyData(energy_bins);
-    // E = EnergyData(E_max, dE);
 
     // Set electric field E (constant and uniform):
     const double E_x = 0;
@@ -444,10 +444,10 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
 
     double E_1 = 0.0;                       // total energy before collision
     double E_2 = 0.0;                       // total energy after collision
-    std::array<double,3> e_x = {1.0, 0.0, 0.0};  // x-direction versor
+    const std::array<double,3> e_x = {1.0, 0.0, 0.0};  // x-direction versor
 
     // Number of created electrons by ionization:
-    int delta_Ne = ind.size();
+    const int delta_Ne = ind.size();
 
     double sin_phi;
     double cos_phi;
@@ -458,17 +458,18 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
 
     for(int i = 0; i < delta_Ne; i++){
 
-        size_t el_index = ind[i];       // electron index
-        std::pair<double,double> v2e = velocity2energy(v[el_index]);
+        const size_t el_index = ind[i];       // electron index
+        const std::pair<double,double> v2e = velocity2energy(v[el_index]);
         // Compute energy before collision
         E_1 += v2e.second;
 
         // Compute incident direction of scattering electrons:
-        std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
+        const std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
 
         // Randomly generate phi: azimuthal angle
-        double phi = 2 * M_PI * randu(gen);
-        sin_phi = std::sin(phi);
+        //const double phi = 2 * M_PI * randu(gen);
+        //sin_phi = std::sin(phi);
+        sin_phi = 2 * randu(gen) - 1;
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
@@ -487,30 +488,38 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         std::array<double,3> cross3 = cross_product(e_1, cross2);
         std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
-        // ( Avoid division by zero in case theta is very small):
-        double inverse_sin_theta = (sin_theta > 1e-10) ? 1.0 / sin_theta : 0.0;
-        for (int j = 0; j < 3; j++) {
-            e_2[j] = cos_xsi * e_1[j] +
-                    sin_xsi * sin_phi * inverse_sin_theta * cross1[j] +
-                    sin_xsi * cos_phi * inverse_sin_theta * cross3[j];
-        }
+        // avoid division by 0
+        const double inverse_sin_theta = (sin_theta > 1e-10) ? 1.0 / sin_theta : 0.0;
+
+        e_2[0] = cos_xsi * e_1[0] +
+                    sin_xsi * sin_phi * inverse_sin_theta * cross1[0] +
+                    sin_xsi * cos_phi * inverse_sin_theta * cross3[0];
+        e_2[1] = cos_xsi * e_1[1] +
+                    sin_xsi * sin_phi * inverse_sin_theta * cross1[1] +
+                    sin_xsi * cos_phi * inverse_sin_theta * cross3[1];
+        e_2[2] = cos_xsi * e_1[2] +
+                    sin_xsi * sin_phi * inverse_sin_theta * cross1[2] +
+                    sin_xsi * cos_phi * inverse_sin_theta * cross3[2];
 
         // Normalize e_2:
-        double norm = std::sqrt(e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]);
-        for (int j = 0; j < 3; j++) e_2[j] /= norm;
+        const double norm = std::sqrt(e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]);
+        e_2[0] /= norm;
+        e_2[1] /= norm;
+        e_2[2] /= norm;
 
         // Compute energy after the elastic collision:
-        double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
+        const double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
         E_2 += E_2_el;
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * W * E_2_el * mc::q0 / mc::me); // W is the energy sharing in ionizing collision
-        for (int j = 0; j < 3; j++) {
-            v[el_index][j] = v2_abs * e_2[j];
-        }
+        const double tot_v2 = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
+        const double v2_abs = tot_v2 * sqrtW; // W is the energy sharing in ionizing collision
+        v[el_index][0] = v2_abs * e_2[0];
+        v[el_index][1] = v2_abs * e_2[1];
+        v[el_index][2] = v2_abs * e_2[2];
 
         // Add the new electron to the simulation:
-        double v_abs_newe = std::sqrt(2.0 * (1-W) * E_2_el * mc::q0 / mc::me);
+        const double v_abs_newe = tot_v2 * sqrt1_W;
         v.push_back({
             - v_abs_newe * e_2[0],
             - v_abs_newe * e_2[1],
@@ -534,7 +543,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
     if(conserve){
         for( int i = 0; i < delta_Ne; i++){
             // select a random electron:
-            int random_index = static_cast<int>(randu(gen) * (r[mc::ELECTRONS].size()));
+            const int random_index = static_cast<int>(randu(gen) * (r[mc::ELECTRONS].size()));
             // remove it from the simulation:
             r[mc::ELECTRONS].erase(r[mc::ELECTRONS].begin() + random_index);
             v.erase(v.begin() + random_index);
