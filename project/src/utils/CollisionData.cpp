@@ -65,11 +65,13 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
 
     // Common factor in the collision matrix:
     const double common_factor = density / Xsec.get_nu_max();
+    const std::vector<double>& XS_energy = Xsec.get_energy();
+    const std::vector<table>& XS_data = Xsec.get_full_xs_data();
 
     // Compute the cumulative sum by electron of the collision matrix:
     for( int i = 0; i < n_electrons; i++){
         // Simulate which collision the i-esim electron undergoes:
-        ind.push_back(CollisionMatrix(R[i], Xsec, mix, E_in_eV[i], v_abs[i]*common_factor));
+        ind.push_back(CollisionMatrix(R[i], XS_energy, XS_data, mix, E_in_eV[i], v_abs[i]*common_factor));
     }
 
     // Compute Mass, Loss and indeces vectors:
@@ -78,6 +80,40 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
     find_collision_indeces(ind);
 }
 
+const size_t CollisionData::CollisionMatrix(const double& R, const std::vector<double>& XS_energy,
+   const std::vector<table>& XS_data, const std::vector<double>& mix,
+   const double& E_in_eV, const double& factor)
+{    
+    // Build collision matrix and update current index based on the random number
+
+    double c = 0.0;             // cumsum of the collision matrix row corresponding to the current electron
+
+    // Compute the collision frequency by interpolation:
+    auto it = std::upper_bound(XS_energy.cbegin(), XS_energy.cend(), E_in_eV);
+    const size_t k = std::min(
+        static_cast<size_t>(it - XS_energy.begin() - 1),
+        XS_energy.size() - 2
+    ); // index s.t. xx[k] <= E_in_eV < xx[k+1] (xx[0] = 0.0 by construction)
+    const double t = (E_in_eV - XS_energy[k]) / (XS_energy[k + 1] - XS_energy[k]);
+
+    const size_t num_collisions = XS_data.size();
+
+    for(size_t i = 0; i < num_collisions; i++){ 
+
+        // Obtain by interpolation the xsec value corresponding to electron energy level:
+        const std::vector<double>& yy = XS_data[i].section;
+        const double sigma_f = yy[k] + t * (yy[k + 1] - yy[k]);
+
+        // Collision matrix element, corresponding to current electron, current interaction:
+        c += factor * mix[XS_data[i].specie_index] * sigma_f;
+
+        if( c > R) return i;
+    }
+
+    return num_collisions;  // this means that no collision has occourred.
+}
+
+/*
 const size_t CollisionData::CollisionMatrix(const double& R, const CrossSectionsData& Xsec,
     const std::vector<double>& mix, const double& E_in_eV, const double& factor)
 {    
@@ -112,6 +148,7 @@ const size_t CollisionData::CollisionMatrix(const double& R, const CrossSections
 
     return collision_index;
 }
+*/
 
 void CollisionData::fill_Mass(const std::vector<size_t>& ind) {
     // Fill the Mass vector with the mass of the gas species
@@ -171,7 +208,7 @@ void CollisionData::find_collision_indeces(const std::vector<size_t>& ind) {
     ind_att.clear(); ind_att.reserve(ind.size());
 
     for (size_t i = 0; i < ind.size(); i++) {
-        size_t val = ind[i];
+        const size_t val = ind[i];
         if (col_ela.count(val)) ind_ela.push_back(i);
         else if (col_exc.count(val)) ind_exc.push_back(i);
         else if (col_ion.count(val)) ind_ion.push_back(i);

@@ -1,12 +1,10 @@
 #include "utils/BulkData.hpp"
 
 void BulkData::normalize(std::vector<double> & y, const double & y_max) {
-    std::transform(y.begin(), y.end(), y.begin(), [y_max](double yy) { return yy / y_max; });
+    std::transform(y.begin(), y.end(), y.begin(), [y_max](const double& yy) { return yy / y_max; });
 };
 
 void BulkData::update_bulk(const std::vector<double> & tt, const unsigned int & count_sst, const std::vector<MeanData> & mea, const double & N){
-    // PER MIGLIORARE update_bulk() CONSIDERA DI AGGIORNARE SOLO L'ELEMENTO IN CODA DI t E mean
-    // --> DA RIVEDERE ALLA FINE
     update_time_vector(tt, count_sst);
     update_mean_data(count_sst, mea);
     compute_drift();
@@ -23,8 +21,7 @@ bool BulkData::is_empty() const {
 
 void BulkData::update_time_vector(const std::vector<double> & tt, const unsigned int & count_sst) {
     t.assign(tt.cend() - count_sst, tt.cend());
-    std::transform(t.begin() + 1, t.end(), t.begin() + 1, [this](double val) { return val - t[0]; });
-    t[0] = 0.0;
+    std::transform(t.begin(), t.end(), t.begin(), [this](const double& val) { return val - t[0]; });
     t_max = t.back();
     normalize(t, t_max);
 }
@@ -34,7 +31,7 @@ void BulkData::update_mean_data(const unsigned int & count_sst, const std::vecto
     const std::array<double, 3>& pos0 = mean[0].get_position();
     const std::array<double, 3>& var0 = mean[0].get_variance();
 
-    for (auto it = mean.begin() + 1; it != mean.end(); it++) {
+    for (auto it = mean.begin(); it != mean.end(); it++) {
         std::array<double, 3> pos = it->get_position();
         std::array<double, 3> var = it->get_variance();
 
@@ -51,9 +48,6 @@ void BulkData::update_mean_data(const unsigned int & count_sst, const std::vecto
         it->set_position(pos);
         it->set_variance(var);
     }
-
-    mean[0].set_position({0.0, 0.0, 0.0});
-    mean[0].set_variance({0.0, 0.0, 0.0});
 }
 
 void BulkData::compute_drift(){
@@ -132,8 +126,8 @@ void BulkData::compute_diffusion(const double N){
 
 const std::array<double,2> BulkData::linear_regression(const std::vector<double>& y) const{
     // Multiple variables linear regression, returns the coefficients of the linear regression and uncertainty.
-    // Returned array is B = [m,u_m] where:
-    // y[i] = q + m*t[i] + res, m € (m-um/2,m+um/2) with >95% confidence.
+    // Returned array is B = [m,IC] where:
+    // y[i] = q + m*t[i] + res, m € (m-IC/2,m+IC/2) with >95% confidence.
         
     const size_t n = y.size();
     
@@ -144,8 +138,8 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
     // Compute covariance and variance:
     std::vector<double> xx(n);
     std::vector<double> yy(n);
-    std::transform(t.cbegin(), t.cend(), xx.begin(), [x_mean](double x) { return x - x_mean; });
-    std::transform(y.cbegin(), y.cend(), yy.begin(), [y_mean](double y) { return y - y_mean; });
+    std::transform(t.cbegin(), t.cend(), xx.begin(), [x_mean](const double& x) { return x - x_mean; });
+    std::transform(y.cbegin(), y.cend(), yy.begin(), [y_mean](const double& y) { return y - y_mean; });
     const double cov = std::inner_product(xx.cbegin(), xx.cend(), yy.cbegin(), 0.0);
     const double var = std::inner_product(xx.cbegin(), xx.cend(), xx.cbegin(), 0.0);
 
@@ -156,7 +150,7 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
     // Compute residuals:
     std::vector<double> res(n);
     std::transform(t.cbegin(), t.cend(), y.cbegin(), res.begin(),
-        [m, q](double x, double y) { return y - (q + m * x); }
+        [m, q](const double& x, const double& y) { return y - (q + m * x); }
     );
 
     // Compute standard error for slope:
@@ -164,9 +158,10 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
 
     // Confidence interval of 95% for slope:
 
-    // The smallest # of dof is n = 8. t_value = 1.860 for 95% confidence interval with 8 dof.
+    // DA RIVEDERE QUESTO COMMENTO CON I VALORI ESATTI!!
+    // The smallest # of dof is n = 9. t_value = 2.2621 for 97.5% confidence interval with 9 dof.
     // A t-student quantile table would be required, to avoid importing external libraries just for this task,
-    // an estimate using a linear behavior of the quantile from 8 dof (1.860) to infinite dof (1.645) is applied.
+    // an estimate using a linear behavior of the quantile from 9 dof (1.860) to infinite dof (1.645) is applied.
 
     // Consider that this is a rough estimate but it is accetable since the convergence is expected to
     // verify roughly at n of the order of 10^5, so the actual "t_value" becomes after few iterations
@@ -175,9 +170,9 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
     // This estimate is safe as the actual t-student values decrease faster than linearly
     // (e.g. for 100 d.o.f: actual t_value = 1.660, computed value: 1.662)
 
-    // Confidence interval of 95% for slope with 8 dof (minimum value of n-2):
+    // Length of confidence interval of 95% for slope with 9 dof (minimum value of n-2):
     //double t_value = 1.860; 
     //const double t_value = 1.645 + 1.72 / (n - 2); // linear interpolation for t-student quantile
-    const double t_value = t_student_quantiles[n-10];
+    const double t_value = t_student_quantiles[n-11];
     return { m, 2 * t_value * standard_err };
 };

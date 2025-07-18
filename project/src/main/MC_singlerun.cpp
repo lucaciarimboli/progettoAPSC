@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
             MC.updateEnergyData();
             MC.updateFluxData();
             MC.updateBulkData();
-            MC.updateReactionRates();
+            //MC.updateReactionRates();
         }
 
         // Perform collisions:

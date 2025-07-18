@@ -17,7 +17,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    gen.seed(200);
+    gen.seed(180);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -160,22 +160,6 @@ void MonteCarlo::freeFlight(){
         r[mc::ELECTRONS][i][2] += v[i][2]*dt + 0.5 * a[2] * dt2;
         v[i][2] += a[2] * dt;
     }
-
-
-    /*
-    // Con "-" invece di "+" perché l'elettrone si muove in direzione opposta al campo E!
-    for(size_t i = 0; i < ne; i++){
-        r[mc::ELECTRONS][i][0] += v[i][0]*dt - 0.5 * a[0] * dt2;
-        v[i][0] -= a[0] * dt;
-
-        r[mc::ELECTRONS][i][1] += v[i][1]*dt - 0.5 * a[1] * dt2;
-        v[i][1] -= a[1] * dt;
-
-        r[mc::ELECTRONS][i][2] += v[i][2]*dt - 0.5 * a[2] * dt2;
-        v[i][2] -= a[2] * dt;
-    }
-    */
-
 }
 
 void MonteCarlo::collectMeanData(){
@@ -469,7 +453,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         // Randomly generate phi: azimuthal angle
         //const double phi = 2 * M_PI * randu(gen);
         //sin_phi = std::sin(phi);
-        sin_phi = 2 * randu(gen) - 1;
+        sin_phi = 1 - 2 * randu(gen);
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
@@ -764,8 +748,21 @@ void MonteCarlo::saveResults(const int64_t duration) const {
 
     file << std::scientific << std::setprecision(6);
     file << "# Monte Carlo Electron Transport Simulation Results\n";
-    file << "# Generated on: " << std::ctime(&time_t);
+    file << "# Generated on: " << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S") << "\n";
     file << "# ================================================\n\n";
+
+    // Final state
+    const std::array<int,mc::PARTICLES_TYPES> & num_p = mean.back().get_particles();
+    file << "[FINAL_STATE]\n";
+    file << "iterations = " << t.size() << "\n";
+    file << "collisions = " << collisions << "\n";
+    file << "electrons = " << num_p[mc::ELECTRONS] << "\n";
+    file << "cations = " << num_p[mc::CATIONS] << "\n";
+    file << "anions = " << num_p[mc::ANIONS] << "\n";
+    file << "steady_state_time = " << T_sst * 1e9 << " ns\n";
+    file << "final_time = " << t.back() * 1e9 << " ns\n";
+    file << "convergence_status = " << converge << "\n";
+    file << "\n";
     
     // Simulation parameters
     file << "[SIMULATION_PARAMETERS]\n";
@@ -812,7 +809,8 @@ void MonteCarlo::saveResults(const int64_t duration) const {
         file << "DN_y_err = " << DN_bulk_err[1] << " m^2/s\n";
         file << "DN_z_err = " << DN_bulk_err[2] << " m^2/s\n";
     }
-    
+    file << "\n";
+
     // Flux transport data
     const auto& w_flux = flux.get_w();
     const auto& DN_flux = flux.get_DN();
@@ -843,17 +841,6 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) * 1e12 << "e+12 m^3/s\n";
     file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) * 1e12 << "e+12 m^3/s\n";
     file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) * 1e12 << "e+12 m^3/s\n\n";
-
-    // Final state
-    file << "[FINAL_STATE]\n";
-    file << "iterations = " << t.size() << "\n";
-    file << "collisions = " << collisions << "\n";
-    file << "electrons = " << v.size() << "\n";
-    file << "cations = " << r[mc::CATIONS].size() << "\n";
-    file << "anions = " << r[mc::ANIONS].size() << "\n";
-    file << "steady_state_time = " << T_sst * 1e9 << " ns\n";
-    file << "final_time = " << t.back() * 1e9 << " ns\n";
-    file << "convergence_status = " << converge << "\n";
     
     const int minutes = duration / 60;
     const int seconds = duration % 60;

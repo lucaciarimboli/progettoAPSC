@@ -33,10 +33,10 @@ MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATR
                         [](double sum, const std::array<double, 3>& vi) { return sum + vi[2]; }) / ne;
 
     // Compute mean energy:
+    const double factor = 0.5 * mc::me / mc::q0;
     energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
-                    [](double sum, const std::array<double, 3>& vi){
-                        double abs_v = std::sqrt(vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
-                        return sum + 0.5 * mc::me * abs_v * abs_v / mc::q0;
+                    [factor](double sum, const std::array<double, 3>& vi){
+                        return sum + factor * (vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
                     }) / ne;
 
     // Compute variance of position:
