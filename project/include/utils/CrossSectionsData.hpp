@@ -13,6 +13,7 @@
 #include <numeric>
 
 #include "Common.hpp"
+//#include "../Common.hpp" // for testing
 
 struct table {
     std::vector<double> section;

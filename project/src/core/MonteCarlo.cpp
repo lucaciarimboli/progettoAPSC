@@ -17,7 +17,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    gen.seed(180);
+    // gen.seed(180);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -284,7 +284,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
 
     double E_1 = 0.0;                       // total energy before collision
     double E_2 = 0.0;                       // total energy after collision
-    std::array<double,3> e_x = {1.0, 0.0, 0.0};  // x-direction versor
+    const std::array<double,3> e_x = {1.0, 0.0, 0.0};  // x-direction versor
 
     double sin_phi;
     double cos_phi;
@@ -295,17 +295,18 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
 
     for(size_t i = 0; i < ind.size(); i++){
 
-        size_t el_index = ind[i];       // electron index
-        std::pair<double,double> v2e = velocity2energy(v[el_index]);
+        const size_t el_index = ind[i];       // electron index
+        const std::pair<double,double> v2e = velocity2energy(v[el_index]);
         // Compute energy before collision
         E_1 += v2e.second;
 
         // Compute incident direction of scattering electrons:
-        std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
+        const std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
 
         // Randomly generate phi: azimuthal angle
-        double phi = 2 * M_PI * randu(gen);
-        sin_phi = std::sin(phi);
+        // double phi = 2 * M_PI * randu(gen);
+        //sin_phi = std::sin(phi);
+        sin_phi = 1 - 2 * randu(gen);
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
@@ -319,9 +320,9 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         sin_theta = std::sqrt(1 - cos_theta * cos_theta);
 
         // Compute the new direction e_2 of the scattered electron:
-        std::array<double,3> cross1 = cross_product(e_1, e_x);
-        std::array<double,3> cross2 = cross_product(e_x, e_1);
-        std::array<double,3> cross3 = cross_product(e_1, cross2);
+        const std::array<double,3> cross1 = cross_product(e_1, e_x);
+        const std::array<double,3> cross2 = cross_product(e_x, e_1);
+        const std::array<double,3> cross3 = cross_product(e_1, cross2);
         std::array<double, 3> e_2 = {0.0, 0.0, 0.0};
 
         // ( Avoid division by zero in case theta is very small):
@@ -333,7 +334,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         }
 
         // Normalize e_2:
-        double norm = std::sqrt(e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]);
+        const double norm = std::sqrt(e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]);
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
@@ -341,7 +342,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         E_2 += E_2_el;
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
+        const double v2_abs = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -834,13 +835,13 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     // Reaction rates
     file << "[REACTION_RATES]\n";
     file << "# Counted rates:\n";
-    file << "effective_count = " << rates_count.getRate(mc::EFFECTIVE) * 1e12 << "e+12 m^3/s\n";
-    file << "ionization_count = " << rates_count.getRate(mc::IONIZATION) * 1e12 << "e+12 m^3/s\n";
-    file << "attachment_count = " << rates_count.getRate(mc::ATTACHMENT) * 1e12 << "e+12 m^3/s\n";
+    file << "effective_count = " << rates_count.getRate(mc::EFFECTIVE) << " m^3/s\n";
+    file << "ionization_count = " << rates_count.getRate(mc::IONIZATION) << " m^3/s\n";
+    file << "attachment_count = " << rates_count.getRate(mc::ATTACHMENT) << " m^3/s\n";
     file << "# Rates computed by convolution:\n";
-    file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) * 1e12 << "e+12 m^3/s\n";
-    file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) * 1e12 << "e+12 m^3/s\n";
-    file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) * 1e12 << "e+12 m^3/s\n\n";
+    file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) << " m^3/s\n";
+    file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) << " m^3/s\n";
+    file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) << " m^3/s\n\n";
     
     const int minutes = duration / 60;
     const int seconds = duration % 60;

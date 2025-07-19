@@ -1,4 +1,5 @@
 #include "utils/CrossSectionsData.hpp"
+//#include "../../include/utils/CrossSectionsData.hpp" // for testing
 
 CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, const double E_max, 
                                      const std::vector<double> & mix, const double N):
@@ -183,20 +184,29 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t speci
             }
         }
 
-        // Last, compute elastic cross sectional data as "effective - others":
+        // Last, compute elastic cross sectional data (as in Vahedi et al.):
         Xsections[offset + j].interact = mc::ELASTIC;
         Xsections[offset + j].react = "Elastic";
         Xsections[offset + j].en_avg = 0.0;
-        Xsections[offset + j].section = Xsections[offset + j_effective].section;
-            
-        // Subtract all other cross-sections (except effective and elastic itself)
-        for(int k = 0; k < j; k++) {
-            if(k != j_effective) {
-                // Element-wise subtraction
-                for(size_t energy_idx = 0; energy_idx < Xsections[offset + j].section.size(); ++energy_idx) {
-                    Xsections[offset + j].section[energy_idx] -= Xsections[offset + k].section[energy_idx];
+        Xsections[offset + j].section.reserve(energy.size());
+
+        for(size_t i = 0; i < energy.size(); i++){
+            // Compute energy-dependent correction coeff. (=1 for small energies)
+            const double E = energy[i];
+            const double beta = (E < 1e-6) ? 1.0 : 0.5 * ( E * std::log(1+E) ) / (E - std::log(1+E));
+            // const double beta = 1.0;  // (no correction)
+            Xsections[offset + j].section.push_back(beta * Xsections[offset + j_effective].section[i]);
+
+            // Subtract excitation and ionization
+            for(int k = 0; k < j; k++) {
+                if(Xsections[offset + k].interact == mc::EXCITATION ||
+                    Xsections[offset + k].interact == mc::IONIZATION)
+                {
+                    Xsections[offset + j].section[i] -= Xsections[offset + k].section[i];
                 }
             }
+            // avoid negative xs:
+            Xsections[offset + j].section[i] = std::max(Xsections[offset+j].section[i],0.0);
         }
     }
 }
@@ -205,13 +215,16 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t speci
 void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector<double>& y, std::vector<double>& result) {
     // Linear interpolation function
     
+    /*
     if (x.empty() || y.empty() || x.size() != y.size()) {
         throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
     }
+    */
 
-   // Ensure that the energy vector contains the energy level E = 0.0:
-   double E_max = energy.back();
+    // Ensure that the energy vector contains the energy level E = 0.0:
+    double E_max = energy.back();
 
+    // Make the extremes of "energy" coincide with the simulation's energy range
     if( x[0] > 0.0) {
         x.insert(x.begin(), 0.0);
         y.insert(y.begin(), y.front());
@@ -221,9 +234,10 @@ void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector
         y.push_back(y.back());
     }
 
-    for (const double q : energy) {
+    for (const double& q : energy) {
         size_t i = 0;
 
+        /*
         if (q <= x.front()) {
             i = 0;
         } else if (q >= x.back()) {
@@ -231,9 +245,16 @@ void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector
         } else {
             while (i < x.size() - 1 && q > x[i + 1]) i++;
         }
-
-        double t = (q - x[i]) / (x[i + 1] - x[i]);
-        result.push_back(y[i] + t * (y[i + 1] - y[i]));
+        */
+        if (q <= x.front()) {
+            result.push_back(y.front());
+        } else if (q >= x.back()) {
+            result.push_back(y.back());
+        } else {
+            while (i < x.size() - 1 && q > x[i + 1]) i++;
+            const double t = (q - x[i]) / (x[i + 1] - x[i]);
+            result.push_back(y[i] + t * (y[i + 1] - y[i]));
+        }
     }
 }
 

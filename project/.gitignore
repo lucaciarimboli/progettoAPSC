@@ -2,6 +2,7 @@ build/
 results/
 /core*
 profiler/
+plots/
 
 # VS Code settings and configuration files
 .vscode/
