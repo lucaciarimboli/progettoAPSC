@@ -89,10 +89,8 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
                     // Sort and deduplicate the energy vector:
                     std::stable_sort(energy.begin(), energy.end());
                     energy.erase(std::unique(energy.begin(), energy.end(),
-                        [](double a, double b){ return std::fabs(a - b) < 1e-20; }),
+                        [](double a, double b){ return std::fabs(a - b) < 1e-10; }),
                         energy.end());
-                    // Note: energy values are in the range (0 eV - 40 eV) approximately,
-                    // so energy levels that differ by less than 0.1 eV are considered equal.
                 }
             }
         }
@@ -190,11 +188,12 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t speci
         Xsections[offset + j].en_avg = 0.0;
         Xsections[offset + j].section.reserve(energy.size());
 
+        double beta = 1.0;  // (no correction)
+
         for(size_t i = 0; i < energy.size(); i++){
             // Compute energy-dependent correction coeff. (=1 for small energies)
-            const double E = energy[i];
-            const double beta = (E < 1e-6) ? 1.0 : 0.5 * ( E * std::log(1+E) ) / (E - std::log(1+E));
-            // const double beta = 1.0;  // (no correction)
+            // const double E = energy[i];
+            // beta = (E < 1e-6) ? 1.0 : 0.5 * ( E * std::log(1+E) ) / (E - std::log(1+E));
             Xsections[offset + j].section.push_back(beta * Xsections[offset + j_effective].section[i]);
 
             // Subtract excitation and ionization

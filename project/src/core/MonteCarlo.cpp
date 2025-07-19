@@ -17,7 +17,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    // gen.seed(180);
+    // gen.seed(1204720943);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -335,7 +335,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
 
         // Normalize e_2:
         const double norm = std::sqrt(e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]);
-        for (int j = 0; j < 3; ++j) e_2[j] /= norm;
+        for (int j = 0; j < 3; j++) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
         double E_2_el = std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi)));

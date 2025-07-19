@@ -64,9 +64,23 @@ void BulkData::compute_drift(){
         z.push_back(pos[2]);
     }
 
+    // CONSIDERA IL SEGNO NEL CALCOLO DEL MAX
+    /* 
     const double x_max = *std::max_element(x.cbegin(), x.cend());
     const double y_max = *std::max_element(y.cbegin(), y.cend());
     const double z_max = *std::max_element(z.cbegin(), z.cend());
+    */
+
+    // NON CONSIDERA IL SEGNO NEL CALCOLO DEL MAX
+    const double x_max = *std::max_element(x.cbegin(), x.cend(), 
+        [](const double& a, const double& b){return std::abs(a) < std::abs(b);}
+    );
+    const double y_max = *std::max_element(y.cbegin(), y.cend(),
+        [](const double& a, const double& b){return std::abs(a) < std::abs(b);}
+    );
+    const double z_max = *std::max_element(z.cbegin(), z.cend(),
+        [](const double& a, const double& b){return std::abs(a) < std::abs(b);}
+    );
 
     normalize(x, x_max);
     normalize(y, y_max);

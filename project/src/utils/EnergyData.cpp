@@ -61,5 +61,5 @@ void EnergyData::compute_distribution_function() {
 
     // Handle separately the energy level E=0 to avoid division by 0 (energy[0] = 0.0):
     EEPF[0] = EEPF_sum[0] / (total_sum * dE);
-    EEDF[0] = EEPF[0] / sqrt_E[0];
+    EEDF[0] = EEPF[0] / sqrt_E[1];
 }
