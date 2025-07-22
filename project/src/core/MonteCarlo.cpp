@@ -17,7 +17,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    // gen.seed(1204720943);
+    gen.seed(1204720943);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -90,16 +90,16 @@ void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const st
     // Sets initial position and velocity of electrons
 
     // Allocate memory to electron population positions:
-    r[mc::ELECTRONS].clear();
-    r[mc::ELECTRONS].reserve(N0);
+    r.clear();
+    r.reserve(N0);
 
     // Initialize cations and anions populations as empty:
-    r[mc::CATIONS].clear();
-    r[mc::ANIONS].clear();
+    r_cations.clear();
+    r_anions.clear();
 
     for (size_t n = 0; n < N0; n++) {
         // Initialize to pos_xyz + noise if sigma_xyz != 0
-        r[mc::ELECTRONS].emplace_back(std::array<double, 3>{
+        r.emplace_back(std::array<double, 3>{
             pos_xyz[0] + sigma_xyz[0] * randn(gen),
             pos_xyz[1] + sigma_xyz[1] * randn(gen),
             pos_xyz[2] + sigma_xyz[2] * randn(gen)
@@ -151,13 +151,13 @@ void MonteCarlo::freeFlight(){
 
     // Update space and velocity:
     for(size_t i = 0; i < ne; i++){
-        r[mc::ELECTRONS][i][0] += v[i][0]*dt + 0.5 * a[0] * dt2;
+        r[i][0] += v[i][0]*dt + 0.5 * a[0] * dt2;
         v[i][0] += a[0] * dt;
 
-        r[mc::ELECTRONS][i][1] += v[i][1]*dt + 0.5 * a[1] * dt2;
+        r[i][1] += v[i][1]*dt + 0.5 * a[1] * dt2;
         v[i][1] += a[1] * dt;
 
-        r[mc::ELECTRONS][i][2] += v[i][2]*dt + 0.5 * a[2] * dt2;
+        r[i][2] += v[i][2]*dt + 0.5 * a[2] * dt2;
         v[i][2] += a[2] * dt;
     }
 }
@@ -168,7 +168,7 @@ void MonteCarlo::collectMeanData(){
     // and total electron current
 
     // Update mean vector for the new time step
-    mean.emplace_back(mean.back().get_particles(), r[mc::ELECTRONS], v);
+    mean.emplace_back(mean.back().get_particles(), r, v);
 }
 
 void MonteCarlo::updateEnergyData(){
@@ -192,7 +192,7 @@ void MonteCarlo::updateEnergyData(){
 void MonteCarlo::updateFluxData(){
     // Calculates flux data after steady state was reached
     flux.compute_drift_velocity(v_int,t_total);
-    flux.compute_diffusion_const(r[mc::ELECTRONS],v,N, count_sst);
+    flux.compute_diffusion_const(r,v,N, count_sst);
 }
 
 void MonteCarlo::updateBulkData(){
@@ -510,17 +510,17 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
             - v_abs_newe * e_2[1],
             - v_abs_newe * e_2[2]
         });
-        r[mc::ELECTRONS].push_back({
-            r[mc::ELECTRONS][el_index][0],
-            r[mc::ELECTRONS][el_index][1],
-            r[mc::ELECTRONS][el_index][2]
+        r.push_back({
+            r[el_index][0],
+            r[el_index][1],
+            r[el_index][2]
         });
 
         // Add the new cation:
-        r[mc::CATIONS].push_back({
-            r[mc::ELECTRONS][el_index][0],
-            r[mc::ELECTRONS][el_index][1],
-            r[mc::ELECTRONS][el_index][2]
+        r_cations.push_back({
+            r[el_index][0],
+            r[el_index][1],
+            r[el_index][2]
         });
     }
 
@@ -528,9 +528,9 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
     if(conserve){
         for( int i = 0; i < delta_Ne; i++){
             // select a random electron:
-            const int random_index = static_cast<int>(randu(gen) * (r[mc::ELECTRONS].size()));
+            const int random_index = static_cast<int>(randu(gen) * (r.size()));
             // remove it from the simulation:
-            r[mc::ELECTRONS].erase(r[mc::ELECTRONS].begin() + random_index);
+            r.erase(r.begin() + random_index);
             v.erase(v.begin() + random_index);
         }
     }
@@ -555,22 +555,22 @@ void MonteCarlo::attachmentCollision(const std::vector<size_t> & ind){
         size_t el_index = *it;       // electron index
 
         // Add the new anion to the simulation:
-        r[mc::ANIONS].push_back({
-            r[mc::ELECTRONS][el_index][0],
-            r[mc::ELECTRONS][el_index][1],
-            r[mc::ELECTRONS][el_index][2]
+        r_anions.push_back({
+            r[el_index][0],
+            r[el_index][1],
+            r[el_index][2]
         });
 
         // Remove the electron from the simulation:
-        r[mc::ELECTRONS].erase(r[mc::ELECTRONS].begin() + el_index);
+        r.erase(r.begin() + el_index);
         v.erase(v.begin() + el_index);
 
         // If required, enforce electron population conservation:
         if(conserve){
             // select a random electron:
-            int random_index = static_cast<int>(randu(gen) * (r[mc::ELECTRONS].size()));
+            int random_index = static_cast<int>(randu(gen) * (r.size()));
             // clone it to compensate the removed one:
-            r[mc::ELECTRONS].push_back(r[mc::ELECTRONS][random_index]);
+            r.push_back(r[random_index]);
             v.push_back(v[random_index]);
         }
     }

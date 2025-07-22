@@ -102,7 +102,7 @@ const size_t CollisionData::CollisionMatrix(const double& R, const std::vector<d
 
         // Obtain by interpolation the xsec value corresponding to electron energy level:
         const std::vector<double>& yy = XS_data[i].section;
-        const double sigma_f = yy[k] + t * (yy[k + 1] - yy[k]);
+        const double sigma_f = yy[k] + t * (yy[k+1] - yy[k]);  // (Extrapolation allowed)
 
         // Collision matrix element, corresponding to current electron, current interaction:
         c += factor * mix[XS_data[i].specie_index] * sigma_f;

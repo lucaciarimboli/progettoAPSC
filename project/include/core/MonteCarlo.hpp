@@ -98,11 +98,13 @@ private:
     std::vector<double> t;                          // vector of times [s]
     double dt;                                      // current time step [s]
     double t_total = 0.0;                           // sum of all times for all electrons [m]
-    std::array<mc::MATRIX,mc::PARTICLES_TYPES> r;   // 3D positions of particles [m]
+    mc::MATRIX r;                                   // 3D positions of electrons [m]
     mc::MATRIX v;                                   // current velocity of electrons [m/s]
     std::array<double,3> a;                         // acceleration of electrons [m/s^2] (const & uniform)
     mc::MATRIX v_int;                               // time-integrated velocity
     mc::MATRIX v2_int;                              // time-integrated squared velocity
+    mc::MATRIX r_cations;                           // 3D positions of cations; [m]
+    mc::MATRIX r_anions;                            // 3D positions of anions;  [m]
 
     CollisionData C;                                // Collision indeces, Mass and Loss vectors
     unsigned long collisions = 0;                   // total number collisions occourred
