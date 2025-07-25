@@ -8,12 +8,13 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
 
-#include "Common.hpp"
-//#include "../Common.hpp" // for testing
+//#include "Common.hpp"
+#include "../Common.hpp" // for testing
 
 struct table {
     std::vector<double> section;

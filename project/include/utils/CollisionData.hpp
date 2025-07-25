@@ -9,6 +9,8 @@
 #include "utils/CrossSectionsData.hpp"
 #include "Common.hpp"
 
+// #include <omp.h>
+
 class CollisionData {
 
 public:

@@ -1,5 +1,5 @@
-#include "utils/CrossSectionsData.hpp"
-//#include "../../include/utils/CrossSectionsData.hpp" // for testing
+//#include "utils/CrossSectionsData.hpp"
+#include "../../include/utils/CrossSectionsData.hpp" // for testing
 
 CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, const double E_max, 
                                      const std::vector<double> & mix, const double N):
@@ -53,9 +53,10 @@ const unsigned CrossSectionsData::get_n_react() const {
     return sum - gas.size(); // Exclude effective xs data for each specie
 }
 
-// Counts the number of reactions for each specie and the number of cross-sections data points
-// and fills the energy vector with the energy levels from each reaction, sorted and deduplicated.
 void CrossSectionsData::count_react_and_fill_energy(const size_t i){
+    // Counts the number of reactions for each specie and the number of cross-sections data points
+    // and fills the energy vector with the energy levels from each reaction, sorted and deduplicated.
+
     // Path to the cross-section data file
     std::string path = "data/Xsec/" + gas[i] + "/" + gas[i] + ".txt";
 
@@ -87,10 +88,14 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
                     flag = false;
                     counter = 0;
                     // Sort and deduplicate the energy vector:
+                    /*
                     std::stable_sort(energy.begin(), energy.end());
                     energy.erase(std::unique(energy.begin(), energy.end(),
                         [](double a, double b){ return std::fabs(a - b) < 1e-10; }),
                         energy.end());
+                    */
+                    std::set<double> s(energy.begin(),energy.end());    // sort + deduplicate using set
+                    energy.assign(s.begin(),s.end());
                 }
             }
         }
@@ -188,7 +193,7 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t speci
         Xsections[offset + j].en_avg = 0.0;
         Xsections[offset + j].section.reserve(energy.size());
 
-        double beta = 1.0;  // (no correction)
+        const double beta = 1.0;  // (no correction)
 
         for(size_t i = 0; i < energy.size(); i++){
             // Compute energy-dependent correction coeff. (=1 for small energies)
@@ -210,19 +215,17 @@ void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t speci
     }
 }
 
-// Linear interpolation function
 void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector<double>& y, std::vector<double>& result) {
     // Linear interpolation function
-    
-    /*
-    if (x.empty() || y.empty() || x.size() != y.size()) {
-        throw std::invalid_argument("Input vectors x and y must be non-empty and of the same size.");
-    }
-    */
 
     // Ensure that the energy vector contains the energy level E = 0.0:
-    double E_max = energy.back();
+    // const double E_max = energy.back();
+    const double x_min = x.front();
+    const double x_max = x.back();
+    const double y_min = y.front();
+    const double y_max = y.back();
 
+    /*
     // Make the extremes of "energy" coincide with the simulation's energy range
     if( x[0] > 0.0) {
         x.insert(x.begin(), 0.0);
@@ -232,33 +235,28 @@ void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector
         x.push_back(E_max);
         y.push_back(y.back());
     }
-
+    */
+    //size_t k = 0;
     for (const double& q : energy) {
-        size_t i = 0;
-
-        /*
-        if (q <= x.front()) {
-            i = 0;
-        } else if (q >= x.back()) {
-            i = x.size() - 2;
+        if (q <= x_min) {
+            result.push_back(y_min);
+        } else if (q >= x_max) {
+            result.push_back(y_max);
         } else {
-            while (i < x.size() - 1 && q > x[i + 1]) i++;
-        }
-        */
-        if (q <= x.front()) {
-            result.push_back(y.front());
-        } else if (q >= x.back()) {
-            result.push_back(y.back());
-        } else {
-            while (i < x.size() - 1 && q > x[i + 1]) i++;
-            const double t = (q - x[i]) / (x[i + 1] - x[i]);
-            result.push_back(y[i] + t * (y[i + 1] - y[i]));
+            auto it = std::upper_bound(x.cbegin(), x.cend(), q);
+            const size_t k = std::min(
+                static_cast<size_t>(it - x.cbegin() - 1),
+                x.size() - 2
+            );
+            //while (k < x.size() - 1 && q > x[i + 1]) k++;
+            const double t = (q - x[k]) / (x[k + 1] - x[k]);
+            result.push_back(y[k] + t * (y[k + 1] - y[k]));
         }
     }
 }
 
-// Compute the maximal collision frequency:
 void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const double N) {
+    // Compute the maximal collision frequency:
 
     // Check if the mix vector is the same size as the gas vector
     if (mix.size() != gas.size()) {
@@ -279,6 +277,7 @@ void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const d
         double nu = N * sigma_tot * std::sqrt(2.0 * energy[k] * mc::q0 / mc::me); // s^-1
         if(nu > nu_max) nu_max = nu;
     }
+    std::cout << "nu_max = " << nu_max << "\n" << std::endl; // -> nu_max è giusto
 }
 
 const std::vector<table> CrossSectionsData::get_Xsections( const size_t specie, const mc::InteractionType interaction) const {

@@ -17,7 +17,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    gen.seed(1204720943);
+    // gen.seed(1204720943);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -763,6 +763,9 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     file << "steady_state_time = " << T_sst * 1e9 << " ns\n";
     file << "final_time = " << t.back() * 1e9 << " ns\n";
     file << "convergence_status = " << converge << "\n";
+    const int minutes = duration / 60;
+    const int seconds = duration % 60;
+    file << "convergence_time = " << minutes << " minutes, " << seconds << " seconds\n\n";
     file << "\n";
     
     // Simulation parameters
@@ -842,18 +845,16 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     file << "effective_conv = " << rates_conv.getRate(mc::EFFECTIVE) << " m^3/s\n";
     file << "ionization_conv = " << rates_conv.getRate(mc::IONIZATION) << " m^3/s\n";
     file << "attachment_conv = " << rates_conv.getRate(mc::ATTACHMENT) << " m^3/s\n\n";
-    
-    const int minutes = duration / 60;
-    const int seconds = duration % 60;
-    file << "convergence_time = " << minutes << " minutes, " << seconds << " seconds\n\n";
 
     // Energy losses
     file << "[ENERGY_LOSSES]\n";
     file << "elastic = " << EnergyLossElastic << " eV\n";
     file << "inelastic = " << EnergyLossInelastic << " eV\n";
-    file << "ionization = " << EnergyLossIonization << " eV\n\n";
+    file << "ionization = " << EnergyLossIonization << " eV";
 
     // Energy distribution
+    /*
+    file << "\n\n";
     const auto& energy_grid = E.get_energy();
     const auto& EEDF = E.get_EEDF();
     const auto& EEPF = E.get_EEPF();
@@ -864,6 +865,7 @@ void MonteCarlo::saveResults(const int64_t duration) const {
         file << energy_grid[i] << " " << EEDF[i] << " " << EEPF[i] << "\n";
     }
     file << "\n";
+    */
     
     file.close();
     std::cout << " Results saved to: " << filename << "\n" << std::endl;

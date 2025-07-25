@@ -7,8 +7,8 @@ void BulkData::normalize(std::vector<double> & y, const double & y_max) {
 void BulkData::update_bulk(const std::vector<double> & tt, const unsigned int & count_sst, const std::vector<MeanData> & mea, const double & N){
     update_time_vector(tt, count_sst);
     update_mean_data(count_sst, mea);
-    compute_drift();
-    compute_diffusion(N);
+    compute_drift_velocity();
+    compute_diffusion_coeff(N);
 };
 
 bool BulkData::is_empty() const {
@@ -50,7 +50,7 @@ void BulkData::update_mean_data(const unsigned int & count_sst, const std::vecto
     }
 }
 
-void BulkData::compute_drift(){
+void BulkData::compute_drift_velocity(){
     // Each component of y is a vector with the corresponding component of the position for each time after sst.
     std::vector<double> x, y, z;
     x.reserve(mean.size());
@@ -64,22 +64,14 @@ void BulkData::compute_drift(){
         z.push_back(pos[2]);
     }
 
-    // CONSIDERA IL SEGNO NEL CALCOLO DEL MAX
-    /* 
-    const double x_max = *std::max_element(x.cbegin(), x.cend());
-    const double y_max = *std::max_element(y.cbegin(), y.cend());
-    const double z_max = *std::max_element(z.cbegin(), z.cend());
-    */
-
-    // NON CONSIDERA IL SEGNO NEL CALCOLO DEL MAX
     const double x_max = *std::max_element(x.cbegin(), x.cend(), 
-        [](const double& a, const double& b){return std::abs(a) < std::abs(b);}
+        [](const double& a, const double& b){return std::less{}(std::abs(a),std::abs(b));}
     );
     const double y_max = *std::max_element(y.cbegin(), y.cend(),
-        [](const double& a, const double& b){return std::abs(a) < std::abs(b);}
+        [](const double& a, const double& b){return std::less{}(std::abs(a),std::abs(b));}
     );
     const double z_max = *std::max_element(z.cbegin(), z.cend(),
-        [](const double& a, const double& b){return std::abs(a) < std::abs(b);}
+        [](const double& a, const double& b){return std::less{}(std::abs(a),std::abs(b));}
     );
 
     normalize(x, x_max);
@@ -99,9 +91,18 @@ void BulkData::compute_drift(){
     w[2] = m2[0] * z_max / t_max;
     w_err[2] = 0.25 * m2[1] * z_max / t_max;
 
+    //----------------------------------------------------------------------------------------------------------//
+    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
+    std::cout << "DRIFT VELOCITY FACTORS:" << std::endl;
+    std::cout << "IC width: " << m2[1] << std::endl;
+    std::cout << "z_max: " << z_max << std::endl;
+    std::cout << "t_max: " << t_max << "\n" << std::endl;
+    //----------------------------------------------------------------------------------------------------------//
+    //----------------------------------------------------------------------------------------------------------//
+
 }
 
-void BulkData::compute_diffusion(const double N){
+void BulkData::compute_diffusion_coeff(const double& N){
 
     // Each component of y is a vector with the corresponding component of the position for each time after sst.
     std::vector<double> x, y, z;
@@ -116,9 +117,15 @@ void BulkData::compute_diffusion(const double N){
         z.push_back(var[2] / 2);
     }
 
-    const double x_max = *std::max_element(x.cbegin(), x.cend());
-    const double y_max = *std::max_element(y.cbegin(), y.cend());
-    const double z_max = *std::max_element(z.cbegin(), z.cend());
+    const double x_max = *std::max_element(x.cbegin(), x.cend(), 
+        [](const double& a, const double& b){return std::less{}(std::abs(a),std::abs(b));}
+    );
+    const double y_max = *std::max_element(y.cbegin(), y.cend(),
+        [](const double& a, const double& b){return std::less{}(std::abs(a),std::abs(b));}
+    );
+    const double z_max = *std::max_element(z.cbegin(), z.cend(),
+        [](const double& a, const double& b){return std::less{}(std::abs(a),std::abs(b));}
+    );
 
     normalize(x, x_max);
     normalize(y, y_max);
@@ -136,6 +143,15 @@ void BulkData::compute_diffusion(const double N){
 
     DN[2] = N * m2[0] * z_max / t_max;
     DN_err[2] = N * 0.25 * m2[1] * z_max / t_max;
+
+    //----------------------------------------------------------------------------------------------------------//
+    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
+    std::cout << "DIFFUSION COEFFICIENT FACTORS:" << std::endl;
+    std::cout << "IC width: " << m2[1] << std::endl;
+    std::cout << "z_max: " << z_max << std::endl;
+    std::cout << "t_max: " << t_max << "\n" << std::endl;
+    //----------------------------------------------------------------------------------------------------------//
+    //----------------------------------------------------------------------------------------------------------//
 }
 
 const std::array<double,2> BulkData::linear_regression(const std::vector<double>& y) const{
@@ -172,21 +188,16 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
 
     // Confidence interval of 95% for slope:
 
-    // DA RIVEDERE QUESTO COMMENTO CON I VALORI ESATTI!!
     // The smallest # of dof is n = 9. t_value = 2.2621 for 97.5% confidence interval with 9 dof.
     // A t-student quantile table would be required, to avoid importing external libraries just for this task,
-    // an estimate using a linear behavior of the quantile from 9 dof (1.860) to infinite dof (1.645) is applied.
+    // an over-estimate using the quantile with 9 dof (2.262) and with infinite dof (1.960) is applied.
 
-    // Consider that this is a rough estimate but it is accetable since the convergence is expected to
-    // verify roughly at n of the order of 10^5, so the actual "t_value" becomes after few iterations
-    // very close to 1.645.
-
-    // This estimate is safe as the actual t-student values decrease faster than linearly
-    // (e.g. for 100 d.o.f: actual t_value = 1.660, computed value: 1.662)
+    // This estimate is safe as the actual t-student values decrease faster, so this approximation simply provides
+    // a slightly more conservative error estimate.
+    // (e.g. for 100 d.o.f: actual t_value = 1.984, computed value: 1.9877)
 
     // Length of confidence interval of 95% for slope with 9 dof (minimum value of n-2):
-    //double t_value = 1.860; 
-    //const double t_value = 1.645 + 1.72 / (n - 2); // linear interpolation for t-student quantile
+    //const double t_value = 1.96 + 2.718 / (n - 2); // interpolation for t-student quantile
     const double t_value = t_student_quantiles[n-11];
     return { m, 2 * t_value * standard_err };
 };

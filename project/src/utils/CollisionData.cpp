@@ -69,9 +69,12 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
     const std::vector<table>& XS_data = Xsec.get_full_xs_data();
 
     // Compute the cumulative sum by electron of the collision matrix:
+    // omp_set_num_threads(4);
+    // #pragma omp parallel for schedule(static, 5000)
     for( int i = 0; i < n_electrons; i++){
         // Simulate which collision the i-esim electron undergoes:
         ind.push_back(CollisionMatrix(R[i], XS_energy, XS_data, mix, E_in_eV[i], v_abs[i]*common_factor));
+        // ind[i] = CollisionMatrix(R[i], XS_energy, XS_data, mix, E_in_eV[i], v_abs[i]*common_factor);
     }
 
     // Compute Mass, Loss and indeces vectors:
@@ -103,6 +106,7 @@ const size_t CollisionData::CollisionMatrix(const double& R, const std::vector<d
         // Obtain by interpolation the xsec value corresponding to electron energy level:
         const std::vector<double>& yy = XS_data[i].section;
         const double sigma_f = yy[k] + t * (yy[k+1] - yy[k]);  // (Extrapolation allowed)
+        // const double sigma_f = std::min(yy[k] + t * (yy[k+1] - yy[k]),yy.back()); 
 
         // Collision matrix element, corresponding to current electron, current interaction:
         c += factor * mix[XS_data[i].specie_index] * sigma_f;
@@ -112,43 +116,6 @@ const size_t CollisionData::CollisionMatrix(const double& R, const std::vector<d
 
     return num_collisions;  // this means that no collision has occourred.
 }
-
-/*
-const size_t CollisionData::CollisionMatrix(const double& R, const CrossSectionsData& Xsec,
-    const std::vector<double>& mix, const double& E_in_eV, const double& factor)
-{    
-    // Build collision matrix and update current index based on the random number
-
-    const std::vector<double>& xx = Xsec.get_energy();  // energy bins (eV) from xs data
-
-    size_t collision_index = 0; // Index for the collision which the electron is undergoing
-
-    double c = 0.0;             // cumsum of the collision matrix row corresponding to the current electron
-
-    // Compute the collision frequency by interpolation:
-    auto it = std::upper_bound(xx.cbegin(), xx.cend(), E_in_eV);
-    const size_t k = std::min(
-        static_cast<size_t>(it - xx.begin() - 1),
-        xx.size() - 2
-    ); // index s.t. xx[k] <= E_in_eV < xx[k+1] (xx[0] = 0.0 by construction)
-    const double t = (E_in_eV - xx[k]) / (xx[k + 1] - xx[k]);
-
-    for(auto it = Xsec.get_full_xs_data().cbegin(); it != Xsec.get_full_xs_data().cend(); it++){ 
-
-        // Obtain by interpolation the xsec value corresponding to electron energy level:
-        const std::vector<double>& yy = it->section;
-        const double sigma_f = yy[k] + t * (yy[k + 1] - yy[k]);
-
-        // Collision matrix element, corresponding to current electron, current interaction:
-        c += factor * mix[it->specie_index] * sigma_f;
-
-        if( c > R) break;
-        collision_index++;
-    }
-
-    return collision_index;
-}
-*/
 
 void CollisionData::fill_Mass(const std::vector<size_t>& ind) {
     // Fill the Mass vector with the mass of the gas species

@@ -108,6 +108,8 @@ int main(int argc, char* argv[]) {
 
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
+    std::cout << " Iterations after sst: " << MC.get_count_sst() << "\n" << std::endl;  
+
     const std::vector<MeanData>& meandata = MC.get_mean_data();
     const std::vector<double>& time = MC.get_time_vector();
 

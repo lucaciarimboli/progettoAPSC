@@ -44,8 +44,8 @@ class BulkData {
     void normalize(std::vector<double> & y, const double & y_max);
     void update_time_vector(const std::vector<double> & tt, const unsigned int & count_sst);
     void update_mean_data(const unsigned int & count_sst, const std::vector<MeanData> & mea);
-    void compute_drift();
-    void compute_diffusion(const double N);
+    void compute_drift_velocity();
+    void compute_diffusion_coeff(const double& N);
     const std::array<double,2> linear_regression(const std::vector<double>& y) const;
 
     //----------------------------------------------------------------------------------------------------------//

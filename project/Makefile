@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall
+CXXFLAGS = -std=c++17 -O2 -Wall # -fopenmp
 DEBUG_FLAGS = $(CXXFLAGS) -g -DDEBUG
 PROFILER_FLAGS = $(CXXFLAGS) -pg -g -O2
 GPROF_FLAGS = --demangle --display-unused-functions

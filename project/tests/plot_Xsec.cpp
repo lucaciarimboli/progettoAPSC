@@ -29,19 +29,21 @@ int main(){
         std::vector<table> Xsec_att = Xsec.get_Xsections(spec_idx,mc::ATTACHMENT);
         std::vector<table> Xsec_exc = Xsec.get_Xsections(spec_idx,mc::EXCITATION);
         std::vector<table> Xsec_ela = Xsec.get_Xsections(spec_idx,mc::ELASTIC);
+        std::vector<table> Xsec_ion = Xsec.get_Xsections(spec_idx,mc::IONIZATION);
 
         // Build vectors with cross sections data for every energy level:
         std::vector<double> eff(n);
         std::vector<double> att(n);
         std::vector<double> exc(n);
         std::vector<double> ela(n);
+        std::vector<double> ion(n);
         std::vector<double> tot(n);
 
         for(size_t i = 0; i<n; i++){
             for(const table& tab: Xsec_eff){
                 const double sigma = tab.section[i];
                 eff[i] += sigma;
-                tot[i] += sigma;
+                // tot[i] += sigma;
             }
             for(const table& tab: Xsec_att){
                 const double sigma = tab.section[i];
@@ -58,6 +60,11 @@ int main(){
                 ela[i] += sigma;
                 tot[i] += sigma;
             }
+            for(const table& tab: Xsec_ela){
+                const double sigma = tab.section[i];
+                ion[i] += sigma;
+                tot[i] += sigma;
+            }
         }
 
         // Import data in files:
@@ -67,7 +74,7 @@ int main(){
 
         std::ofstream file(filename);
         for(size_t i = 0; i < n; i++) {
-            file << eff[i] << "," << att[i] << "," << exc[i] << "," << ela[i] << "," << tot[i] << "\n";
+            file << eff[i] << "," << att[i] << "," << exc[i] << "," << ela[i] << "," << ion[n] << "," << tot[i] << "\n";
         }
         file.close();
     }
