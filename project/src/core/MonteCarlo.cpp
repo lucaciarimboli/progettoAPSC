@@ -304,9 +304,9 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         const std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
 
         // Randomly generate phi: azimuthal angle
-        // double phi = 2 * M_PI * randu(gen);
-        //sin_phi = std::sin(phi);
-        sin_phi = 1 - 2 * randu(gen);
+        const double phi = 2 * M_PI * randu(gen);
+        sin_phi = std::sin(phi);
+        // sin_phi = 1 - 2 * randu(gen);
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
@@ -452,9 +452,9 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         const std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
 
         // Randomly generate phi: azimuthal angle
-        //const double phi = 2 * M_PI * randu(gen);
-        //sin_phi = std::sin(phi);
-        sin_phi = 1 - 2 * randu(gen);
+        const double phi = 2 * M_PI * randu(gen);
+        sin_phi = std::sin(phi);
+        //sin_phi = 1 - 2 * randu(gen);
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle

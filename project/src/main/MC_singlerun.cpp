@@ -108,25 +108,14 @@ int main(int argc, char* argv[]) {
 
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    std::cout << " Iterations after sst: " << MC.get_count_sst() << "\n" << std::endl;  
-
-    const std::vector<MeanData>& meandata = MC.get_mean_data();
-    const std::vector<double>& time = MC.get_time_vector();
-
     /*
-    std::ofstream file("tests/rz_data.csv");
-    file << "time" << "r_z" << "var_z" << "\n";
-    for(size_t i = 0; i < meandata.size(); i++) {
-        file << time[i] << "," << meandata[i].get_position()[2] << "," << meandata[i].get_variance()[2] << "\n";
-    }
-    file.close();
-    */
     std::ofstream file("tests/rz_data.csv");
     file << "time" << "pos_x" << "pos_y" << "\n";
     for(size_t i = 0; i < meandata.size(); i++) {
         file << time[i] << "," << meandata[i].get_position()[0] << "," << meandata[i].get_position()[1] << "\n";
     }
     file.close();
+    */
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
 

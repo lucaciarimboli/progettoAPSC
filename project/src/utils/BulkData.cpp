@@ -21,15 +21,16 @@ bool BulkData::is_empty() const {
 
 void BulkData::update_time_vector(const std::vector<double> & tt, const unsigned int & count_sst) {
     t.assign(tt.cend() - count_sst, tt.cend());
-    std::transform(t.begin(), t.end(), t.begin(), [this](const double& val) { return val - t[0]; });
+    const double t0 = t[0];
+    std::transform(t.begin(), t.end(), t.begin(), [t0](const double& val) { return val - t0; });
     t_max = t.back();
     normalize(t, t_max);
 }
 
 void BulkData::update_mean_data(const unsigned int & count_sst, const std::vector<MeanData> & mm) {
     mean.assign(mm.cend() - count_sst, mm.cend());
-    const std::array<double, 3>& pos0 = mean[0].get_position();
-    const std::array<double, 3>& var0 = mean[0].get_variance();
+    const std::array<double, 3> pos0 = mean[0].get_position();
+    const std::array<double, 3> var0 = mean[0].get_variance();
 
     for (auto it = mean.begin(); it != mean.end(); it++) {
         std::array<double, 3> pos = it->get_position();
@@ -90,16 +91,6 @@ void BulkData::compute_drift_velocity(){
 
     w[2] = m2[0] * z_max / t_max;
     w_err[2] = 0.25 * m2[1] * z_max / t_max;
-
-    //----------------------------------------------------------------------------------------------------------//
-    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    std::cout << "DRIFT VELOCITY FACTORS:" << std::endl;
-    std::cout << "IC width: " << m2[1] << std::endl;
-    std::cout << "z_max: " << z_max << std::endl;
-    std::cout << "t_max: " << t_max << "\n" << std::endl;
-    //----------------------------------------------------------------------------------------------------------//
-    //----------------------------------------------------------------------------------------------------------//
-
 }
 
 void BulkData::compute_diffusion_coeff(const double& N){
@@ -143,15 +134,6 @@ void BulkData::compute_diffusion_coeff(const double& N){
 
     DN[2] = N * m2[0] * z_max / t_max;
     DN_err[2] = N * 0.25 * m2[1] * z_max / t_max;
-
-    //----------------------------------------------------------------------------------------------------------//
-    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    std::cout << "DIFFUSION COEFFICIENT FACTORS:" << std::endl;
-    std::cout << "IC width: " << m2[1] << std::endl;
-    std::cout << "z_max: " << z_max << std::endl;
-    std::cout << "t_max: " << t_max << "\n" << std::endl;
-    //----------------------------------------------------------------------------------------------------------//
-    //----------------------------------------------------------------------------------------------------------//
 }
 
 const std::array<double,2> BulkData::linear_regression(const std::vector<double>& y) const{

@@ -277,7 +277,6 @@ void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const d
         double nu = N * sigma_tot * std::sqrt(2.0 * energy[k] * mc::q0 / mc::me); // s^-1
         if(nu > nu_max) nu_max = nu;
     }
-    std::cout << "nu_max = " << nu_max << "\n" << std::endl; // -> nu_max è giusto
 }
 
 const std::vector<table> CrossSectionsData::get_Xsections( const size_t specie, const mc::InteractionType interaction) const {
