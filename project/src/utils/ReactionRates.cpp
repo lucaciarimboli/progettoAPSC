@@ -15,17 +15,17 @@ const std::string RateDataBase::inter_to_string(mc::InteractionType interaction)
 // Compute the reaction rates based on the time and particle data.
 void RateDataCount::computeRates()
 {
-    if (!conserve) {
-        computeNonConserved();
-    } else {
+    if (conserve) {
         computeConserved();
+    } else {
+        computeNonConserved();
     }
 }
 
 void RateDataCount::setTime(const std::vector<double>& t, const unsigned int & count_sst){
     x.assign(t.cend() - count_sst, t.cend());
-    std::transform(x.begin() + 1, x.end(), x.begin() + 1, [this](double xx) { return xx - x[0]; });
-    x[0] = 0.0;
+    const double x0 = x[0];
+    std::transform(x.begin(), x.end(), x.begin(), [x0](double& xx) { return xx - x0; });
 }
 
 void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst) {
@@ -42,63 +42,64 @@ void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsig
 
     for (auto it = mean.cend() - count_sst; it != mean.cend(); it++) {
 
-        // Get the particle counts from MeanData:
-        const std::array<int,mc::PARTICLES_TYPES>& mean_particles = it->get_particles();
+        // Get the number of particles from MeanData:
+        const std::array<int,mc::PARTICLES_TYPES>& p = it->get_particles();
     
         // Fill the particles vector with the number of particles of each type
-        particles[mc::ELECTRONS].push_back(mean_particles[mc::ELECTRONS]);
-        particles[mc::ANIONS].push_back(mean_particles[mc::ANIONS]);
-        particles[mc::CATIONS].push_back(mean_particles[mc::CATIONS]);
+        particles[mc::ELECTRONS].push_back(p[mc::ELECTRONS]);
+        particles[mc::ANIONS].push_back(p[mc::ANIONS]);
+        particles[mc::CATIONS].push_back(p[mc::CATIONS]);
     } 
 }
 
 void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key) {
 
     std::vector<double> ratio; // ratio is element-wise division of y by time x
-    ratio.reserve(x.size() - 1);
+    const size_t ratio_sz = x.size() - 1;
+    ratio.reserve(ratio_sz);
 
     for (size_t i = 1; i < x.size(); i++) {
         ratio.push_back(y[i] / x[i]);
     }
     
     // Compute mean and standard error of y(2:end)./x(2:end)
-    double mean = std::accumulate(ratio.begin(), ratio.end(), 0.0) / ratio.size();
-    double std = std::sqrt(std::accumulate(ratio.begin(), ratio.end(), 0.0,
+    const double mean = std::accumulate(ratio.begin(), ratio.end(), 0.0) / ratio_sz;
+    const double std = std::sqrt(std::accumulate(ratio.begin(), ratio.end(), 0.0,
         [mean](double sum, double val) { return sum + (val - mean) * (val - mean);}
-        ) / (ratio.size() - 1));
+        ) / (ratio_sz - 1));
     rates[rate_key] = mean / N;
-    rates_errors[rate_key] = std / std::sqrt(static_cast<double>(ratio.size())) / N;
+    rates_errors[rate_key] = std / std::sqrt(static_cast<double>(ratio_sz)) / N;
 }
 
 void RateDataCount::computeNonConserved() {
 
-    // Compute effective ionization rate:
-    std::vector<double> y(particles[mc::ELECTRONS].size());
-
-    // Define y vector as logarithimcal electrons gain
-    if(particles[mc::ELECTRONS][0] == 0) throw std::invalid_argument("Number of electrons cannot be zero");
-    y[0] = 0.0;
-    std::transform(particles[mc::ELECTRONS].begin() + 1, particles[mc::ELECTRONS].end(), y.begin() + 1, [this](int part_0i) {
-        if( part_0i == 0) throw std::invalid_argument("Number of electrons cannot be zero");
-        return std::log(static_cast<double>(part_0i) / static_cast<double>(particles[mc::ELECTRONS][0]));
+    // Define y vector as logarithimcal electrons gain:
+    std::vector<double> y(particles[mc::ELECTRONS].size(), 0.0);
+    const double log_ne0 = std::log(static_cast<double>(particles[mc::ELECTRONS][0]));
+    std::transform(particles[mc::ELECTRONS].begin() + 1, particles[mc::ELECTRONS].end(), y.begin() + 1, [log_ne0](int part_0i) {
+        // if( part_0i == 0) throw std::invalid_argument("Number of electrons cannot be zero");
+        return std::log(static_cast<double>(part_0i)) - log_ne0;
     });
 
+    // Compute effective rate:
     computeRate(x, y, mc::EFFECTIVE);
-
-    double nu_eff = rates[mc::EFFECTIVE] * N;
-    std::transform(x.begin(), x.end(), x.begin(), [nu_eff, this](int xi) {
-        return (std::exp(nu_eff * xi) - 1.0) / nu_eff * static_cast<double>(particles[mc::ELECTRONS][0]);;
+    const double ne0 = static_cast<double>(particles[mc::ELECTRONS][0]);
+    const double nu_eff = rates[mc::EFFECTIVE] * N;
+    std::transform(x.begin(), x.end(), x.begin(), [nu_eff, ne0](int xi) {
+        return (std::exp(nu_eff * xi) - 1.0) / nu_eff * ne0;
     });
 
     // Compute ionization rate:
-    std::transform(particles[mc::CATIONS].begin(), particles[mc::CATIONS].end(), y.begin(), [this](int part_ij) {
-        return static_cast<double>(part_ij - particles[mc::CATIONS][0]);      // y elements here are int but they are casted to double for coherence with y definition
+    const int nc0 = particles[mc::CATIONS][0];
+    std::transform(particles[mc::CATIONS].begin(), particles[mc::CATIONS].end(), y.begin(), [nc0](int part_ij) {
+        return static_cast<double>(part_ij - nc0);
     });
     computeRate(x, y, mc::IONIZATION);
 
     // Compute attachment rate:
-    std::transform(particles[mc::ANIONS].begin(), particles[mc::ANIONS].end(), y.begin(), [this](int part_ij) {
-        return static_cast<double>(part_ij - particles[mc::ANIONS][0]);      // same as for ionization rates
+    const int na0 = particles[mc::ANIONS][0];
+    std::transform(particles[mc::ANIONS].begin(), particles[mc::ANIONS].end(), y.begin(), [na0](int part_ij) {
+        return static_cast<double>(part_ij - na0);
     });
     computeRate(x, y, mc::ATTACHMENT);
 }
@@ -114,8 +115,9 @@ void RateDataCount::computeConserved() {
     for (int i = 0; i < 3; i++){
 
         // Define y vector as normalized particles gain
-        std::transform(particles[i].cbegin(), particles[i].cend(), y.begin(), [this,i,initial_electrons](int part_ij) {
-            return (static_cast<double>(part_ij - particles[i][0]) / initial_electrons);
+        const int part_i0 = particles[i][0];
+        std::transform(particles[i].cbegin(), particles[i].cend(), y.begin(), [part_i0,initial_electrons](const int& part_ij) {
+            return (static_cast<double>(part_ij - part_i0) / initial_electrons);
         });
 
         // Compute effective ionization, ionization and attachment rates:
@@ -186,8 +188,14 @@ void RateDataConv::computeRates(){
 
     for(spec_rate & rr : specific_rates) {
 
-        // Compute the reaction rate for element "rr"
-        rr.rate = factor * convolution(rr.sigma, EEPF, sqrt_energy);
+        // Compute the reaction rate for element "rr":
+        const std::vector<double>& sig = rr.sigma;
+        double convolution = 0.0;
+        for (size_t j = 0; j < sqrt_energy.size(); j++) {
+            convolution += EEPF[j] * sqrt_energy[j] * sig[j];
+        } // convolution integral
+        //rr.rate = factor * convolution(rr.sigma, EEPF, sqrt_energy);
+        rr.rate = factor * convolution;
 
         // Update total reaction rate
         rates[rr.interaction] += rr.rate * mix[rr.specie];
@@ -196,6 +204,7 @@ void RateDataConv::computeRates(){
     rates[mc::EFFECTIVE] = rates[mc::IONIZATION] - rates[mc::ATTACHMENT];
 }
 
+/*
 double RateDataConv::convolution(const std::vector<double>& sigma, const std::vector<double>& EEPF,
       const std::vector<double>& sqrt_energy) const
 {
@@ -209,3 +218,4 @@ double RateDataConv::convolution(const std::vector<double>& sigma, const std::ve
 
     return rate;
 }
+*/

@@ -179,7 +179,7 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
     // (e.g. for 100 d.o.f: actual t_value = 1.984, computed value: 1.9877)
 
     // Length of confidence interval of 95% for slope with 9 dof (minimum value of n-2):
-    //const double t_value = 1.96 + 2.718 / (n - 2); // interpolation for t-student quantile
-    const double t_value = t_student_quantiles[n-11];
+    const double t_value = 1.96 + 2.718 / (n - 2); // interpolation for t-student quantile
+    // const double t_value = t_student_quantiles[n-11];
     return { m, 2 * t_value * standard_err };
 };

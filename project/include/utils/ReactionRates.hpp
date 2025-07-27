@@ -55,7 +55,7 @@ public:
     void computeRates() override;
 
     // Setters:
-    void setConserve(bool cons) { conserve = cons; }
+    void setConserve(bool & cons) { conserve = cons; }
     void setTime(const std::vector<double>& t,const unsigned int & count_sst);
     void setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst);
 
@@ -116,7 +116,7 @@ class RateDataConv : public RateDataBase {
 
     // Private Methods:
     void linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, std::vector<double>& result) const;
-    double convolution(const std::vector<double>& sigma, const std::vector<double>& EEPF, const std::vector<double>& sqrt_energy) const;
+    // double convolution(const std::vector<double>& sigma, const std::vector<double>& EEPF, const std::vector<double>& sqrt_energy) const;
 };
 
 #endif // REACTION_RATES_HPP

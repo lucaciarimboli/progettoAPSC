@@ -17,7 +17,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    // gen.seed(1204720943);
+    gen.seed(1204720943);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -766,7 +766,6 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     const int minutes = duration / 60;
     const int seconds = duration % 60;
     file << "convergence_time = " << minutes << " minutes, " << seconds << " seconds\n\n";
-    file << "\n";
     
     // Simulation parameters
     file << "[SIMULATION_PARAMETERS]\n";
