@@ -45,8 +45,8 @@ public:
     // THIS CLASS COMPUTES ONLY EFFECTIVE, IONIZATION AND ATTACHMENT RATES
     // RATES RELATED TO EXCITATION AND ELASTIC COLLISIONS ARE SIMPLY SET TO 0.0
 
-    RateDataCount(const double & dens, bool cons) 
-        : conserve(cons), N(dens)
+    RateDataCount(const double & dens, bool cons, const unsigned& N0) 
+        : conserve(cons), N(dens), initial_electrons(static_cast<double>(N0))
     {
         rates_errors.fill(0.0);
     }
@@ -56,8 +56,8 @@ public:
 
     // Setters:
     void setConserve(bool & cons) { conserve = cons; }
-    void setTime(const std::vector<double>& t,const unsigned int & count_sst);
-    void setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst);
+    void setTime(const std::vector<double>& time,const size_t & count_sst);
+    void setParticles(const std::vector<MeanData> & mean, const size_t & count_sst);
 
     // Getter:
     double get_errors(const mc::InteractionType rate_key) const { return rates_errors[rate_key]; }
@@ -70,11 +70,14 @@ private:
     bool conserve; // conserve (true) electron number after ionizatzion/attachment or not (false)
     double N;      // Gas number density in [m^-3]
 
-    std::vector<double> x; // linear time interval
-    std::array<std::vector<int>,mc::PARTICLES_TYPES> particles; // Number of particles of each type at each time of vector "x"
+    std::vector<double> t;       // time vector starting from 0 after steady state
+    std::vector<int> electrons;  // number of electrons at each time step
+    std::vector<int> anions;     // number of anions at each time step
+    std::vector<int> cations;    // number of cations at each time step
+    double initial_electrons;    // Initial e population casted to double
 
     // Private methods:
-    void computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key);
+    void computeRate(const std::vector<double>& x, const std::vector<double>& y, const mc::InteractionType& rate_key);
     void computeNonConserved();
     void computeConserved();
 

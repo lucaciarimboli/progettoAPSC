@@ -12,7 +12,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     conserve(conserve), isotropic(isotropic), W(W), sqrtW(std::sqrt(W)), sqrt1_W(std::sqrt(1-W)),
     E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
-    E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix, dE), rates_count(N, conserve),
+    E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix, dE), rates_count(N, conserve, N0),
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
     
     //----------------------------------------------------------------------------------------------------------//

@@ -22,23 +22,29 @@ void RateDataCount::computeRates()
     }
 }
 
-void RateDataCount::setTime(const std::vector<double>& t, const unsigned int & count_sst){
-    x.assign(t.cend() - count_sst, t.cend());
-    const double x0 = x[0];
-    std::transform(x.begin(), x.end(), x.begin(), [x0](double& xx) { return xx - x0; });
+void RateDataCount::setTime(const std::vector<double>& time, const size_t & count_sst){
+    t.assign(time.cend() - count_sst, time.cend());
+    const double t0 = t[0];
+    std::transform(t.begin(), t.end(), t.begin(), [t0](double& tt) { return tt - t0; });
+
+    if(count_sst == 11){
+        std::cout << "\nTIME AFTER SCALING:" << std::endl;
+        for(double & tt:t) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
+    }
 }
 
-void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsigned int & count_sst) {
+void RateDataCount::setParticles(const std::vector<MeanData> & mean, const size_t & count_sst) {
     //if (count_sst > mean.size()) {throw std::out_of_range("count_sst exceeds the size of mean");}
 
     // Set the size for particle vector
-    particles[mc::ELECTRONS].clear();
-    particles[mc::ANIONS].clear();
-    particles[mc::CATIONS].clear();
+    electrons.clear();
+    anions.clear();
+    cations.clear();
 
-    particles[mc::ELECTRONS].reserve(count_sst);
-    particles[mc::ANIONS].reserve(count_sst);
-    particles[mc::CATIONS].reserve(count_sst);
+    electrons.reserve(count_sst);
+    anions.reserve(count_sst);
+    cations.reserve(count_sst);
 
     for (auto it = mean.cend() - count_sst; it != mean.cend(); it++) {
 
@@ -46,13 +52,13 @@ void RateDataCount::setParticles(const std::vector<MeanData> & mean, const unsig
         const std::array<int,mc::PARTICLES_TYPES>& p = it->get_particles();
     
         // Fill the particles vector with the number of particles of each type
-        particles[mc::ELECTRONS].push_back(p[mc::ELECTRONS]);
-        particles[mc::ANIONS].push_back(p[mc::ANIONS]);
-        particles[mc::CATIONS].push_back(p[mc::CATIONS]);
+        electrons.push_back(p[mc::ELECTRONS]);
+        anions.push_back(p[mc::ANIONS]);
+        cations.push_back(p[mc::CATIONS]);
     } 
 }
 
-void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<double>& y, const int & rate_key) {
+void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<double>& y, const mc::InteractionType & rate_key) {
 
     std::vector<double> ratio; // ratio is element-wise division of y by time x
     const size_t ratio_sz = x.size() - 1;
@@ -74,54 +80,90 @@ void RateDataCount::computeRate(const std::vector<double>& x, const std::vector<
 void RateDataCount::computeNonConserved() {
 
     // Define y vector as logarithimcal electrons gain:
-    std::vector<double> y(particles[mc::ELECTRONS].size(), 0.0);
-    const double log_ne0 = std::log(static_cast<double>(particles[mc::ELECTRONS][0]));
-    std::transform(particles[mc::ELECTRONS].begin() + 1, particles[mc::ELECTRONS].end(), y.begin() + 1, [log_ne0](int part_0i) {
+    std::vector<double> y(electrons.size(), 0.0);
+    const double log_ne0 = std::log(static_cast<double>(electrons[0]));
+    std::transform(electrons.begin() + 1, electrons.end(), y.begin() + 1, [log_ne0](int part_0i) {
         // if( part_0i == 0) throw std::invalid_argument("Number of electrons cannot be zero");
         return std::log(static_cast<double>(part_0i)) - log_ne0;
     });
+    computeRate(t, y, mc::EFFECTIVE); // effective rate
 
-    // Compute effective rate:
-    computeRate(x, y, mc::EFFECTIVE);
-    const double ne0 = static_cast<double>(particles[mc::ELECTRONS][0]);
+    const double ne0 = static_cast<double>(electrons[0]);
     const double nu_eff = rates[mc::EFFECTIVE] * N;
-    std::transform(x.begin(), x.end(), x.begin(), [nu_eff, ne0](int xi) {
-        return (std::exp(nu_eff * xi) - 1.0) / nu_eff * ne0;
+    std::transform(t.begin(), t.end(), t.begin(), [nu_eff, ne0](int ti) {
+        return (std::exp(nu_eff * ti) - 1.0) / nu_eff * ne0;
     });
 
     // Compute ionization rate:
-    const int nc0 = particles[mc::CATIONS][0];
-    std::transform(particles[mc::CATIONS].begin(), particles[mc::CATIONS].end(), y.begin(), [nc0](int part_ij) {
+    const int nc0 = cations[0];
+    std::transform(cations.begin(), cations.end(), y.begin(), [nc0](int part_ij) {
         return static_cast<double>(part_ij - nc0);
     });
-    computeRate(x, y, mc::IONIZATION);
+    computeRate(t, y, mc::IONIZATION);
 
     // Compute attachment rate:
-    const int na0 = particles[mc::ANIONS][0];
-    std::transform(particles[mc::ANIONS].begin(), particles[mc::ANIONS].end(), y.begin(), [na0](int part_ij) {
+    const int na0 = anions[0];
+    std::transform(anions.begin(), anions.end(), y.begin(), [na0](int part_ij) {
         return static_cast<double>(part_ij - na0);
     });
-    computeRate(x, y, mc::ATTACHMENT);
+    computeRate(t, y, mc::ATTACHMENT);
 }
 
 void RateDataCount::computeConserved() {
 
-    const double initial_electrons = static_cast<double>(particles[mc::ELECTRONS][0]);
-    const size_t count_sst = particles[mc::ELECTRONS].size();
+    const size_t count_sst = electrons.size();
 
     std::vector<double> y(count_sst,0.0);
 
-    // Compute effective ionization, ionization and attachment rates:
-    for (int i = 0; i < 3; i++){
+    // Compute effective ionization rate:
+    const int electrons0 = electrons[0];
+    std::transform(electrons.cbegin(), electrons.cend(), y.begin(), [electrons0,this](const int& ele_ij) {
+        return ((static_cast<double>(ele_ij - electrons0)) / initial_electrons);
+    });
+    computeRate(t, y, mc::EFFECTIVE);
 
-        // Define y vector as normalized particles gain
-        const int part_i0 = particles[i][0];
-        std::transform(particles[i].cbegin(), particles[i].cend(), y.begin(), [part_i0,initial_electrons](const int& part_ij) {
-            return (static_cast<double>(part_ij - part_i0) / initial_electrons);
-        });
+    if(count_sst == 11){
+        std::cout << "\nNUMBER OF e BEFORE SCALING:" << std::endl;
+        for(int & tt:electrons) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
 
-        // Compute effective ionization, ionization and attachment rates:
-        computeRate(x, y, i);
+        std::cout << "\nNUMBER OF e AFTER SCALING:" << std::endl;
+        for(double & tt:y) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
+    }
+
+    // Compute ionization rate:
+    const int cations0 = cations[0];
+    std::transform(cations.cbegin(), cations.cend(), y.begin(), [cations0,this](const int& cat_ij) {
+        return (static_cast<double>(cat_ij - cations0) / initial_electrons);
+    });
+    computeRate(t, y, mc::IONIZATION);
+
+    if(count_sst == 11){
+        std::cout << "\nNUM OF c BEFORE SCALING:" << std::endl;
+        for(int & tt:cations) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
+
+        std::cout << "\nNUMBER OF c AFTER SCALING:" << std::endl;
+        for(double & tt:y) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
+    }
+
+    // Compute attachment rates:
+    const int anions0 = anions[0];
+    std::transform(anions.cbegin(), anions.cend(), y.begin(), [anions0,this](const int& ani_ij) {
+        return (static_cast<double>(ani_ij - anions0) / initial_electrons);
+    });
+    computeRate(t, y, mc::ATTACHMENT);
+
+    if(count_sst == 11){
+        std::cout << "\nNUM OF a BEFORE SCALING:" << std::endl;
+        for(int & tt:anions) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
+
+        std::cout << "\nNUMBER OF a AFTER SCALING:" << std::endl;
+        for(double & tt:y) std::cout << tt << std::endl;
+        std::cout << "\n" << std::endl;
     }
 }
 
