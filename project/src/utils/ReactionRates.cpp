@@ -26,12 +26,6 @@ void RateDataCount::setTime(const std::vector<double>& time, const size_t & coun
     t.assign(time.cend() - count_sst, time.cend());
     const double t0 = t[0];
     std::transform(t.begin(), t.end(), t.begin(), [t0](double& tt) { return tt - t0; });
-
-    if(count_sst == 11){
-        std::cout << "\nTIME AFTER SCALING:" << std::endl;
-        for(double & tt:t) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-    }
 }
 
 void RateDataCount::setParticles(const std::vector<MeanData> & mean, const size_t & count_sst) {
@@ -122,16 +116,6 @@ void RateDataCount::computeConserved() {
     });
     computeRate(t, y, mc::EFFECTIVE);
 
-    if(count_sst == 11){
-        std::cout << "\nNUMBER OF e BEFORE SCALING:" << std::endl;
-        for(int & tt:electrons) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-
-        std::cout << "\nNUMBER OF e AFTER SCALING:" << std::endl;
-        for(double & tt:y) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-    }
-
     // Compute ionization rate:
     const int cations0 = cations[0];
     std::transform(cations.cbegin(), cations.cend(), y.begin(), [cations0,this](const int& cat_ij) {
@@ -139,32 +123,12 @@ void RateDataCount::computeConserved() {
     });
     computeRate(t, y, mc::IONIZATION);
 
-    if(count_sst == 11){
-        std::cout << "\nNUM OF c BEFORE SCALING:" << std::endl;
-        for(int & tt:cations) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-
-        std::cout << "\nNUMBER OF c AFTER SCALING:" << std::endl;
-        for(double & tt:y) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-    }
-
     // Compute attachment rates:
     const int anions0 = anions[0];
     std::transform(anions.cbegin(), anions.cend(), y.begin(), [anions0,this](const int& ani_ij) {
         return (static_cast<double>(ani_ij - anions0) / initial_electrons);
     });
     computeRate(t, y, mc::ATTACHMENT);
-
-    if(count_sst == 11){
-        std::cout << "\nNUM OF a BEFORE SCALING:" << std::endl;
-        for(int & tt:anions) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-
-        std::cout << "\nNUMBER OF a AFTER SCALING:" << std::endl;
-        for(double & tt:y) std::cout << tt << std::endl;
-        std::cout << "\n" << std::endl;
-    }
 }
 
 RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix, const double& dE) 
@@ -228,14 +192,18 @@ void RateDataConv::computeRates(){
     const std::vector<double>& EEPF = E.get_EEPF(); 
     const std::vector<double>& sqrt_energy = E.get_sqrt_E();
 
+    // Reset the reaction rates before compting:
+    rates.fill(0.0);
+
     for(spec_rate & rr : specific_rates) {
 
         // Compute the reaction rate for element "rr":
         const std::vector<double>& sig = rr.sigma;
         double convolution = 0.0;
-        for (size_t j = 0; j < sqrt_energy.size(); j++) {
+
+        for (size_t j = 0; j < sqrt_energy.size(); j++) {       // convolution integral
             convolution += EEPF[j] * sqrt_energy[j] * sig[j];
-        } // convolution integral
+        }
         //rr.rate = factor * convolution(rr.sigma, EEPF, sqrt_energy);
         rr.rate = factor * convolution;
 

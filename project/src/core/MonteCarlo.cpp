@@ -180,7 +180,7 @@ void MonteCarlo::updateEnergyData(){
 
     // Compute kinetic energy for each electron:
     std::vector<double> E_in_eV(ne);    
-    std::transform(v.begin(), v.end(), E_in_eV.begin(), [this](const std::array<double, 3>& vi) {
+    std::transform(v.begin(), v.end(), E_in_eV.begin(), [](const std::array<double, 3>& vi) {
         const double abs_v2 = vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2];
         return 0.5 * mc::me * abs_v2 / mc::q0;
     });
@@ -724,7 +724,7 @@ void MonteCarlo::printOnScreen() {
 void MonteCarlo::saveResults(const int64_t duration) const {
     // Prints the final results of the simulation to a file
 
-    // Find the next available filename in the form "results/resultN.txt"
+    // Find the next available filename
     int file_index = 1;
     std::string filename;
     while(true) {
