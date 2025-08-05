@@ -12,6 +12,8 @@
 
 #include "Common.hpp"
 
+#include <execution> 
+
 
 class RateDataBase {
 public:
@@ -119,7 +121,6 @@ class RateDataConv : public RateDataBase {
 
     // Private Methods:
     void linear_interpolation(const std::vector<double>& x, const std::vector<double>& y, std::vector<double>& result) const;
-    // double convolution(const std::vector<double>& sigma, const std::vector<double>& EEPF, const std::vector<double>& sqrt_energy) const;
 };
 
 #endif // REACTION_RATES_HPP

@@ -52,9 +52,12 @@ private:
     std::vector<size_t> ind_att;           // Collision indices for attachment collision
 
     // Private Methods:
+    /*
     const size_t CollisionMatrix(const double& R, const std::vector<double>& XS_energy,
         const std::vector<table>& XS_data, const std::vector<double>& mix,
-        const double& E_in_eV, const double& factor);
+        const double& E_in_eV, const double& factor, const double& t_prima);
+    */
+    const size_t CollisionMatrix(const double& R, const std::vector<table>& XS_data, const std::vector<double>& mix, const double& t, const size_t& k, const double& factor);
     void fill_Mass(const std::vector<size_t>& ind);
     void fill_Loss(const std::vector<size_t> & ind);
     void find_collision_indeces( const std::vector<size_t>& ind);

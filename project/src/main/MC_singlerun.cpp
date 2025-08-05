@@ -15,12 +15,11 @@ int main(int argc, char* argv[]) {
     //       IMPORT SIMULATION PARAMETERS:     //
     //-----------------------------------------//
 
-    // Carica configurazione
     ConfigParser config;
     
     std::string config_file = "data/config/simulation.json";
     if (argc > 1) {
-        config_file = argv[1];  // use input file
+        config_file = argv[1];
     }
     
     if (!config.loadFromFile(config_file)) {

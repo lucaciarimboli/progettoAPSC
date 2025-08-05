@@ -17,8 +17,7 @@ public:
 
     // Public methods:
     void mean_energy(const mc::MATRIX& v2_int, const double& t_total);
-    void energy_bins(const std::vector<double>& E_in_eV);
-    void compute_distribution_function();
+    void compute_distribution_function(const std::vector<double>& E_in_eV);
 
     // Getters:
     const std::vector<double>& get_energy() const { return energy; }

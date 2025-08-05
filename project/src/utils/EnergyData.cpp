@@ -34,24 +34,16 @@ void EnergyData::mean_energy(const mc::MATRIX& v2_int, const double& t_total){
     E_mean = E_sum / t_total;
 }
 
-void EnergyData::energy_bins(const std::vector<double>& E_in_eV) {
+void EnergyData::compute_distribution_function(const std::vector<double>& E_in_eV) {
+
     // Count energy in every bin 
     for (auto it = E_in_eV.cbegin(); it != E_in_eV.cend(); it++) {
-        // Use binary search to find the appropriate bin
-        // if(*it < 0 || *it > E_max){
-        //     throw std::out_of_range("prova 1");
-        // }
         const size_t bin_index = std::min(static_cast<size_t>(*it / dE), energy.size() - 1);
         EEPF_sum[bin_index]++;
     }
-}
 
-void EnergyData::compute_distribution_function() {
     // Normalize EEPF and compute EEDF
     const double total_sum = static_cast<double>(std::accumulate(EEPF_sum.cbegin(), EEPF_sum.cend(), 0));
-    //if(total_sum == 0){
-    //    throw std::runtime_error("prova 2");
-    //}
 
     for (size_t j = 1; j < energy.size(); j++) {
         EEPF[j] = EEPF_sum[j] / (total_sum * dE);

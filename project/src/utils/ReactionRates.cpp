@@ -187,6 +187,7 @@ void RateDataConv::linear_interpolation(const std::vector<double>& x, const std:
     }
 }
 
+/*
 void RateDataConv::computeRates(){
 
     const std::vector<double>& EEPF = E.get_EEPF(); 
@@ -199,33 +200,86 @@ void RateDataConv::computeRates(){
 
         // Compute the reaction rate for element "rr":
         const std::vector<double>& sig = rr.sigma;
-        double convolution = 0.0;
 
-        for (size_t j = 0; j < sqrt_energy.size(); j++) {       // convolution integral
+        // convolution integral
+        double convolution = 0.0;
+        for (size_t j = 0; j < sqrt_energy.size(); j++) {
             convolution += EEPF[j] * sqrt_energy[j] * sig[j];
         }
-        //rr.rate = factor * convolution(rr.sigma, EEPF, sqrt_energy);
-        rr.rate = factor * convolution;
 
-        // Update total reaction rate
+        // Update reaction rate
+        rr.rate = factor * convolution;
         rates[rr.interaction] += rr.rate * mix[rr.specie];
     }
 
     rates[mc::EFFECTIVE] = rates[mc::IONIZATION] - rates[mc::ATTACHMENT];
 }
+*/
 
-/*
-double RateDataConv::convolution(const std::vector<double>& sigma, const std::vector<double>& EEPF,
-      const std::vector<double>& sqrt_energy) const
-{
-    // Compute the rate by convolution of the cross section
-    // with the probability density function of having an electron at a given energy level.
-    
-    double rate = 0.0;
-    for (size_t j = 0; j < sqrt_energy.size(); j++) {
-        rate += EEPF[j] * sqrt_energy[j] * sigma[j];
+// Optimized version
+void RateDataConv::computeRates(){
+
+    const std::vector<double>& EEPF = E.get_EEPF(); 
+    const std::vector<double>& sqrt_energy = E.get_sqrt_E();
+    std::vector<double> product(sqrt_energy.size());
+
+    std::transform(EEPF.cbegin(), EEPF.cend(), sqrt_energy.cbegin(), product.begin(),
+        [](const double& a, const double& b){return a * b; }
+    );
+
+    // Reset the reaction rates before computing:
+    rates.fill(0.0);
+
+    for(auto it = specific_rates.begin(); it != specific_rates.end(); it++) {
+
+        // Compute the reaction rate for element "rr":
+        const std::vector<double>& sig = it->sigma;
+
+        // convolution integral
+        const double convolution = std::inner_product(product.begin(), product.end(), sig.begin(), 0.0);
+
+        // Update reaction rate
+        const double rrate = factor * convolution;
+        it->rate = rrate;
+        rates[it->interaction] += rrate * mix[it->specie];
     }
 
-    return rate;
+    rates[mc::EFFECTIVE] = rates[mc::IONIZATION] - rates[mc::ATTACHMENT];
+}
+
+
+/*
+// Parallel version
+void RateDataConv::computeRates(){
+
+    const std::vector<double>& EEPF = E.get_EEPF(); 
+    const std::vector<double>& sqrt_energy = E.get_sqrt_E();
+    const size_t size = sqrt_energy.size();
+    std::vector<double> product(size);
+    
+    std::transform( std::execution::par, EEPF.begin(), EEPF.end(), sqrt_energy.begin(), product.begin(),
+        [](const double& a, const double& b){return a * b; }
+    );
+
+    // Reset the reaction rates before computing:
+    rates.fill(0.0);
+    
+    #pragma omp parallel for
+    for(size_t i=0; i<specific_rates.size(); i++) {
+
+        // Compute the reaction rate for element "rr":
+        const std::vector<double>& sig = specific_rates[i].sigma;
+
+        // convolution integral
+        const double convolution = std::inner_product(product.cbegin(), product.cend(), sig.cbegin(), 0.0);
+
+        // Update reaction rate
+        const double r = factor * convolution;
+        specific_rates[i].rate = r;
+        #pragma omp atomic
+        rates[specific_rates[i].interaction] += r * mix[specific_rates[i].specie];
+    }
+
+    rates[mc::EFFECTIVE] = rates[mc::IONIZATION] - rates[mc::ATTACHMENT];
 }
 */

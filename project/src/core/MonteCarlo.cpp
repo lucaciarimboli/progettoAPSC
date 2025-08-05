@@ -17,7 +17,12 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     
     //----------------------------------------------------------------------------------------------------------//
     //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    gen.seed(1204720943);
+    // gen.seed(37498390); // --> seed usato in optimization
+    // gen.seed(4738);
+    // gen.seed(8468927);
+    // gen.seed(3719741);
+    // gen.seed(1840127407);
+    // gen.seed(3276);
     //----------------------------------------------------------------------------------------------------------//
     //----------------------------------------------------------------------------------------------------------//
         
@@ -132,33 +137,40 @@ void MonteCarlo::freeFlight(){
         v2_int.clear();
         v_int.reserve(ne);
         v2_int.reserve(ne);
+
         for(size_t i = 0; i < ne; i++){
+            const std::array<double,3>& vi = v[i];
+
             // integrated velocity
             v_int.emplace_back(std::array<double, 3>{
-                v[i][0]*dt + 0.5 * a[0] * dt2,
-                v[i][1]*dt + 0.5 * a[1] * dt2,
-                v[i][2]*dt + 0.5 * a[2] * dt2
+                vi[0]*dt + 0.5 * a[0] * dt2,
+                vi[1]*dt + 0.5 * a[1] * dt2,
+                vi[2]*dt + 0.5 * a[2] * dt2
             });
 
             // integrated velocity squared
             v2_int.emplace_back(std::array<double, 3>{
-                v[i][0]*v[i][0]*dt + a[0]*v[i][0] * dt2 + a[0]*a[0] / 3 * dt3,
-                v[i][1]*v[i][1]*dt + a[1]*v[i][1] * dt2 + a[1]*a[1] / 3 * dt3,
-                v[i][2]*v[i][2]*dt + a[2]*v[i][2] * dt2 + a[2]*a[2] / 3 * dt3
+                vi[0]*vi[0]*dt + a[0]*vi[0] * dt2 + a[0]*a[0] / 3 * dt3,
+                vi[1]*vi[1]*dt + a[1]*vi[1] * dt2 + a[1]*a[1] / 3 * dt3,
+                vi[2]*vi[2]*dt + a[2]*vi[2] * dt2 + a[2]*a[2] / 3 * dt3
             });
         }
     }
 
     // Update space and velocity:
     for(size_t i = 0; i < ne; i++){
-        r[i][0] += v[i][0]*dt + 0.5 * a[0] * dt2;
-        v[i][0] += a[0] * dt;
 
-        r[i][1] += v[i][1]*dt + 0.5 * a[1] * dt2;
-        v[i][1] += a[1] * dt;
+        std::array<double,3>& ri = r[i];
+        std::array<double,3>& vi = v[i];
 
-        r[i][2] += v[i][2]*dt + 0.5 * a[2] * dt2;
-        v[i][2] += a[2] * dt;
+        ri[0] += vi[0]*dt + 0.5 * a[0] * dt2;
+        vi[0] += a[0] * dt;
+
+        ri[1] += vi[1]*dt + 0.5 * a[1] * dt2;
+        vi[1] += a[1] * dt;
+
+        ri[2] += vi[2]*dt + 0.5 * a[2] * dt2;
+        vi[2] += a[2] * dt;
     }
 }
 
@@ -185,8 +197,7 @@ void MonteCarlo::updateEnergyData(){
         return 0.5 * mc::me * abs_v2 / mc::q0;
     });
 
-    E.energy_bins(E_in_eV);
-    E.compute_distribution_function();  
+    E.compute_distribution_function(E_in_eV);  
 }
 
 void MonteCarlo::updateFluxData(){
