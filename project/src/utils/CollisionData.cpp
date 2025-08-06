@@ -60,8 +60,8 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
     // Build collision matrix and compute indeces:
 
     // Define vector to store which reaction will happen for each electron:
-    std::vector<size_t> ind;
-    ind.reserve(n_electrons);
+    std::vector<size_t> ind(n_electrons);
+    // ind.reserve(n_electrons);
 
     // Common factor in the collision matrix:
     const double common_factor = density / Xsec.get_nu_max();
@@ -70,6 +70,7 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
 
     std::vector<size_t> k(n_electrons);
     std::vector<double> t(n_electrons);
+    #pragma omp parallel for schedule(static, 10000)
     for (int i = 0; i < n_electrons; i++) {
         auto it = std::upper_bound(XS_energy.cbegin(), XS_energy.cend(), E_in_eV[i]);
         const size_t idx = std::min(
@@ -81,13 +82,11 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
     }
 
     // Compute the cumulative sum by electron of the collision matrix:
-    // omp_set_num_threads(4);
-    // #pragma omp parallel for schedule(static, 5000)
+    #pragma omp parallel for schedule(static, 10000)
     for(int i = 0; i < n_electrons; i++){
         // Simulate which collision the i-esim electron undergoes:
-        // ind.push_back(CollisionMatrix(R[i], XS_energy, XS_data, mix, E_in_eV[i], v_abs[i]*common_factor, t[i]));
-        ind.push_back(CollisionMatrix(R[i], XS_data, mix, t[i], k[i], v_abs[i]*common_factor));
-        // ind[i] = CollisionMatrix(R[i], XS_energy, XS_data, mix, E_in_eV[i], v_abs[i]*common_factor);
+        // ind.push_back(CollisionMatrix(R[i], XS_data, mix, t[i], k[i], v_abs[i]*common_factor));
+        ind[i] = CollisionMatrix(R[i], XS_data, mix, t[i], k[i], v_abs[i]*common_factor);
     }
 
     // Compute Mass, Loss and indeces vectors:
@@ -96,46 +95,6 @@ void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsDa
     find_collision_indeces(ind);
 }
 
-/*
-const size_t CollisionData::CollisionMatrix(const double& R, const std::vector<double>& XS_energy,
-   const std::vector<table>& XS_data, const std::vector<double>& mix,
-   const double& E_in_eV, const double& factor, const double& t_prima)
-{    
-    // Build collision matrix and update current index based on the random number
-
-    double c = 0.0;             // cumsum of the collision matrix row corresponding to the current electron
-    
-    // Compute the collision frequency by interpolation:
-    auto it = std::upper_bound(XS_energy.cbegin(), XS_energy.cend(), E_in_eV);
-    const size_t k = std::min(
-        static_cast<size_t>(it - XS_energy.begin() - 1),
-        XS_energy.size() - 2
-    ); // index s.t. xx[k] <= E_in_eV < xx[k+1] (xx[0] = 0.0 by construction)
-    const double t = (E_in_eV - XS_energy[k]) / (XS_energy[k + 1] - XS_energy[k]);
-
-    // std::cout << t - t_prima << std::endl;
-    // if(t != t_prima) std::cout << "VALORE DIVERSO!!!     differenza = " << t-t_prima << std::endl;
-
-    const size_t num_collisions = XS_data.size();
-
-    for(size_t i = 0; i < num_collisions; i++){ 
-
-        // Obtain by interpolation the xsec value corresponding to electron energy level:
-        const std::vector<double>& yy = XS_data[i].section;
-        const double sigma_f = yy[k] + t * (yy[k+1] - yy[k]);  // (Extrapolation allowed)
-        // const double sigma_f = std::min(yy[k] + t * (yy[k+1] - yy[k]),yy.back()); 
-
-        // Collision matrix element, corresponding to current electron, current interaction:
-        c += factor * mix[XS_data[i].specie_index] * sigma_f;
-
-        if( c > R) return i;
-    }
-
-    return num_collisions;  // this means that no collision has occourred.
-}
-*/
-
-// Improved version:
 const size_t CollisionData::CollisionMatrix(const double& R, const std::vector<table>& XS_data, const std::vector<double>& mix,
    const double& t, const size_t& k, const double& factor)
 {    
