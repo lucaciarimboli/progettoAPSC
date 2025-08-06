@@ -60,8 +60,8 @@ public:
 
     //---------------------------------------------------------------------//
     //------------------- FOR DEBUGGING PURPOSES --------------------------//
-    const std::vector<MeanData>& get_mean_data() const { return mean; }
-    const std::vector<double>& get_time_vector() const { return t; }
+    // const std::vector<MeanData>& get_mean_data() const { return mean; }
+    // const std::vector<double>& get_time_vector() const { return t; }
     //---------------------------------------------------------------------//
     //---------------------------------------------------------------------//
 
@@ -103,6 +103,8 @@ private:
     std::array<double,3> a;                         // acceleration of electrons [m/s^2] (const & uniform)
     mc::MATRIX v_int;                               // time-integrated velocity
     mc::MATRIX v2_int;                              // time-integrated squared velocity
+    std::vector<double> v_abs;                      // absolute value of velocities
+    std::vector<double> E_in_eV;                    // kinetic energies of electrons [eV]
     mc::MATRIX r_cations;                           // 3D positions of cations; [m]
     mc::MATRIX r_anions;                            // 3D positions of anions;  [m]
 
@@ -126,12 +128,10 @@ private:
     std::uniform_real_distribution<> randu;     // Uniform distribution for random numbers
     std::normal_distribution<double> randn;     // Normal distribution for random numbers
 
-
     // Private Methods:
     void checkFractionSum();
     void mass_in_kg();
     void initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz);
-    std::pair<double,double> velocity2energy(const std::array<double,3> & v) const;
     std::array<double, 3> cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b) const;
     void elasticCollision(const std::vector<size_t> & ind, const std::vector<double> & Mass);
     void inelasticCollision(const std::vector<size_t> & ind, const std::vector<double> & Loss);

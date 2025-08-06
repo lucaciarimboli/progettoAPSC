@@ -28,7 +28,7 @@ void EnergyData::mean_energy(const mc::MATRIX& v2_int, const double& t_total){
 
     std::vector<double> E_int(v2_int.size());
     std::transform(v2_int.begin(), v2_int.end(), E_int.begin(), [](const std::array<double, 3>& v2i){
-        return 0.5 * mc::me * (v2i[0] + v2i[1] + v2i[2]) / mc::q0;
+        return mc::factor * (v2i[0] + v2i[1] + v2i[2]);
     });
     E_sum += std::accumulate(E_int.cbegin(), E_int.cend(), 0.0);
     E_mean = E_sum / t_total;

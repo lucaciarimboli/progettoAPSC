@@ -274,7 +274,7 @@ void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const d
             }
         }
         // Calculate the maximal collision frequency:
-        double nu = N * sigma_tot * std::sqrt(2.0 * energy[k] * mc::q0 / mc::me); // s^-1
+        double nu = N * sigma_tot * std::sqrt(energy[k]/ mc::factor); // s^-1
         if(nu > nu_max) nu_max = nu;
     }
 }

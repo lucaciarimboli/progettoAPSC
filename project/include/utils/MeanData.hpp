@@ -16,25 +16,25 @@ class MeanData
     public:
 
     // Constructors:
-    MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int ne);
-    MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATRIX & r, const mc::MATRIX & v);
+    MeanData(const std::array<double,3>& r, const std::array<double,3>& s, const int& ne);
+    MeanData(const std::array<int,mc::PARTICLES_TYPES>& p, const mc::MATRIX& r, const mc::MATRIX& v, const std::vector<double>& E_in_eV);
 
     // Public Method:
-    void add_new_particles(const std::array<int,mc::PARTICLES_TYPES> & p);
+    void add_new_particles(const std::array<int,mc::PARTICLES_TYPES>& p);
 
     // Setters:
-    void set_particles(const std::array<int,mc::PARTICLES_TYPES> & p){ particles = p; };
-    void set_position(const std::array<double,3> & pos){ position = pos; };
-    void set_variance(const std::array<double,3> & var){ this->var = var; };
-    void set_velocity(const std::array<double,3> & vel){ velocity = vel; };
-    void set_energy(const double & e){ energy = e; };
+    void set_particles(const std::array<int,mc::PARTICLES_TYPES>& p){ particles = p; };
+    void set_position(const std::array<double,3>& pos){ position = pos; };
+    void set_variance(const std::array<double,3>& var){ this->var = var; };
+    void set_velocity(const std::array<double,3>& vel){ velocity = vel; };
+    void set_energy(const double& e){ energy = e; };
 
     // Getters:
     const std::array<int,mc::PARTICLES_TYPES> & get_particles() const{ return particles; }
     int get_N_electrons() const{ return particles[mc::ELECTRONS]; }
-    const  std::array<double,3> & get_position() const{ return position; }
-    const std::array<double,3> & get_variance() const{ return var; }
-    const std::array<double,3> & get_velocity() const{ return velocity; }
+    const  std::array<double,3>& get_position() const{ return position; }
+    const std::array<double,3>& get_variance() const{ return var; }
+    const std::array<double,3>& get_velocity() const{ return velocity; }
     double get_energy() const{ return energy; }
 
     private:

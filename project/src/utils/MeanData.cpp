@@ -1,6 +1,6 @@
 #include "utils/MeanData.hpp"
 
-MeanData::MeanData(const std::array<double,3> & r, const std::array<double,3> & s, const int ne):
+MeanData::MeanData(const std::array<double,3>& r, const std::array<double,3>& s, const int& ne):
     // Constructor to set initial mean value
     particles({ne, 0, 0}),
     position(r),
@@ -9,7 +9,7 @@ MeanData::MeanData(const std::array<double,3> & r, const std::array<double,3> & 
     energy(0.0)
 {};
 
-MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATRIX & r, const mc::MATRIX & v)
+MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES>& p, const mc::MATRIX& r, const mc::MATRIX& v, const std::vector<double>& E_in_eV)
     : particles(p){
 
     // Constructor that computes mean data from input matrices:
@@ -33,11 +33,7 @@ MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATR
                         [](double sum, const std::array<double, 3>& vi) { return sum + vi[2]; }) / ne;
 
     // Compute mean energy:
-    const double factor = 0.5 * mc::me / mc::q0;
-    energy = std::accumulate(v.cbegin(), v.cend(), 0.0, 
-                    [factor](double sum, const std::array<double, 3>& vi){
-                        return sum + factor * (vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
-                    }) / ne;
+    energy = std::accumulate(E_in_eV.cbegin(), E_in_eV.cend(), 0.0) / ne;
 
     // Compute variance of position:
     var[0] = std::accumulate(r.cbegin(), r.cend(), 0.0,
@@ -54,10 +50,9 @@ MeanData::MeanData(const std::array<int,mc::PARTICLES_TYPES> & p, const mc::MATR
                         }) / (ne - 1);
 };
 
-void MeanData::add_new_particles(const std::array<int,mc::PARTICLES_TYPES> & p){
+void MeanData::add_new_particles(const std::array<int,mc::PARTICLES_TYPES>& p){
     // Add particles (e.g. created by ionization):
     particles[mc::ELECTRONS] += p[mc::ELECTRONS];
     particles[mc::CATIONS] += p[mc::CATIONS];
     particles[mc::ANIONS] += p[mc::ANIONS];
 };
-

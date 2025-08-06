@@ -2,7 +2,7 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -DNDEBUG -O3 -Wall # -fopenmp
 DEBUG_FLAGS = $(CXXFLAGS) -g -DDEBUG
-PROFILER_FLAGS = $(CXXFLAGS) -pg -g -O2
+PROFILER_FLAGS = $(CXXFLAGS) -pg -g
 GPROF_FLAGS = --demangle --display-unused-functions
 
 # Directories

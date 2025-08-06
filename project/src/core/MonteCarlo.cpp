@@ -11,7 +11,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
     conserve(conserve), isotropic(isotropic), W(W), sqrtW(std::sqrt(W)), sqrt1_W(std::sqrt(1-W)),
     E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
-    v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
+    v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), v_abs(N0), E_in_eV(N0), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
     E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix, dE), rates_count(N, conserve, N0),
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
     
@@ -81,14 +81,6 @@ void MonteCarlo::mass_in_kg(){
         const double M = mol_mass.get_front_M();
         mgas.push_back( M / (mc::Na * 1000) );
     }
-}
-
-std::pair<double,double> MonteCarlo::velocity2energy(const std::array<double,3> & v) const {
-    // calculates absolute value of velocity abs_v and energy
-    // E_in_eV in eV for one electron.
-    const double abs_v2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-    const double E_in_eV =  0.5 * mc::me *  abs_v2 / mc::q0;
-    return std::make_pair(std::sqrt(abs_v2),E_in_eV);
 }
 
 void MonteCarlo::initialParticles(const std::array<double,3> & pos_xyz, const std::array<double,3> & sigma_xyz){
@@ -172,6 +164,19 @@ void MonteCarlo::freeFlight(){
         ri[2] += vi[2]*dt + 0.5 * a[2] * dt2;
         vi[2] += a[2] * dt;
     }
+
+    // Update kinetic energy of electrons:
+    v_abs.clear();
+    E_in_eV.clear();
+    v_abs.resize(ne);
+    E_in_eV.resize(ne);
+
+    std::transform(v.cbegin(), v.cend(), v_abs.begin(), [this](const std::array<double, 3>& vi) {
+        return std::sqrt(vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
+    });
+    std::transform(v_abs.cbegin(), v_abs.cend(), E_in_eV.begin(), [this](const double& vi_abs) {
+        return mc::factor *  vi_abs * vi_abs;
+    });
 }
 
 void MonteCarlo::collectMeanData(){
@@ -180,7 +185,7 @@ void MonteCarlo::collectMeanData(){
     // and total electron current
 
     // Update mean vector for the new time step
-    mean.emplace_back(mean.back().get_particles(), r, v);
+    mean.emplace_back(mean.back().get_particles(), r, v, E_in_eV);
 }
 
 void MonteCarlo::updateEnergyData(){
@@ -190,13 +195,7 @@ void MonteCarlo::updateEnergyData(){
     t_total += dt * ne; // sum of all times for all electrons
     E.mean_energy(v2_int, t_total);
 
-    // Compute kinetic energy for each electron:
-    std::vector<double> E_in_eV(ne);    
-    std::transform(v.begin(), v.end(), E_in_eV.begin(), [](const std::array<double, 3>& vi) {
-        const double abs_v2 = vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2];
-        return 0.5 * mc::me * abs_v2 / mc::q0;
-    });
-
+    // Update energy distribution function:
     E.compute_distribution_function(E_in_eV);  
 }
 
@@ -226,28 +225,13 @@ void MonteCarlo::updateReactionRates(){
 void MonteCarlo::updateCollisionMatrix(){
     // Decides which collision will happen for each electron
 
-    // Extract number of electrons:
-    const int num_particles = v.size();
-
-    // From electron velocity compute energies in eV:
-    std::vector<double> v_abs;
-    v_abs.reserve(num_particles);
-    std::transform(v.begin(), v.end(), std::back_inserter(v_abs), [this](const std::array<double, 3>& vi) {
-        return std::sqrt(vi[0]*vi[0] + vi[1]*vi[1] + vi[2]*vi[2]);
-    });
-
-    std::vector<double> E_in_eV;
-    E_in_eV.reserve(num_particles);
-    std::transform(v_abs.begin(), v_abs.end(), std::back_inserter(E_in_eV), [this](const double& vi_abs) {
-        return 0.5 * mc::me *  vi_abs * vi_abs / mc::q0;
-    });
-
     // Generate random numbers for collision indeces:
-    std::vector<double> R(num_particles);
+    const int ne = v.size();
+    std::vector<double> R(ne);
     std::generate(R.begin(), R.end(), [this]() { return randu(gen); });
     
     // Build collision matrix and compute indeces:
-    C.ComputeIndeces(num_particles, Xsec, E_in_eV, v_abs, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
+    C.ComputeIndeces(ne, Xsec, E_in_eV, v_abs, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
     // Update total number of collisions:
     collisions += C.getCollisions();
 }
@@ -307,12 +291,14 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
     for(size_t i = 0; i < ind.size(); i++){
 
         const size_t el_index = ind[i];       // electron index
-        const std::pair<double,double> v2e = velocity2energy(v[el_index]);
+        const double& v_abs_el = v_abs[el_index];
+        const double& EineV_el = E_in_eV[el_index];
+
         // Compute energy before collision
-        E_1 += v2e.second;
+        E_1 += EineV_el;
 
         // Compute incident direction of scattering electrons:
-        const std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
+        const std::array<double,3> e_1 = {v[el_index][0]/v_abs_el, v[el_index][1]/v_abs_el, v[el_index][2]/v_abs_el};
 
         // Randomly generate phi: azimuthal angle
         const double phi = 2 * M_PI * randu(gen);
@@ -322,7 +308,7 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
 
         // Randomly generate xsi: electron scattering angle
         if(isotropic) cos_xsi = 1 - 2 * randu(gen);
-        else cos_xsi = (2 + v2e.second - 2 * std::pow((1+v2e.second),randu(gen))) / v2e.second;
+        else cos_xsi = (2 + EineV_el - 2 * std::pow((1+EineV_el),randu(gen))) / EineV_el;
         const double rand = randn(gen);    // random number to simulate the sign
         sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi) * ((rand>0)-(rand<0));
 
@@ -349,11 +335,11 @@ void MonteCarlo::elasticCollision(const std::vector<size_t> & ind, const std::ve
         for (int j = 0; j < 3; j++) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        double E_2_el = std::max(0.0, v2e.second*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi)));
+        double E_2_el = std::max(0.0, EineV_el*(1 - 2*mc::me/Mass[el_index] * (1 - cos_xsi)));
         E_2 += E_2_el;
 
         // Update velocity:
-        const double v2_abs = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
+        const double v2_abs = std::sqrt(E_2_el / mc::factor);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -380,12 +366,13 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
     for(size_t i = 0; i < ind.size(); i++){
 
         size_t el_index = ind[i];       // electron index
-        std::pair<double,double> v2e = velocity2energy(v[el_index]);
+        const double& v_abs_el = v_abs[el_index];
+        const double& EineV_el = E_in_eV[el_index];
         // Compute energy before collision
-        E_1 += v2e.second;
+        E_1 += EineV_el;
 
         // Compute incident direction of scattering electrons:
-        std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
+        std::array<double,3> e_1 = {v[el_index][0]/v_abs_el, v[el_index][1]/v_abs_el, v[el_index][2]/v_abs_el};
 
         // Randomly generate phi: azimuthal angle
         double phi = 2 * M_PI * randu(gen);
@@ -394,7 +381,7 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
 
         // Randomly generate xsi: electron scattering angle
         if(isotropic) cos_xsi = 1 - 2 * randu(gen);
-        else cos_xsi = (2 + v2e.second - 2 * std::pow((1+v2e.second), randu(gen))) / v2e.second;
+        else cos_xsi = (2 + EineV_el - 2 * std::pow((1+EineV_el), randu(gen))) / EineV_el;
         const double rand = randn(gen);    // random number to simulate the sign
         sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi) * ((rand>0)-(rand<0));
 
@@ -421,11 +408,11 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         for (int j = 0; j < 3; ++j) e_2[j] /= norm;
 
         // Compute energy after the elastic collision:
-        double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
+        double E_2_el = std::max(0.0, EineV_el - Loss[el_index]);
         E_2 += E_2_el;
 
         // Update velocity:
-        double v2_abs = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
+        double v2_abs = std::sqrt(E_2_el/ mc::factor);
         for (int j = 0; j < 3; j++) {
             v[el_index][j] = v2_abs * e_2[j];
         }
@@ -455,12 +442,13 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
     for(int i = 0; i < delta_Ne; i++){
 
         const size_t el_index = ind[i];       // electron index
-        const std::pair<double,double> v2e = velocity2energy(v[el_index]);
+        const double& v_abs_el = v_abs[el_index];
+        const double& EineV_el = E_in_eV[el_index];
         // Compute energy before collision
-        E_1 += v2e.second;
+        E_1 += EineV_el;
 
         // Compute incident direction of scattering electrons:
-        const std::array<double,3> e_1 = {v[el_index][0]/v2e.first, v[el_index][1]/v2e.first, v[el_index][2]/v2e.first};
+        const std::array<double,3> e_1 = {v[el_index][0]/v_abs_el, v[el_index][1]/v_abs_el, v[el_index][2]/v_abs_el};
 
         // Randomly generate phi: azimuthal angle
         const double phi = 2 * M_PI * randu(gen);
@@ -470,7 +458,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
 
         // Randomly generate xsi: electron scattering angle
         if(isotropic) cos_xsi = 1 - 2 * randu(gen);
-        else cos_xsi = (2 + v2e.second - 2 * std::pow((1+v2e.second), randu(gen))) / v2e.second;
+        else cos_xsi = (2 + EineV_el - 2 * std::pow((1+EineV_el), randu(gen))) / EineV_el;
         const double rand = randn(gen);    // random number to simulate the sign
         sin_xsi = std::sqrt(1 - cos_xsi * cos_xsi) * ((rand>0)-(rand<0));
 
@@ -504,11 +492,11 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         e_2[2] /= norm;
 
         // Compute energy after the elastic collision:
-        const double E_2_el = std::max(0.0, v2e.second - Loss[el_index]);
+        const double E_2_el = std::max(0.0, EineV_el - Loss[el_index]);
         E_2 += E_2_el;
 
         // Update velocity:
-        const double tot_v2 = std::sqrt(2.0 * E_2_el * mc::q0 / mc::me);
+        const double tot_v2 = std::sqrt(E_2_el/ mc::factor);
         const double v2_abs = tot_v2 * sqrtW; // W is the energy sharing in ionizing collision
         v[el_index][0] = v2_abs * e_2[0];
         v[el_index][1] = v2_abs * e_2[1];

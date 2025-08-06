@@ -12,8 +12,7 @@ class BulkData {
 
     // Constructor
     BulkData() : w({0.0, 0.0, 0.0}), w_err({0.0, 0.0, 0.0}),
-                 DN({0.0, 0.0, 0.0}), DN_err({0.0, 0.0, 0.0}) {};
-    
+                 DN({0.0, 0.0, 0.0}), DN_err({0.0, 0.0, 0.0}) {};  
 
     // Public methods:
     void update_bulk(const std::vector<double> & tt, const unsigned int & count_sst, const std::vector<MeanData> & mea, const double & N);

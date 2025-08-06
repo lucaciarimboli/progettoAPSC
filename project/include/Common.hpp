@@ -21,6 +21,8 @@ namespace mc {
     inline constexpr double Na = 6.02214129e23;
     // electric constant
     inline constexpr double epsilon0 = 8.854188e-12;
+    // factor 1/2 m/q to convert velocity into energy (eV)
+    inline constexpr double factor = 0.5 * me / q0;
 
     //---------------------------//
     //          Types            //

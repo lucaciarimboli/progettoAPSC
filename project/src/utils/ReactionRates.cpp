@@ -132,7 +132,7 @@ void RateDataCount::computeConserved() {
 }
 
 RateDataConv::RateDataConv( const CrossSectionsData & xs, const EnergyData & en, const std::vector<double> & mix, const double& dE) 
-    : Xsec(xs), E(en), mix(mix), factor(std::sqrt(2.0 * mc::q0 / mc::me) * dE)
+    : Xsec(xs), E(en), mix(mix), factor(dE / std::sqrt(mc::factor))
 {
     // Set the correct size for the specific rates vector:
     // ( "+ mix.size()" to account for effective xs data )
