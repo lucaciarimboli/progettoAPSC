@@ -10,36 +10,91 @@
 #include <cmath>
 #include <regex>
 
+/**
+ * @class MolMass
+ * @brief Computes and stores molar masses for chemical substances or mixtures.
+ *
+ * The MolMass class parses a chemical formula (e.g. "Ar", "O2", or mixtures),
+ * and computes the corresponding molar mass using predefined atomic weights.
+ */
 class MolMass
 {
     public:
-    // Constructors:
+    /**
+     * @brief Default constructor.
+     */
     MolMass()=default;
+    /**
+     * @brief Constructs a MolMass object from a chemical formula.
+     * @param s Chemical formula string (e.g. "O2", "80%Ar + 20%O2").
+     */
     MolMass(const std::string & s): substance(s) {};
 
-    // Public Method:
+    /**
+     * @brief Computes the molar mass from the chemical formula.
+     *
+     *  Computes "M" in atomic units from "substance" 
+     *
+     * "substance" is a string of the chemical formula of s substance.
+     * example "Fe2(SO4)3";
+     * In this case "M" would have length 1: it contains the molar mass of the substance
+     *
+     * "substance" can also be a vector of substances opened by '[' and divided by space, comma or semicolon.
+     * examples:
+     * "[Fe2(SO4)3 CuSO4 NaOH]";
+     * "[H2SO4;H2O;P;Cl2]";
+     * "[C3H5(OH)3,C3H7OH,C12H22O11,NaCl]";
+     * In this case "M" would have as components the molar masses of each susbtance. 
+     *
+     * Finally, "substance" could explicitely contain the molar mass value in the form: "Name(123.45)"
+     */
     void Compute_M();
 
     // Setters:
+
+    /**
+     * @brief Manually sets the molar mass.
+     * @param m Molar mass to set.
+     */
     void set_M(const double & m){
         M.clear();
         M.emplace_back(m);
     }
+
+    /**
+     * @brief Sets the chemical formula string.
+     * @param s New substance string.
+     */
     void set_substance(const std::string & s){ substance = s; }
 
     // Getters:
+    /**
+     * @brief Returns the computed molar masses.
+     * @return A vector of molar masses.
+     * 
+     * If the substance provided is a single specie and not a mixture,
+     * the vector M has size 1.
+     */
     const std::vector<double> & get_M() const{ return M; } 
+    /**
+     * @brief Returns the first molar mass in M.
+     * @return The first molar mass (used for single species).
+     */
     const double get_front_M() const{ return M.front(); }
+    /**
+     * @brief Returns the stored substance string.
+     * @return The chemical formula or mixture string.
+     */
     const std::string & get_substance() const{ return substance; }
 
     
     private:
 
     // Class Members:
-    std::string substance;   // Substance
-    std::vector<double> M;   // Molar masses in atomic units
+    std::string substance;   ///< Substance
+    std::vector<double> M;   ///< Molar masses in atomic units
     
-    //Molar masses of each element
+    ///< Molar masses of each element
     const std::unordered_map<std::string, double> elements_mm = {
             {"H", 1.00794}, {"He", 4.002602}, {"Li", 6.941}, {"Be", 9.012182}, {"B", 10.811}, {"C", 12.011},
             {"N", 14.00674}, {"O", 15.9994}, {"F", 18.9984032}, {"Ne", 20.1797}, {"Na", 22.989768}, {"Mg", 24.305},
@@ -59,17 +114,51 @@ class MolMass
             {"Pa", 231.0359}, {"U", 238.0289}, {"Np", 237.0482}, {"Pu", 244.0642}, {"Am", 243.0614}, {"Cm", 247.0703},
             {"Bk", 247.0703}, {"Cf", 251.0796}, {"Es", 252.0829}, {"Fm", 257.0951}, {"Md", 258.0986}, {"No", 259.1009},
             {"Lr", 262.1138}, {"Rf", 263.1182}, {"Db", 262.1229}, {"Sg", 263.1182}, {"Bh", 262.1138}, {"Hs", 262.1229},
-            {"Mt", 262.1229},
-            {"Nn", 1.0}  // Nn = Not named
+            {"Mt", 262.1229}
     };
 
 
     // Private Methods:
+    /**
+     * @brief Checks if the syntax of the formula is valid.
+     * @return True if valid, false otherwise.
+     */
     bool check_syntax() const;
+    /**
+     * @brief Fixes spacing in the formula string.
+     * 
+     * The string "substance" might be a string of the chemical formula of s substance or a vector of substances
+     * opened by '[', closed by ']', and divided by space, comma or semicolon.
+     * This method uniforms the syntax of the string "substance" so that:
+     *    - There are no spaces
+     *    - In case of a mix, the separator between diffent species is ",", the opening and closure are '[', ']'.
+     */
     void fix_spaces();
+    /**
+     * @brief Normalizes the formula string format.
+     * @param formula The input formula string.
+     * @return A reformatted string.
+     * 
+     * Adapt the formula to allow easier molar mass computation.
+     * This is done by "expanding" the brackets (if any).
+     * e.g. "Ca(OH)2" --> "CaO2H2"
+     */
     std::string adapt_formula(const std::string& formula);
+    /**
+     * @brief Computes the molar mass for a single species.
+     * @param formula Single chemical species (e.g. "CO2").
+     * @return The molar mass.
+     */
     double compute_substance(const std::string& formula);
+    /**
+     * @brief Computes the molar masses for a mixture.
+     * Fill the vector "M" with the molar masses of the corrisponding substances in "substance".
+     * The string "substance" is of the kind: "[sub1,sub2,...,subn]" without spaces.
+     */
     void compute_mixture();
+    /**
+     * @brief Sets a custom molar mass (from format "Name(123.45)" ).
+     */
     void compute_named_substance();
 };
 

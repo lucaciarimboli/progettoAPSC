@@ -1,7 +1,6 @@
 # Compiler and flags
 CXX = g++
 CXXFLAGS = -std=c++17 -DNDEBUG -O3 -Wall -fopenmp
-DEBUG_FLAGS = $(CXXFLAGS) -g -DDEBUG
 PROFILER_FLAGS = $(CXXFLAGS) -pg -g
 GPROF_FLAGS = --demangle --display-unused-functions
 
@@ -11,6 +10,7 @@ INCLUDE_DIR = include
 BUILD_DIR = build
 DATA_DIR = data/config
 PROFILER_DIR = profiler
+DOCS_DIR = docs
 
 # Source files
 CORE_SOURCES = $(wildcard $(SRC_DIR)/core/*.cpp)
@@ -45,7 +45,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 # Phony targets
-.PHONY: build debug run clean profiler help
+.PHONY: build debug run docs clean profiler help
 
 # Build target
 all: $(EXEC)	
@@ -54,15 +54,13 @@ all: $(EXEC)
 run: 
 	./$(EXEC) $(DATA_FILE)
 
+# Generate Doxygen documentation:
+docs:
+	doxygen Doxyfile
+
 # Clean build files
 clean:
-	rm -rf $(BUILD_DIR)
-
-# Debug build
-debug:
-	@$(MAKE) --no-print-directory clean
-	@$(MAKE) --no-print-directory all CXXFLAGS="$(DEBUG_FLAGS)"
-	@$(MAKE) --no-print-directory run
+	rm -rf $(BUILD_DIR) $(DOCS_DIR)
  
 # Profiler build and run
 profile: 
@@ -79,7 +77,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all  		 	- Build executable (default)"
 	@echo "  run     		- Run program using data from 'data/config/simulation.json'"
-	@echo "  clean  		- Remove build directory"
-	@echo "  debug  		- Build and run with debug flags"
+	@echo "  docs   		- Generate documentation in 'docs/' "
+	@echo "  clean  		- Remove 'build/' and 'docs/' directories"
 	@echo "  profile 		- Build and run with profiling enabled, gprof report saved in 'profiler/'"
 	@echo "  help   		- Show this help message"

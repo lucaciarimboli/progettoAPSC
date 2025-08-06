@@ -5,6 +5,8 @@
 #include <array>
 #include <string>
 
+
+
 namespace mc {
 
     //---------------------------//
@@ -28,25 +30,43 @@ namespace mc {
     //          Types            //
     //---------------------------//
 
-    // MATRIX is used for 3D positions or velocities of particles populations:
+    /// Alias for 3D positions and velocities of particles populations.
+    /// Every element is a 3 doubles array referring to x,y and z directions.
     using MATRIX =  std::vector<std::array<double,3>>;
 
-    // To improve clarity when referring to the different types of particles
+    /**
+     * @enum ParticleType
+     * @brief Types of particles.
+     * 
+     * The last particle type does not represents a particle,
+     * but it corresponds to the number of particle types.
+     * It can be used in loop or when defining container sizes
+     * to clarify that the indexes 0,1,2 refer to particle types.
+     * (e.g. std::array<int,PARTICLES_TYPES> instead of std::array<int,3>)
+     */
     enum ParticleType {
-        ELECTRONS = 0,
-        CATIONS,
-        ANIONS,
-        PARTICLES_TYPES
+        ELECTRONS = 0,  ///< electrons.
+        CATIONS,        ///< cations.
+        ANIONS,         ///< anions.
+        PARTICLES_TYPES ///< number of particle types.
     };
 
-    // To improve clarity when referring to the different types of interactions
+    /**
+     * @enum InteractionType
+     * @brief Types of interactions.
+     * 
+     * The last interaction type does not represents an interaction,
+     * but it corresponds to the number of interaction types.
+     * It can be used in loop or when defining container sizes
+     * to clarify that the indexes 0,1,2 refer to particle types.
+     */
     enum InteractionType {
-        EFFECTIVE = 0,
-        IONIZATION,
-        ATTACHMENT,
-        EXCITATION,
-        ELASTIC,
-        INTERACTIONS
+        EFFECTIVE = 0,  ///< effective.
+        IONIZATION,     ///< ionization.
+        ATTACHMENT,     ///< attachment.
+        EXCITATION,     ///< excitation.
+        ELASTIC,        ///< elastic.
+        INTERACTIONS    ///< number of interaction types.
     };
 }
 
