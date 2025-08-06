@@ -7,7 +7,7 @@ FluxData::FluxData():
     DN({0.0, 0.0, 0.0})
 {};
 
-void FluxData::compute_drift_velocity(const mc::MATRIX & v_int, const double t_total){
+void FluxData::compute_drift_velocity(const mc::MATRIX & v_int, const double& t_total){
     for(auto it = v_int.cbegin(); it != v_int.cend(); it++){
         v_int_sum[0] += (*it)[0];
         v_int_sum[1] += (*it)[1];
@@ -19,8 +19,8 @@ void FluxData::compute_drift_velocity(const mc::MATRIX & v_int, const double t_t
     w[2] = v_int_sum[2] / t_total;
 };
 
-void FluxData::compute_diffusion_const(const mc::MATRIX & r, const mc::MATRIX & v,
-    const double den, const double count_sst){
+void FluxData::compute_diffusion_const(const mc::MATRIX& r, const mc::MATRIX& v,
+    const double& den, const double& count_sst){
 
     // Compute mean (in time) position, velocity and diffusion flux:
     const std::array<double,3> mean_r = compute_mean(r);
@@ -39,7 +39,7 @@ void FluxData::compute_diffusion_const(const mc::MATRIX & r, const mc::MATRIX & 
     DN[2] = den * D_sum[2] / N;
 };
 
-const std::array<double,3> FluxData::compute_mean(const mc::MATRIX & M) const{
+const std::array<double,3> FluxData::compute_mean(const mc::MATRIX& M) const{
     // Compute component-by-component mean
     std::array<double,3> mean({0.0, 0.0, 0.0});
     const size_t n = M.size();
@@ -57,16 +57,11 @@ const std::array<double,3> FluxData::compute_mean(const mc::MATRIX & M) const{
     return mean;
 };
 
-const mc::MATRIX FluxData::elementwise_product(const mc::MATRIX & A, const mc::MATRIX & B) const {
+const mc::MATRIX FluxData::elementwise_product(const mc::MATRIX& A, const mc::MATRIX& B) const {
 
     // Equivalent of Matlab's .* product between matrices
     // Remark that MATRIX = std::vector<std::array<double,3>>
     const size_t n = A.size();
-
-    // Size comparison for safety reasons
-    //if( n != B.size()){
-    //    throw std::invalid_argument("Matrices must have the same size");
-    //}
 
     // Compute product element-by-element:
     mc::MATRIX A_dot_B;
