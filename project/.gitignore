@@ -3,6 +3,7 @@ results/
 /core*
 profiler/
 plots/
+docs/
 
 # VS Code settings and configuration files
 .vscode/

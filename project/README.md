@@ -1,6 +1,9 @@
 # Monte Carlo Electron Transport Simulation
 
-This project simulates electron transport in gas mixtures using a Monte-Carlo approach to model collisions. It supports various gas species and computes transport and reaction properties based on cross-section data.
+This project simulates electron transport in a low temperature plasma using a Monte-Carlo, null-collision approach to model
+electron-neutral collisions with the backgorund gas particles.
+The code supports various gas species and computes transport parameters, reaction rates and energy distribution of the electrons
+based on cross-section data (in the LXCat format).
 
 ## Project Structure
 
@@ -12,11 +15,11 @@ This project simulates electron transport in gas mixtures using a Monte-Carlo ap
 - `data` - Data files
   - `Xsec` - Cross-section data files for different species
   - `config` - File .json with simulation data
-- `tests/` - Test codes
+- `tests/` - Some test codes for implementation
 
 ## Build
 
-This project uses a Makefile for building. Available commands:
+This project uses a Makefile for building. Available commands are:
 
 ```bash
 # Build the executable (default)
@@ -25,11 +28,11 @@ make
 # Run the simulation using data in 'data/config/simulation.json'
 make run
 
-# Remove build directory
-make clean
+# Generate Doxygen documentation
+make docs
 
-# Build and run with debug flags
-make debug
+# Remove build and docs directories
+make clean
 
 # Build and run with profiler enabled
 make profile
@@ -39,23 +42,21 @@ make help
 ```
 
 The executable will be created in the `build/` directory as `mc_sim`.
-In case of gprof profiler enabled, the output file is saved in `profiler/` directory as `report.txt`
+The Doxygen documentation files will be created in the `docs/` directory.
+In case of gprof profiler enabled, the output file is saved in the `profiler/` directory as `report.txt`
 
 ## Usage
 
 1. Build the executable with `make`.
-2. Edit `data/config/simulation.json` to set simulation parameters and gas mixtures.
+2. Edit `data/config/simulation.json` to set gas mixture and simulation parameters.
 3. Run the simulation using `make run`.
-4. Outputs will printed to the console roughly every 1e6 collisions.
-5. Final results will be saved in a .txt file in folder `./results/`.
-6. When done, clean the build directory with `make clean`.
-
-**Note:** For multiple simulation runs, the executable does not require rebuilding. Simply repeat steps 2-5 for each simulation and run `make clean` only upon completion of all simulations.
+4. Partial data will be printed to the console roughly every 1e6 collisions.
+5. Final results will be saved in a .txt file in `results/`.
+6. Repeat steps 2-5 for running multiple simulations
 
 ## Extending
 
-- Add new gas species by placing cross-section data files in `data/Xsec/`.
-- Introduce a solver for the Poisson equation to allow the computation of a non-uniform, non-constant electric field.
-- Improve the speed of randomic collisions simulations with a parallel implementation.
+- Add new gas species by including cross-section data files in `data/Xsec/`.
+- Implement a Poisson equation solver to allow simulations with a non-uniform, non-constant electric field.
 
 ---
