@@ -1,9 +1,11 @@
+# Local folders:
 build/
 results/
 /core*
 profiler/
 plots/
 docs/
+tests/
 
 # VS Code settings and configuration files
 .vscode/

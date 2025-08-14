@@ -54,6 +54,16 @@ all: $(EXEC)
 run: 
 	./$(EXEC) $(DATA_FILE)
 
+# Run the program multiple times
+multi_run:
+	@echo "Insert number of simulations:"; \
+	read N; \
+	for i in $$(seq 1 $$N); do \
+		echo "Simulation $$i/$$N"; \
+		$(MAKE) --no-print-directory run; \
+		echo "Simulation $$i completed"; \
+	done
+
 # Generate Doxygen documentation:
 docs:
 	doxygen Doxyfile
@@ -77,6 +87,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all  		 	- Build executable (default)"
 	@echo "  run     		- Run program using data from 'data/config/simulation.json'"
+	@echo "  multi_run		- Run multiple simulations "
 	@echo "  docs   		- Generate documentation in 'docs/' "
 	@echo "  clean  		- Remove 'build/' and 'docs/' directories"
 	@echo "  profile 		- Build and run with profiling enabled, gprof report saved in 'profiler/'"
