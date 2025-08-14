@@ -13,17 +13,17 @@ namespace mc {
     //         Constants         //
     //---------------------------//
 
-    // electron mass
+    /// electron mass
     inline constexpr double me = 9.10938291e-31;
-    // electron charge
+    /// electron charge
     inline constexpr double q0 = 1.60217657e-19;
-    // Boltzmann constant
+    /// Boltzmann constant
     inline constexpr double kB = 1.3806488e-23;
-    // Avogadro constant
+    /// Avogadro constant
     inline constexpr double Na = 6.02214129e23;
-    // electric constant
+    /// electric constant
     inline constexpr double epsilon0 = 8.854188e-12;
-    // factor 1/2 m/q to convert velocity into energy (eV)
+    /// factor 1/2 m/q to convert velocity into energy (eV)
     inline constexpr double factor = 0.5 * me / q0;
 
     //---------------------------//

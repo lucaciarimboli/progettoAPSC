@@ -9,8 +9,7 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
 
     N0(N0), N(p/(mc::kB * T)), gas(gas), mix(mix), Xsec(gas, E_max, mix, N),
     w_err(std::abs(w_err)), DN_err(std::abs(DN_err)), Ne_max(Ne_max), col_equ(col_equ), col_max(col_max),
-    conserve(conserve), isotropic(isotropic), W(W), sqrtW(std::sqrt(W)), sqrt1_W(std::sqrt(1-W)),
-    E_max(E_max), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
+    conserve(conserve), isotropic(isotropic), W(W), sqrtW(std::sqrt(W)), sqrt1_W(std::sqrt(1-W)), EN(EN), t(1,0.0), dt(0.0), v(N0, {0.0, 0.0, 0.0}),
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), v_abs(N0), E_in_eV(N0), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
     E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix, dE), rates_count(N, conserve, N0),
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
@@ -231,7 +230,7 @@ void MonteCarlo::updateCollisionMatrix(){
     std::generate(R.begin(), R.end(), [this]() { return randu(gen); });
     
     // Build collision matrix and compute indeces:
-    C.ComputeIndeces(ne, Xsec, E_in_eV, v_abs, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
+    C.AssignCollisions(ne, Xsec, E_in_eV, v_abs, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
     // Update total number of collisions:
     collisions += C.getCollisions();
 }
@@ -263,6 +262,20 @@ void MonteCarlo::performCollisions(){
     if(!(ind_att.empty())){
         attachmentCollision(ind_att);
     }
+
+    //----------------------------------------------------------------------------------------------------------//
+    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
+    /*
+    std::cout << "Elastic Collisions: " << ind_ela.size() << std::endl;
+    std::cout << "Inelastic Collisions: " << ind_exc.size() << std::endl;
+    std::cout << "Ionization Collisions: " << ind_ion.size() << std::endl;
+    std::cout << "Attachment Collisions: " << ind_att.size() << std::endl;
+    std::cout << "Total Collisions: " << ind_ela.size() + ind_exc.size() + ind_ion.size() + ind_att.size() << std::endl;
+    std::cout << "Electrons population: " << r.size() << std::endl;
+    */
+    //----------------------------------------------------------------------------------------------------------//
+    //----------------------------------------------------------------------------------------------------------//
+        
 }
 
 std::array<double, 3> MonteCarlo::cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b) const {
@@ -776,8 +789,8 @@ void MonteCarlo::saveResults(const int64_t duration) const {
     file << "conserve = " << (conserve ? "true" : "false") << "\n";
     file << "isotropic = " << (isotropic ? "true" : "false") << "\n";
     file << "W = " << W << "\n";
-    file << "E_max = " << E_max << " eV\n\n";
-    
+    file << "E_max = " << Xsec.get_energy().back() << " eV\n\n";
+
     // Gas composition
     file << "[GAS_COMPOSITION]\n";
     for (size_t i = 0; i < gas.size(); i++) {

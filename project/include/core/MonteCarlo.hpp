@@ -187,7 +187,6 @@ private:
     const double W;                 ///< energy sharing in ionizing collision
     const double sqrtW;             ///< std::sqrt(W) -> pre computation
     const double sqrt1_W;           ///< std::sqrt(1-W) -> pre computation
-    double E_max;                   ///< maximum electron energy
     const double EN;                ///< Electric field per-electron [Td]
 
     double T_sst = 0.0;             ///< equilibrium time

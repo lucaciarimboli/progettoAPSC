@@ -39,7 +39,7 @@ public:
     bool save_results;
 
     // Methods
-    bool loadFromFile(const std::string& filename) {
+    bool load_from_file(const std::string& filename) {
         try {
             std::ifstream file(filename);
             if (!file.is_open()) {
@@ -105,7 +105,7 @@ public:
             return true;
 
         } catch (const std::exception& e) {
-            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+            std::cerr << "Error parsing: " << e.what() << std::endl;
             return false;
         }
     }

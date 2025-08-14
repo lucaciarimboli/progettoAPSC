@@ -1,8 +1,8 @@
 //#include "utils/CrossSectionsData.hpp"
 #include "../../include/utils/CrossSectionsData.hpp" // for testing
 
-CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, const double E_max, 
-                                     const std::vector<double> & mix, const double N):
+CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, const double& E_max, 
+                                     const std::vector<double> & mix, const double& N):
     gas(species), n_react(species.size(),1), nu_max(0.0)
 {
     // Check if the gas species are the same as the cross-section data
@@ -16,9 +16,9 @@ CrossSectionsData::CrossSectionsData(const std::vector<std::string> & species, c
     const size_t n_species = gas.size();
 
     // Count the number of reactions for each specie and build a common energy grid:
-    for( size_t i = 0; i < n_species; i++){
-        count_react_and_fill_energy(i);
-    }
+    for( size_t i = 0; i < n_species; i++) count_react_and_fill_energy(i);
+    std::set<double> s(energy.begin(),energy.end());
+    energy.assign(s.begin(),s.end());
 
     // Make sure that the energy range for XS data contains the energy levels of the simulation:
     if( energy[0] > 0.0) energy.insert(energy.begin(), 0.0);
@@ -53,7 +53,7 @@ const unsigned CrossSectionsData::get_n_react() const {
     return sum - gas.size(); // Exclude effective xs data for each specie
 }
 
-void CrossSectionsData::count_react_and_fill_energy(const size_t i){
+void CrossSectionsData::count_react_and_fill_energy(const size_t& i){
     // Counts the number of reactions for each specie and the number of cross-sections data points
     // and fills the energy vector with the energy levels from each reaction, sorted and deduplicated.
 
@@ -93,16 +93,16 @@ void CrossSectionsData::count_react_and_fill_energy(const size_t i){
                     energy.erase(std::unique(energy.begin(), energy.end(),
                         [](double a, double b){ return std::fabs(a - b) < 1e-10; }),
                         energy.end());
-                    */
                     std::set<double> s(energy.begin(),energy.end());    // sort + deduplicate using set
                     energy.assign(s.begin(),s.end());
+                    */
                 }
             }
         }
     }
 }
 
-void CrossSectionsData::import_Xsec_data(const size_t offset, const size_t specie_index){
+void CrossSectionsData::import_Xsec_data(const size_t& offset, const size_t& specie_index){
     // Imports cross-section data from .txt files
 
     // Path to the cross-section data file
@@ -255,7 +255,7 @@ void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector
     }
 }
 
-void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const double N) {
+void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const double& N) {
     // Compute the maximal collision frequency:
 
     // Check if the mix vector is the same size as the gas vector
@@ -279,7 +279,7 @@ void CrossSectionsData::maximalCollFreq(const std::vector<double> & mix, const d
     }
 }
 
-const std::vector<table> CrossSectionsData::get_Xsections( const size_t specie, const mc::InteractionType interaction) const {
+const std::vector<table> CrossSectionsData::get_Xsections( const size_t& specie, const mc::InteractionType& interaction) const {
     // Check if the specie and interaction indices are valid
     if (specie >= gas.size()) {
         throw std::out_of_range("Invalid specie index");

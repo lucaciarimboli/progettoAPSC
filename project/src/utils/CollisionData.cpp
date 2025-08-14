@@ -14,21 +14,17 @@ CollisionData::CollisionData(const CrossSectionsData& Xsec, const std::vector<do
 
     size_t react_index = 0;
 
-    //for( size_t react_index = 0; react_index < n_react; react_index++){
-    //    const table& tab = Xsec.get_full_xs_data()[react_index];
     for( const table& tab : Xsec.get_full_xs_data()){
-
-        //if( tab.interact != mc::EFFECTIVE){
 
         // Update the collision indices and "loss" vector:
         if( tab.interact == mc::ELASTIC){
             col_ela.insert(react_index);
         } else if( tab.interact == mc::EXCITATION){
             col_exc.insert(react_index);
-            loss[react_index] = tab.en_avg;        // VERIFICA SE E' CORRETTO !!
+            loss[react_index] = tab.en_avg;
         } else if( tab.interact == mc::IONIZATION){
             col_ion.insert(react_index);
-            loss[react_index] = tab.en_avg;        // VERIFICA SE E' CORRETTO !!
+            loss[react_index] = tab.en_avg;
         } else if( tab.interact == mc::ATTACHMENT){
             col_att.insert(react_index);
         }
@@ -36,7 +32,6 @@ CollisionData::CollisionData(const CrossSectionsData& Xsec, const std::vector<do
         // Update the "mass" vector:
         mass[react_index] = mgas[tab.specie_index];
         react_index++;
-        //}
     }
 }
 
@@ -53,7 +48,7 @@ const int CollisionData::getCollisions() const {
     return ind_ela.size() + ind_exc.size() + ind_ion.size() + ind_att.size();
 }
 
-void CollisionData::ComputeIndeces(const int& n_electrons, const CrossSectionsData& Xsec,
+void CollisionData::AssignCollisions(const int& n_electrons, const CrossSectionsData& Xsec,
     const std::vector<double>& E_in_eV, const std::vector<double>& v_abs,
     const std::vector<double>& mix, const double& density, const std::vector<double>& R)
 {
@@ -141,7 +136,7 @@ void CollisionData::fill_Loss(const std::vector<size_t> & ind) {
     Loss.clear();
     Loss.resize(ind.size(), 0.0); 
     
-  // Consider excitation collisions:
+    // Consider excitation collisions:
     for( size_t col : col_exc){
         auto it = std::find(ind.cbegin(), ind.cend(), col);
         // Check if the index is found:

@@ -22,10 +22,10 @@ int main(int argc, char* argv[]) {
         config_file = argv[1];
     }
     
-    if (!config.loadFromFile(config_file)) {
-        std::cout << "Warning: using built-in default parameters" << std::endl;
-    } else {
+    if (config.load_from_file(config_file)) {
         std::cout << "\n Loaded simulation data from: " << config_file << std::endl;
+    } else {
+        std::cout << "\n Failed to load simulation data from: " << config_file << std::endl;
     }
 
     //------------------------------------------//
