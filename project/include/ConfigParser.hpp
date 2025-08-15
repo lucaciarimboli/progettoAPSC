@@ -36,7 +36,6 @@ public:
     // Flags
     bool conserve_electrons;
     bool isotropic_scattering;
-    bool save_results;
 
     // Methods
     bool load_from_file(const std::string& filename) {
@@ -50,7 +49,7 @@ public:
             nlohmann::json j;
             file >> j;
 
-            // Load simulation parameters
+            // Simulation parameters
             if (j.contains("simulation")) {
                 const auto& sim = j["simulation"];
                 gas_species = sim.value("gas_species", gas_species);
@@ -61,7 +60,6 @@ public:
                 initial_electrons = sim.value("initial_electrons", initial_electrons);
                 energy_sharing = sim.value("energy_sharing", energy_sharing);
                 
-                // Load arrays
                 if (sim.contains("initial_position")) {
                     auto pos = sim["initial_position"].get<std::vector<double>>();
                     if (pos.size() == 3) {
@@ -77,14 +75,14 @@ public:
                 }
             }
 
-            // Load grid parameters
+            // Grid parameters
             if (j.contains("grid")) {
                 const auto& grid = j["grid"];
                 max_energy = grid.value("max_energy", max_energy);
                 energy_step = grid.value("energy_step", energy_step);
             }
 
-            // Load tolerances and limits
+            // Tolerances
             if (j.contains("tolerances")) {
                 const auto& tol = j["tolerances"];
                 drift_velocity_error = tol.value("drift_velocity_error", drift_velocity_error);
@@ -94,12 +92,11 @@ public:
                 max_electrons = tol.value("max_electrons", max_electrons);
             }
 
-            // Load flags
+            // Flags
             if (j.contains("flags")) {
                 const auto& flags = j["flags"];
                 conserve_electrons = flags.value("conserve_electrons", conserve_electrons);
                 isotropic_scattering = flags.value("isotropic_scattering", isotropic_scattering);
-                save_results = flags.value("save_results", save_results);
             }
 
             return true;

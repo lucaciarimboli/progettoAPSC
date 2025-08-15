@@ -59,8 +59,6 @@ int main(int argc, char* argv[]) {
     
     // checks end of simulation: End =1 stops the simulation
     bool End = false;
-    // flag to indicate the will of saving results in a file
-    const bool save_in_file = config.save_results;
 
     std::cout << " Starting simulation..." << std::endl;
 
@@ -100,23 +98,7 @@ int main(int argc, char* argv[]) {
     std::cout << " Simulation ended in " << minutes << " minutes, " << seconds << " seconds\n";    
 
     // Save results when simulation ends
-    if(save_in_file){
-        MC.saveResults(duration);
-    }
-
-
-    //----------------------------------------------------------------------------------------------------------//
-    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    /*
-    std::ofstream file("tests/rz_data.csv");
-    file << "time" << "pos_x" << "pos_y" << "\n";
-    for(size_t i = 0; i < meandata.size(); i++) {
-        file << time[i] << "," << meandata[i].get_position()[0] << "," << meandata[i].get_position()[1] << "\n";
-    }
-    file.close();
-    */
-    //----------------------------------------------------------------------------------------------------------//
-    //----------------------------------------------------------------------------------------------------------//
+    MC.saveResults(duration);
 
     return 0;
 }
