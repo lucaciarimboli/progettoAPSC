@@ -6,6 +6,7 @@ The code supports various gas species and computes transport parameters, reactio
 based on cross-section data (in the LXCat format).
 
 ## Project Structure
+```
 .
 |-- Doxyfile
 |-- Makefile
@@ -43,7 +44,7 @@ based on cross-section data (in the LXCat format).
         |-- MeanData.cpp
         |-- MolMass.cpp
         `-- ReactionRates.cpp
-
+```
 
 ## Build
 
