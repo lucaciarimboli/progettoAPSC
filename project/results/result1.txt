@@ -1,0 +1,75 @@
+# Monte Carlo Electron Transport Simulation Results
+# Generated on: 2025-08-06 00:29:54
+# ================================================
+
+[FINAL_STATE]
+iterations = 1394
+collisions = 1178937
+electrons = 2957324
+cations = 2857603
+anions = 279
+steady_state_time = 1.443159e-02 ns
+final_time = 1.615619e-02 ns
+convergence_status = 0
+convergence_time = 11 minutes, 15 seconds
+
+[SIMULATION_PARAMETERS]
+EN = 5.000000e+03 Td
+N0 = 100000
+N = 2.446314e+25 m^-3
+col_max = 100000000
+col_equ = 10000000
+conserve = true
+isotropic = true
+W = 5.000000e-01
+E_max = 1.000000e+05 eV
+
+[GAS_COMPOSITION]
+gas[0] = N2
+mix[0] = 8.000000e-01
+gas[1] = O2
+mix[1] = 2.000000e-01
+
+[ENERGY_DATA]
+E_mean = 7.021007e+01 eV
+
+[BULK_TRANSPORT_DATA]
+w_x = 2.072158e+04 m/s
+w_y = -1.428565e+04 m/s
+w_z = 2.846333e+06 m/s
+w_x_err = 1.021110e+03 m/s
+w_y_err = -1.142680e+03 m/s
+w_z_err = 9.619799e+03 m/s
+DN_x = 1.440034e+25 m^2/s
+DN_y = 1.361674e+25 m^2/s
+DN_z = 2.415537e+25 m^2/s
+DN_x_err = 1.407369e+23 m^2/s
+DN_y_err = 9.730783e+22 m^2/s
+DN_z_err = 2.413659e+23 m^2/s
+
+[FLUX_TRANSPORT_DATA]
+w_x = 2.768815e+03 m/s
+w_y = 1.323924e+03 m/s
+w_z = 2.223293e+06 m/s
+DN_x = 1.153358e+25 m^2/s
+DN_y = 1.162605e+25 m^2/s
+DN_z = 1.459534e+25 m^2/s
+
+[TRANSPORT_COEFFICIENTS]
+alpha = 6.800663e+05 m^-1
+eta = 7.977471e+01 m^-1
+
+[REACTION_RATES]
+# Counted rates:
+effective_count = 8.064450e-14 m^3/s
+ionization_count = 8.065396e-14 m^3/s
+attachment_count = 9.461058e-18 m^3/s
+# Rates computed by convolution:
+effective_conv = 7.224427e-14 m^3/s
+ionization_conv = 7.225190e-14 m^3/s
+attachment_conv = 7.627069e-18 m^3/s
+
+[ENERGY_LOSSES]
+elastic = 2.211752e+08 eV
+inelastic = 2.197944e+05 eV
+ionization = 3.815510e+04 eV
