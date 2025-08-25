@@ -13,17 +13,6 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     v_int(N0, {0.0, 0.0, 0.0}), v2_int(N0, {0.0, 0.0, 0.0}), v_abs(N0), E_in_eV(N0), mean(1, MeanData(pos_xyz, sigma_xyz, N0)),
     E(E_max,dE), bulk(), flux(), rates_conv(Xsec, E, mix, dE), rates_count(N, conserve, N0),
     gen(std::random_device{}()), randu(0.0,1.0), randn(0.0,1.0) {
-    
-    //----------------------------------------------------------------------------------------------------------//
-    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    // gen.seed(37498390); // --> seed usato in optimization
-    // gen.seed(4738);
-    // gen.seed(8468927);
-    // gen.seed(3719741);
-    // gen.seed(1840127407);
-    // gen.seed(3276);
-    //----------------------------------------------------------------------------------------------------------//
-    //----------------------------------------------------------------------------------------------------------//
         
     // The check for the validity of the gas species is done in "CrossSectionsData" constructor
     Xsec.remove_effective_xs();
@@ -35,9 +24,9 @@ MonteCarlo::MonteCarlo( const std::vector<std::string> & gas, const std::vector<
     mass_in_kg();
 
     // Set electric field E (constant and uniform):
-    const double E_x = 0;
-    const double E_y = 0;
-    const double E_z = EN * N * 1e-21; // Electric field strength in V/m, EN is the energy in eV
+    const double E_x = 0.0;
+    const double E_y = 0.0;
+    const double E_z = EN * N * 1e-21; // Electric field strength in V/m
 
     // Initialize acceleration array after the electric field was set:
     // (since E is constant and uniform, a does not change and is the same for every electron)
@@ -230,7 +219,7 @@ void MonteCarlo::updateCollisionMatrix(){
     std::generate(R.begin(), R.end(), [this]() { return randu(gen); });
     
     // Build collision matrix and compute indeces:
-    C.AssignCollisions(ne, Xsec, E_in_eV, v_abs, mix, N, R); // I express v_abs in terms of E_in_eV inside the computations to avoid allocating memory for it
+    C.AssignCollisions(ne, Xsec, E_in_eV, v_abs, mix, N, R);
     // Update total number of collisions:
     collisions += C.getCollisions();
 }
@@ -261,21 +250,7 @@ void MonteCarlo::performCollisions(){
     // If any, perform attachment collision:
     if(!(ind_att.empty())){
         attachmentCollision(ind_att);
-    }
-
-    //----------------------------------------------------------------------------------------------------------//
-    //-------------------------------------- FOR DEBUGGING PURPOSES --------------------------------------------//
-    /*
-    std::cout << "Elastic Collisions: " << ind_ela.size() << std::endl;
-    std::cout << "Inelastic Collisions: " << ind_exc.size() << std::endl;
-    std::cout << "Ionization Collisions: " << ind_ion.size() << std::endl;
-    std::cout << "Attachment Collisions: " << ind_att.size() << std::endl;
-    std::cout << "Total Collisions: " << ind_ela.size() + ind_exc.size() + ind_ion.size() + ind_att.size() << std::endl;
-    std::cout << "Electrons population: " << r.size() << std::endl;
-    */
-    //----------------------------------------------------------------------------------------------------------//
-    //----------------------------------------------------------------------------------------------------------//
-        
+    }      
 }
 
 std::array<double, 3> MonteCarlo::cross_product(const std::array<double, 3>& a, const std::array<double, 3>& b) const {
@@ -388,8 +363,9 @@ void MonteCarlo::inelasticCollision(const std::vector<size_t> & ind, const std::
         std::array<double,3> e_1 = {v[el_index][0]/v_abs_el, v[el_index][1]/v_abs_el, v[el_index][2]/v_abs_el};
 
         // Randomly generate phi: azimuthal angle
-        double phi = 2 * M_PI * randu(gen);
+        const double phi = 2 * M_PI * randu(gen);
         sin_phi = std::sin(phi);
+        // sin_phi = 1 - 2 * randu(gen);
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
@@ -466,7 +442,7 @@ void MonteCarlo::ionizationCollision(const std::vector<size_t> & ind, const std:
         // Randomly generate phi: azimuthal angle
         const double phi = 2 * M_PI * randu(gen);
         sin_phi = std::sin(phi);
-        //sin_phi = 1 - 2 * randu(gen);
+        // sin_phi = 1 - 2 * randu(gen);
         cos_phi = std::sqrt(1-sin_phi*sin_phi);
 
         // Randomly generate xsi: electron scattering angle
