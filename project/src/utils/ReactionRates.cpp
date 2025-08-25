@@ -29,7 +29,6 @@ void RateDataCount::setTime(const std::vector<double>& time, const size_t & coun
 }
 
 void RateDataCount::setParticles(const std::vector<MeanData> & mean, const size_t & count_sst) {
-    //if (count_sst > mean.size()) {throw std::out_of_range("count_sst exceeds the size of mean");}
 
     // Set the size for particle vector
     electrons.clear();
@@ -77,7 +76,6 @@ void RateDataCount::computeNonConserved() {
     std::vector<double> y(electrons.size(), 0.0);
     const double log_ne0 = std::log(static_cast<double>(electrons[0]));
     std::transform(electrons.begin() + 1, electrons.end(), y.begin() + 1, [log_ne0](int part_0i) {
-        // if( part_0i == 0) throw std::invalid_argument("Number of electrons cannot be zero");
         return std::log(static_cast<double>(part_0i)) - log_ne0;
     });
     computeRate(t, y, mc::EFFECTIVE); // effective rate
@@ -193,14 +191,14 @@ void RateDataConv::computeRates(){
     const std::vector<double>& sqrt_energy = E.get_sqrt_E();
     std::vector<double> product(sqrt_energy.size());
 
-    /*
     std::transform(EEPF.cbegin(), EEPF.cend(), sqrt_energy.cbegin(), product.begin(),
         [](const double& a, const double& b){return a * b; }
     );
-    */
+    /*
     std::transform( std::execution::par, EEPF.begin(), EEPF.end(), sqrt_energy.begin(), product.begin(),
         [](const double& a, const double& b){return a * b; }
     );
+    */
 
     // Reset the reaction rates before computing:
     rates.fill(0.0);

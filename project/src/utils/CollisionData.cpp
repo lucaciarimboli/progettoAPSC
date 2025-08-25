@@ -56,7 +56,6 @@ void CollisionData::AssignCollisions(const int& n_electrons, const CrossSections
 
     // Define vector to store which reaction will happen for each electron:
     std::vector<size_t> ind(n_electrons);
-    // ind.reserve(n_electrons);
 
     // Common factor in the collision matrix:
     const double common_factor = density / Xsec.get_nu_max();
@@ -65,7 +64,7 @@ void CollisionData::AssignCollisions(const int& n_electrons, const CrossSections
 
     std::vector<size_t> k(n_electrons);
     std::vector<double> t(n_electrons);
-    #pragma omp parallel for schedule(static, 10000)
+    // #pragma omp parallel for schedule(static, 10000)
     for (int i = 0; i < n_electrons; i++) {
         auto it = std::upper_bound(XS_energy.cbegin(), XS_energy.cend(), E_in_eV[i]);
         const size_t idx = std::min(
@@ -77,10 +76,9 @@ void CollisionData::AssignCollisions(const int& n_electrons, const CrossSections
     }
 
     // Compute the cumulative sum by electron of the collision matrix:
-    #pragma omp parallel for schedule(static, 10000)
+    // #pragma omp parallel for schedule(static, 10000)
     for(int i = 0; i < n_electrons; i++){
         // Simulate which collision the i-esim electron undergoes:
-        // ind.push_back(CollisionMatrix(R[i], XS_data, mix, t[i], k[i], v_abs[i]*common_factor));
         ind[i] = CollisionMatrix(R[i], XS_data, mix, t[i], k[i], v_abs[i]*common_factor);
     }
 

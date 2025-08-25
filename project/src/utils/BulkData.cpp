@@ -168,17 +168,7 @@ const std::array<double,2> BulkData::linear_regression(const std::vector<double>
     // Compute standard error for slope:
     const double standard_err= std::sqrt(std::inner_product(res.cbegin(), res.cend(), res.cbegin(), 0.0) / ((n - 2) * var));
 
-    // Confidence interval of 95% for slope:
-
-    // The smallest # of dof is n = 9. t_value = 2.2621 for 97.5% confidence interval with 9 dof.
-    // A t-student quantile table would be required, to avoid importing external libraries just for this task,
-    // an over-estimate using the quantile with 9 dof (2.262) and with infinite dof (1.960) is applied.
-
-    // This estimate is safe as the actual t-student values decrease faster, so this approximation simply provides
-    // a slightly more conservative error estimate.
-    // (e.g. for 100 d.o.f: actual t_value = 1.984, computed value: 1.9877)
-
-    // Length of confidence interval of 95% for slope with 9 dof (minimum value of n-2):
-    const double t_value = 1.96 + 2.718 / (n - 2); // interpolation for t-student quantile
+    // interpolation for t-student quantile for 0.025 confidence level
+    const double t_value = 1.96 + 2.718 / (n - 2);
     return { m, 2 * t_value * standard_err };
 };

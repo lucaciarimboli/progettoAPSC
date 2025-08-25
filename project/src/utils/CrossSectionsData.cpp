@@ -225,17 +225,6 @@ void CrossSectionsData::linear_interpolation(std::vector<double>& x, std::vector
     const double y_min = y.front();
     const double y_max = y.back();
 
-    /*
-    // Make the extremes of "energy" coincide with the simulation's energy range
-    if( x[0] > 0.0) {
-        x.insert(x.begin(), 0.0);
-        y.insert(y.begin(), y.front());
-    }
-    if( x.back() < E_max) {
-        x.push_back(E_max);
-        y.push_back(y.back());
-    }
-    */
     //size_t k = 0;
     for (const double& q : energy) {
         if (q <= x_min) {
@@ -324,15 +313,6 @@ const std::vector<table> CrossSectionsData::get_Xsections( const std::string & s
 }
 
 void CrossSectionsData::remove_effective_xs() {
-    // Within the MonteCarlo simulation, the full Xsections vector is accessed only by the classes
-    // RateDataConv and CollisionData. In both cases, the presence effective cross section data is
-    // not only unnecesary, but also it affects drastically the performance due to the need
-    // of checking multiple times if the interaction is effective or not, before accessing the actual data.
-
-    // Since the CrossSectionData class might have more general application as it only imports and stores
-    // the cross-section data from .txt data files, this public method has been specifically defined
-    // for the MonteCarlo collision-code application only and is called in the MonteCarlo class constructor. 
-
     // Remove effective xs data from the Xsections vector
     Xsections.erase(std::remove_if(Xsections.begin(), Xsections.end(),
         [](const table& t) { return t.interact == mc::EFFECTIVE; }), Xsections.end());
